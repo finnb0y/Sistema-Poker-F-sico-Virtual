@@ -33,7 +33,6 @@ const BlindStructureManager: React.FC<BlindStructureManagerProps> = ({
     
     const newInterval: BlindInterval = {
       startingSmallBlind: lastLevel ? lastLevel.smallBlind + lastInterval.increment : 100,
-      startingBigBlind: lastLevel ? lastLevel.bigBlind + (lastInterval.increment * 2) : 200,
       increment: lastInterval?.increment || 100,
       levelDuration: lastInterval?.levelDuration || 15,
       numberOfLevels: 5

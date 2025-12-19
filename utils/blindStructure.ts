@@ -55,7 +55,6 @@ export function createDefaultBlindStructure(): { intervals: BlindInterval[], lev
   const intervals: BlindInterval[] = [
     {
       startingSmallBlind: 50,
-      startingBigBlind: 100,
       increment: 50,
       levelDuration: 15,
       numberOfLevels: 10

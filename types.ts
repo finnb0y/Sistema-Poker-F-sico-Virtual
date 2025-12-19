@@ -29,7 +29,6 @@ export interface BlindLevel {
 
 export interface BlindInterval {
   startingSmallBlind: number;
-  startingBigBlind: number;
   increment: number; // how much to increase small blind each level
   levelDuration: number; // duration in minutes for each level in this interval
   numberOfLevels: number; // how many levels in this interval
