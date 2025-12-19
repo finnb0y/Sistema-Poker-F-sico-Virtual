@@ -7,7 +7,7 @@ import DealerControls from './components/DealerControls';
 import TableDealerInterface from './components/TableDealerInterface';
 
 const INITIAL_STATE: GameState = {
-  roomTables: Array.from({ length: 15 }, (_, i) => ({ id: i + 1, name: `Mesa ${i + 1}` })),
+  roomTables: Array.from({ length: 10 }, (_, i) => ({ id: i + 1, name: `Mesa ${i + 1}` })),
   tournaments: [],
   tableStates: [],
   players: [],
