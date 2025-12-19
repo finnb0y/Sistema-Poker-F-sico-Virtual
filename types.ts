@@ -88,6 +88,8 @@ export type ActionType =
   | 'REGISTER_PLAYER_TO_TOURNAMENT'
   | 'REMOVE_PLAYER'
   | 'MOVE_PLAYER'
+  | 'REBUY_PLAYER'
+  | 'REENTRY_PLAYER'
   | 'START_HAND' 
   | 'BET' 
   | 'FOLD' 
