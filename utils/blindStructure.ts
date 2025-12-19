@@ -19,7 +19,7 @@ function getIncrementForBlind(bigBlind: number, initialIncrement: number): numbe
 /**
  * Generates a blind structure based on the initial small and big blind values
  * The progression is linear with increments that change based on blind levels:
- * - Initial increment is derived from the initial big blind
+ * - Initial increment equals the initial small blind value
  * - Increments change to 500 when blinds reach 2000
  * - Increments change to 5000 when blinds reach 20k
  */
@@ -31,8 +31,8 @@ export function generateBlindStructure(
 ): BlindLevel[] {
   const levels: BlindLevel[] = [];
   
-  // Calculate the initial increment from the first level
-  const initialIncrement = initialBigBlind - initialSmallBlind;
+  // The increment is the initial small blind value
+  const initialIncrement = initialSmallBlind;
   
   let currentSmallBlind = initialSmallBlind;
   let currentBigBlind = initialBigBlind;
