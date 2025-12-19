@@ -69,9 +69,23 @@ const TableView: React.FC<TableViewProps> = ({
           const seatNum = i + 1;
           const player = tablePlayers.find(p => p.seatNumber === seatNum);
           const style = getSeatStyle(seatNum);
+          const isDealerSeat = seatNum === 1;
 
           if (!player) {
             if (!showEmptySeats) return null;
+            // Seat 1 is reserved for the dealer
+            if (isDealerSeat) {
+              return (
+                <div 
+                  key={`seat-${seatNum}`}
+                  style={style}
+                  className="absolute w-16 h-12 sm:w-28 sm:h-20 rounded-xl sm:rounded-3xl border-2 border-yellow-600/50 bg-yellow-900/20 flex flex-col items-center justify-center"
+                >
+                  <span className="text-yellow-500/60 text-[7px] sm:text-[9px] font-black uppercase">DEALER</span>
+                  <span className="text-yellow-500/40 text-[6px] sm:text-[8px] font-black">RESERVED</span>
+                </div>
+              );
+            }
             return (
               <div 
                 key={`seat-${seatNum}`}
