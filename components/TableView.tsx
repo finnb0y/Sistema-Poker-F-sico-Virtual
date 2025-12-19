@@ -29,7 +29,9 @@ const TableView: React.FC<TableViewProps> = ({
   const currentBlindLevel = tournament.config.blindStructure?.levels?.[tableState.currentBlindLevel] || {
     smallBlind: state.smallBlind,
     bigBlind: state.bigBlind,
-    duration: 15
+    ante: state.bigBlind,
+    duration: 15,
+    isBreak: false
   };
 
   const getSeatStyle = (seatNumber: number) => {
@@ -58,8 +60,13 @@ const TableView: React.FC<TableViewProps> = ({
           </div>
           <div className="mt-2 sm:mt-4 flex flex-wrap justify-center gap-2 sm:gap-6">
              <div className="text-white/40 text-[7px] sm:text-[9px] font-black uppercase tracking-widest bg-black/20 px-2 sm:px-4 py-0.5 sm:py-1 rounded-full border border-white/5">
-                {currentBlindLevel.smallBlind}/{currentBlindLevel.bigBlind}
+                SB/BB: {currentBlindLevel.smallBlind}/{currentBlindLevel.bigBlind}
              </div>
+             {currentBlindLevel.ante > 0 && (
+               <div className="text-blue-400 text-[7px] sm:text-[9px] font-black uppercase tracking-widest bg-blue-900/20 px-2 sm:px-4 py-0.5 sm:py-1 rounded-full border border-blue-500/20">
+                  Ante: {currentBlindLevel.ante}
+               </div>
+             )}
              <div className="text-white/40 text-[7px] sm:text-[9px] font-black uppercase tracking-widest bg-black/20 px-2 sm:px-4 py-0.5 sm:py-1 rounded-full border border-white/5">
                 Nível {tableState.currentBlindLevel + 1}
              </div>

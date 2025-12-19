@@ -1,61 +1,80 @@
-import { BlindLevel } from '../types';
+import { BlindLevel, BlindInterval } from '../types';
 
 /**
- * Calculates the increment value based on the current blind level
- * - For blinds < 2000: increment = initialIncrement (e.g., 100)
- * - For blinds 2000-19999: increment = 500
- * - For blinds >= 20000: increment = 5000
+ * Generates blind levels from an array of intervals with optional breaks
+ * - Big blind is always 2x small blind
+ * - Ante equals big blind value
+ * - Each interval defines starting blinds, increment, duration, and number of levels
  */
-function getIncrementForBlind(bigBlind: number, initialIncrement: number): number {
-  if (bigBlind >= 20000) {
-    return 5000;
-  } else if (bigBlind >= 2000) {
-    return 500;
-  } else {
-    return initialIncrement;
-  }
-}
-
-/**
- * Generates a blind structure based on the initial small and big blind values
- * The progression is linear with increments that change based on blind levels:
- * - Initial increment equals the initial small blind value
- * - Increments change to 500 when blinds reach 2000
- * - Increments change to 5000 when blinds reach 20k
- */
-export function generateBlindStructure(
-  initialSmallBlind: number, 
-  initialBigBlind: number,
-  levelDuration: number = 15,
-  numberOfLevels: number = 20
+export function generateBlindStructureFromIntervals(
+  intervals: BlindInterval[],
+  breakEnabled: boolean = false,
+  breakDuration: number = 10,
+  breakFrequency: number = 0
 ): BlindLevel[] {
   const levels: BlindLevel[] = [];
+  let levelCount = 0;
   
-  // The increment is the initial small blind value
-  const initialIncrement = initialSmallBlind;
-  
-  let currentSmallBlind = initialSmallBlind;
-  let currentBigBlind = initialBigBlind;
-  
-  for (let i = 0; i < numberOfLevels; i++) {
-    levels.push({
-      smallBlind: currentSmallBlind,
-      bigBlind: currentBigBlind,
-      duration: levelDuration
-    });
+  intervals.forEach((interval) => {
+    let currentSmallBlind = interval.startingSmallBlind;
     
-    // Calculate next level
-    const increment = getIncrementForBlind(currentBigBlind, initialIncrement);
-    currentSmallBlind += increment;
-    currentBigBlind += increment;
-  }
+    for (let i = 0; i < interval.numberOfLevels; i++) {
+      const bigBlind = currentSmallBlind * 2;
+      levels.push({
+        smallBlind: currentSmallBlind,
+        bigBlind: bigBlind,
+        ante: bigBlind,
+        duration: interval.levelDuration,
+        isBreak: false
+      });
+      
+      levelCount++;
+      
+      // Add break if enabled and it's time for one
+      if (breakEnabled && breakFrequency > 0 && levelCount % breakFrequency === 0) {
+        levels.push({
+          smallBlind: 0,
+          bigBlind: 0,
+          ante: 0,
+          duration: breakDuration,
+          isBreak: true
+        });
+      }
+      
+      currentSmallBlind += interval.increment;
+    }
+  });
   
   return levels;
 }
 
 /**
- * Creates a default blind structure (50/100 starting blinds)
+ * Creates a default blind structure with a single interval
  */
-export function createDefaultBlindStructure(): BlindLevel[] {
-  return generateBlindStructure(50, 100, 15, 20);
+export function createDefaultBlindStructure(): { intervals: BlindInterval[], levels: BlindLevel[] } {
+  const intervals: BlindInterval[] = [
+    {
+      startingSmallBlind: 50,
+      startingBigBlind: 100,
+      increment: 50,
+      levelDuration: 15,
+      numberOfLevels: 10
+    }
+  ];
+  
+  const levels = generateBlindStructureFromIntervals(intervals, false, 10, 0);
+  
+  return { intervals, levels };
+}
+
+/**
+ * Validates a blind level to ensure big blind = 2x small blind and ante = big blind
+ */
+export function validateAndFixBlindLevel(level: BlindLevel): BlindLevel {
+  const correctedBigBlind = level.smallBlind * 2;
+  return {
+    ...level,
+    bigBlind: correctedBigBlind,
+    ante: correctedBigBlind
+  };
 }

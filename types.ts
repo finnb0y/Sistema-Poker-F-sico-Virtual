@@ -22,7 +22,17 @@ export interface RegisteredPerson {
 export interface BlindLevel {
   smallBlind: number;
   bigBlind: number;
+  ante: number;
   duration: number; // in minutes
+  isBreak?: boolean; // if true, this is a break period
+}
+
+export interface BlindInterval {
+  startingSmallBlind: number;
+  startingBigBlind: number;
+  increment: number; // how much to increase small blind each level
+  levelDuration: number; // duration in minutes for each level in this interval
+  numberOfLevels: number; // how many levels in this interval
 }
 
 export interface TournamentConfig {
@@ -32,10 +42,11 @@ export interface TournamentConfig {
   addon: { enabled: boolean, active: boolean, price: number, chips: number };
   maxSeats: number;
   blindStructure: {
-    initialSmallBlind: number;
-    initialBigBlind: number;
-    levelDuration: number; // in minutes
+    intervals: BlindInterval[];
     levels: BlindLevel[];
+    breakEnabled: boolean;
+    breakDuration: number; // in minutes
+    breakFrequency: number; // insert break after every X levels (0 = no breaks)
   };
 }
 

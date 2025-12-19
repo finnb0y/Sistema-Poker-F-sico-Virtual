@@ -63,6 +63,11 @@ const TableDealerInterface: React.FC<TableDealerInterfaceProps> = ({ state, onDi
             <div className="text-3xl font-black text-yellow-500">
               {currentBlindLevel ? `${currentBlindLevel.smallBlind}/${currentBlindLevel.bigBlind}` : 'N/A'}
             </div>
+            {currentBlindLevel?.ante && currentBlindLevel.ante > 0 && (
+              <div className="text-sm font-black text-blue-400">
+                Ante: {currentBlindLevel.ante}
+              </div>
+            )}
             <div className="text-[10px] font-black text-white/40 uppercase">Nível {(tableState?.currentBlindLevel || 0) + 1}</div>
          </div>
          
