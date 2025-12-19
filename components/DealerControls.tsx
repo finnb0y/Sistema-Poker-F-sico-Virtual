@@ -1,0 +1,432 @@
+
+import React, { useState, useEffect } from 'react';
+import { GameState, ActionMessage, TournamentConfig, Player, RegisteredPerson, Tournament, RoomTable } from '../types';
+import TableView from './TableView';
+
+interface DealerControlsProps {
+  state: GameState;
+  onDispatch: (action: ActionMessage) => void;
+}
+
+const ToggleSlider: React.FC<{ checked: boolean, onChange: (val: boolean) => void, colorClass?: string }> = ({ checked, onChange, colorClass = 'bg-yellow-500' }) => (
+  <button 
+    type="button"
+    onClick={() => onChange(!checked)}
+    className={`w-14 h-7 rounded-full relative transition-all duration-300 border border-white/10 ${checked ? colorClass : 'bg-white/5'}`}
+  >
+    <div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-all shadow-md ${checked ? 'left-8' : 'left-1'}`} />
+  </button>
+);
+
+const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch }) => {
+  const [activeTab, setActiveTab] = useState<'torneios' | 'salao' | 'registry' | 'tv'>('torneios');
+  const [editingTourney, setEditingTourney] = useState<Partial<Tournament> | null>(null);
+  const [activeTourneyId, setActiveTourneyId] = useState<string | null>(state.activeTournamentId);
+  const [regName, setRegName] = useState('');
+  const [regNick, setRegNick] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  
+  // Registration "Cart" State
+  const [registeringPerson, setRegisteringPerson] = useState<RegisteredPerson | null>(null);
+  const [cartEntryType, setCartEntryType] = useState<'buyIn' | 'reentry'>('buyIn');
+  const [cartRebuys, setCartRebuys] = useState(0);
+  const [cartAddon, setCartAddon] = useState(false);
+
+  useEffect(() => {
+    setActiveTourneyId(state.activeTournamentId);
+  }, [state.activeTournamentId]);
+
+  const currentTourney = state.tournaments.find(t => t.id === activeTourneyId);
+
+  const handleRegisterPerson = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!regName) return;
+    onDispatch({ type: 'REGISTER_PERSON', payload: { name: regName, nickname: regNick }, senderId: 'DIR' });
+    setRegName(''); setRegNick('');
+  };
+
+  const handleSaveTournament = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingTourney?.name || !editingTourney?.acronym) return;
+    
+    const action = editingTourney.id ? 'UPDATE_TOURNAMENT' : 'CREATE_TOURNAMENT';
+    onDispatch({ 
+      type: action as any, 
+      payload: {
+        ...editingTourney,
+        acronym: editingTourney.acronym.substring(0, 3).toUpperCase()
+      }, 
+      senderId: 'DIR' 
+    });
+    setEditingTourney(null);
+  };
+
+  const startTourneyForm = (t?: Tournament) => {
+    if (t) {
+      setEditingTourney({ ...t });
+    } else {
+      setEditingTourney({
+        name: '',
+        acronym: '',
+        guaranteed: 0,
+        config: {
+          buyIn: { enabled: true, price: 50, chips: 10000 },
+          rebuy: { enabled: false, price: 50, chips: 10000, maxCount: 3, threshold: 10000 },
+          reentry: { enabled: false, price: 50, chips: 10000 },
+          addon: { enabled: false, active: false, price: 50, chips: 20000 },
+          maxSeats: 9
+        },
+        assignedTableIds: []
+      });
+    }
+  };
+
+  // Fix: Added missing toggleTableSelection function to handle table allocation
+  const toggleTableSelection = (tableId: number) => {
+    if (!editingTourney) return;
+    const currentIds = editingTourney.assignedTableIds || [];
+    const newIds = currentIds.includes(tableId)
+      ? currentIds.filter(id => id !== tableId)
+      : [...currentIds, tableId];
+    setEditingTourney({ ...editingTourney, assignedTableIds: newIds });
+  };
+
+  const finalizeRegistration = () => {
+    if (!registeringPerson || !activeTourneyId) return;
+    onDispatch({
+      type: 'REGISTER_PLAYER_TO_TOURNAMENT',
+      payload: {
+        personId: registeringPerson.id,
+        tournamentId: activeTourneyId,
+        entryType: cartEntryType,
+        rebuys: cartRebuys,
+        addon: cartAddon
+      },
+      senderId: 'DIR'
+    });
+    setRegisteringPerson(null);
+    setCartRebuys(0);
+    setCartAddon(false);
+  };
+
+  return (
+    <div className="flex h-full flex-col lg:flex-row">
+      {/* Primary Sidebar */}
+      <div className="lg:w-72 bg-black flex flex-col border-r border-white/5">
+        <div className="flex flex-col p-4 gap-2">
+           {[
+             { id: 'torneios', label: 'Torneios', icon: '🏆' },
+             { id: 'salao', label: 'Salão (Mesas)', icon: '🏢' },
+             { id: 'registry', label: 'Jogadores', icon: '👤' },
+             { id: 'tv', label: 'Modo TV', icon: '📡' }
+           ].map(tab => (
+             <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`flex items-center gap-4 p-4 rounded-2xl transition-all ${activeTab === tab.id ? 'bg-yellow-500 text-black font-black' : 'text-white/40 hover:text-white'}`}>
+               <span className="text-xl">{tab.icon}</span>
+               <span className="text-xs uppercase tracking-widest">{tab.label}</span>
+             </button>
+           ))}
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto custom-scrollbar bg-[#080808]">
+        
+        {/* TOURNAMENTS TAB */}
+        {activeTab === 'torneios' && (
+          <div className="p-10 space-y-10 animate-in fade-in">
+             {!editingTourney ? (
+               <>
+                 <div className="flex justify-between items-end">
+                    <div>
+                      <h2 className="text-4xl font-outfit font-black text-white italic">Gestão de Torneios</h2>
+                      <p className="text-white/30 text-xs font-bold uppercase mt-2 tracking-widest">Controle seus eventos ativos</p>
+                    </div>
+                    <button onClick={() => startTourneyForm()} className="bg-green-600 hover:bg-green-500 text-white font-black px-8 py-4 rounded-2xl text-[10px] uppercase shadow-lg transition-all">CRIAR NOVO EVENTO</button>
+                 </div>
+                 
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {state.tournaments.map(t => (
+                      <div key={t.id} className={`p-8 rounded-[40px] glass border-2 transition-all ${activeTourneyId === t.id ? 'border-yellow-500 bg-yellow-500/5' : 'border-white/5'}`}>
+                         <div className="flex justify-between items-start mb-6">
+                            <div>
+                               <div className="flex items-center gap-3">
+                                 <h3 className="text-2xl font-black text-white">{t.name}</h3>
+                                 <span className="bg-yellow-500/10 text-yellow-500 px-3 py-1 rounded-lg font-black text-xs">{t.acronym}</span>
+                               </div>
+                               <p className="text-[10px] font-black text-white/30 uppercase tracking-widest mt-1">
+                                 {t.guaranteed ? `Garantido: $${t.guaranteed.toLocaleString()}` : 'Sem Garantido'} • {t.assignedTableIds.length} Mesas
+                               </p>
+                            </div>
+                            <div className="flex gap-2">
+                               <button onClick={() => { setActiveTourneyId(t.id); onDispatch({ type: 'SET_ACTIVE_TOURNAMENT', payload: { id: t.id }, senderId: 'DIR' }); }} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${activeTourneyId === t.id ? 'bg-yellow-500 text-black' : 'bg-white/10 text-white'}`}>Selecionar</button>
+                               <button onClick={() => startTourneyForm(t)} className="p-2 text-white/40 hover:text-white">✏️</button>
+                               <button onClick={() => onDispatch({ type: 'DELETE_TOURNAMENT', payload: { id: t.id }, senderId: 'DIR' })} className="p-2 text-white/10 hover:text-red-500">🗑️</button>
+                            </div>
+                         </div>
+                         <div className="flex flex-wrap gap-2">
+                            {t.config.buyIn.enabled && <span className="text-[8px] bg-green-500/10 text-green-500 px-3 py-1 rounded-full font-black uppercase">Buy-in OK</span>}
+                            {t.config.reentry.enabled && <span className="text-[8px] bg-orange-500/10 text-orange-500 px-3 py-1 rounded-full font-black uppercase">Re-entry OK</span>}
+                            {t.config.rebuy.enabled && <span className="text-[8px] bg-blue-500/10 text-blue-500 px-3 py-1 rounded-full font-black uppercase">Rebuy OK</span>}
+                            {t.config.addon.enabled && <span className="text-[8px] bg-purple-500/10 text-purple-500 px-3 py-1 rounded-full font-black uppercase">Add-on OK</span>}
+                         </div>
+                      </div>
+                    ))}
+                 </div>
+
+                 {activeTourneyId && currentTourney && (
+                   <div className="flex flex-col xl:flex-row gap-8">
+                     <div className="flex-1 glass p-10 rounded-[50px] space-y-8">
+                        <div className="flex justify-between items-center">
+                           <h3 className="text-2xl font-black text-white italic">Jogadores Disponíveis: {currentTourney.name}</h3>
+                           <button onClick={() => onDispatch({ type: 'AUTO_BALANCE', payload: { tournamentId: activeTourneyId }, senderId: 'DIR' })} className="bg-white text-black font-black px-6 py-2 rounded-xl text-[10px] uppercase">Balancear Agora</button>
+                        </div>
+                        
+                        <div className="space-y-4">
+                           <input type="text" placeholder="Filtrar por nome ou apelido..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 outline-none focus:border-yellow-500 font-bold" />
+                           <div className="max-h-[500px] overflow-y-auto pr-2 space-y-2">
+                              {state.registry.filter(per => !state.players.find(p => p.personId === per.id && p.tournamentId === activeTourneyId)).filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase())).map(person => (
+                                <div key={person.id} className="p-4 bg-white/5 rounded-2xl flex justify-between items-center group hover:bg-white/10 transition-all border border-transparent hover:border-white/10">
+                                   <div>
+                                     <div className="font-bold text-white">{person.name}</div>
+                                     <div className="text-[10px] text-yellow-500/60 font-black uppercase">{person.nickname || 'Sem Apelido'}</div>
+                                   </div>
+                                   <button onClick={() => setRegisteringPerson(person)} className="bg-yellow-600 hover:bg-yellow-500 text-white font-black px-6 py-3 rounded-xl text-[9px] uppercase shadow-lg transition-all">INSCREVER</button>
+                                </div>
+                              ))}
+                           </div>
+                        </div>
+                     </div>
+
+                     {/* Registration Cart / Side Menu */}
+                     {registeringPerson && (
+                       <div className="xl:w-[400px] glass p-10 rounded-[50px] space-y-8 animate-in slide-in-from-right-10 border-yellow-500/20 border">
+                          <div className="flex justify-between items-start">
+                             <h3 className="text-xl font-black text-white italic uppercase tracking-tighter">Checkout Inscrição</h3>
+                             <button onClick={() => setRegisteringPerson(null)} className="text-white/20 hover:text-white">✕</button>
+                          </div>
+                          <div className="p-4 bg-yellow-500/10 rounded-2xl border border-yellow-500/20">
+                             <div className="text-[10px] font-black text-yellow-500 uppercase tracking-widest">Jogador</div>
+                             <div className="text-xl font-black text-white">{registeringPerson.name}</div>
+                          </div>
+
+                          <div className="space-y-6">
+                             <div className="space-y-3">
+                                <label className="text-[10px] font-black text-white/30 uppercase tracking-widest px-2">Tipo de Entrada</label>
+                                <div className="grid grid-cols-2 gap-2 p-1 bg-black/40 rounded-2xl">
+                                   <button onClick={() => setCartEntryType('buyIn')} className={`py-3 rounded-xl text-[10px] font-black uppercase transition-all ${cartEntryType === 'buyIn' ? 'bg-white text-black' : 'text-white/30'}`}>Buy-in</button>
+                                   <button onClick={() => setCartEntryType('reentry')} className={`py-3 rounded-xl text-[10px] font-black uppercase transition-all ${cartEntryType === 'reentry' ? 'bg-white text-black' : 'text-white/30'}`}>Re-entry</button>
+                                </div>
+                             </div>
+
+                             {currentTourney.config.rebuy.enabled && (
+                               <div className="space-y-3">
+                                  <label className="text-[10px] font-black text-white/30 uppercase tracking-widest px-2">Recompras Iniciais</label>
+                                  <div className="flex items-center gap-4">
+                                     <button onClick={() => setCartRebuys(Math.max(0, cartRebuys - 1))} className="w-10 h-10 rounded-xl bg-white/5 text-white font-black hover:bg-white/10 transition-all">-</button>
+                                     <span className="flex-1 text-center text-2xl font-black text-white">{cartRebuys}</span>
+                                     <button onClick={() => setCartRebuys(cartRebuys + 1)} className="w-10 h-10 rounded-xl bg-white/5 text-white font-black hover:bg-white/10 transition-all">+</button>
+                                  </div>
+                               </div>
+                             )}
+
+                             {currentTourney.config.addon.enabled && (
+                               <div className="flex justify-between items-center p-4 bg-black/40 rounded-2xl">
+                                  <span className="text-[10px] font-black text-white/60 uppercase">Add-on Inicial</span>
+                                  <ToggleSlider checked={cartAddon} onChange={setCartAddon} colorClass="bg-purple-600" />
+                               </div>
+                             )}
+                          </div>
+
+                          <div className="pt-4 border-t border-white/5">
+                             <button onClick={finalizeRegistration} className="w-full bg-green-600 hover:bg-green-500 text-white font-black py-6 rounded-3xl text-sm uppercase shadow-2xl transition-all tracking-widest">CONFIRMAR E PAGAR</button>
+                          </div>
+                       </div>
+                     )}
+                   </div>
+                 )}
+               </>
+             ) : (
+               /* CREATE / EDIT FORM with SLIDERS & ACRO */
+               <form onSubmit={handleSaveTournament} className="max-w-5xl mx-auto space-y-10 animate-in zoom-in-95">
+                  <div className="flex justify-between items-center">
+                    <h2 className="text-4xl font-outfit font-black text-white italic tracking-tighter uppercase">{editingTourney.id ? 'Ajustar Evento' : 'Novo Evento Profissional'}</h2>
+                    <button type="button" onClick={() => setEditingTourney(null)} className="text-white/40 uppercase font-black text-[10px] tracking-widest bg-white/5 px-6 py-2 rounded-xl hover:bg-white/10 transition-all">Descartar</button>
+                  </div>
+
+                  <div className="glass p-10 rounded-[50px] space-y-10">
+                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="md:col-span-2 space-y-2">
+                           <label className="text-[10px] font-black text-white/30 uppercase tracking-widest ml-4">Nome do Torneio</label>
+                           <input type="text" value={editingTourney.name} onChange={e => setEditingTourney({...editingTourney, name: e.target.value})} className="w-full bg-black/60 border border-white/10 rounded-3xl p-6 text-xl font-black text-white outline-none focus:border-yellow-500" required />
+                        </div>
+                        <div className="space-y-2">
+                           <label className="text-[10px] font-black text-white/30 uppercase tracking-widest ml-4">Sigla (3 Letras)</label>
+                           <input type="text" maxLength={3} value={editingTourney.acronym} onChange={e => setEditingTourney({...editingTourney, acronym: e.target.value.toUpperCase()})} className="w-full bg-black/60 border border-white/10 rounded-3xl p-6 text-xl font-black text-yellow-500 text-center outline-none focus:border-yellow-500" placeholder="EX: ME1" required />
+                        </div>
+                     </div>
+
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                           <label className="text-[10px] font-black text-white/30 uppercase tracking-widest ml-4">Premiação Garantida ($)</label>
+                           <input type="number" value={editingTourney.guaranteed} onChange={e => setEditingTourney({...editingTourney, guaranteed: Number(e.target.value)})} className="w-full bg-black/60 border border-white/10 rounded-3xl p-6 text-xl font-black text-green-500 outline-none focus:border-yellow-500" />
+                        </div>
+                        <div className="space-y-2 p-6 bg-black/40 rounded-3xl flex flex-col justify-center">
+                           <div className="flex justify-between items-center mb-2">
+                              <label className="text-[10px] font-black text-white/30 uppercase tracking-widest">Players-Max (Mesa)</label>
+                              <span className="text-2xl font-black text-white">{editingTourney.config?.maxSeats}-MAX</span>
+                           </div>
+                           <input 
+                              type="range" min="2" max="10" 
+                              value={editingTourney.config?.maxSeats} 
+                              onChange={e => setEditingTourney({...editingTourney, config: {...editingTourney.config!, maxSeats: Number(e.target.value)}})}
+                              className="w-full h-2 bg-white/10 rounded-full appearance-none accent-yellow-500"
+                           />
+                        </div>
+                     </div>
+
+                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        {[
+                           { key: 'buyIn', label: 'Buy-in', color: 'bg-green-600' },
+                           { key: 'reentry', label: 'Re-entry', color: 'bg-orange-600' },
+                           { key: 'rebuy', label: 'Rebuy', color: 'bg-blue-600' },
+                           { key: 'addon', label: 'Add-on', color: 'bg-purple-600' }
+                        ].map(opt => (
+                           <div key={opt.key} className="p-6 bg-white/5 rounded-3xl space-y-4 border border-white/5 hover:border-white/10 transition-all">
+                              <div className="flex justify-between items-center">
+                                 <span className="font-black text-white text-[10px] uppercase italic tracking-widest">{opt.label}</span>
+                                 <ToggleSlider 
+                                    checked={(editingTourney.config as any)[opt.key].enabled || (editingTourney.config as any)[opt.key].active} 
+                                    onChange={val => {
+                                      const field = opt.key === 'addon' ? 'enabled' : 'enabled';
+                                      setEditingTourney({...editingTourney, config: {...editingTourney.config!, [opt.key]: {...(editingTourney.config as any)[opt.key], [field]: val}}})
+                                    }} 
+                                    colorClass={opt.color} 
+                                 />
+                              </div>
+                              <div className="space-y-3">
+                                 <div className="space-y-1"><label className="text-[7px] font-black text-white/20 uppercase">Valor ($)</label><input type="number" value={(editingTourney.config as any)[opt.key].price} onChange={e => setEditingTourney({...editingTourney, config: {...editingTourney.config!, [opt.key]: {...(editingTourney.config as any)[opt.key], price: Number(e.target.value)}}})} className="w-full bg-black/40 p-3 rounded-xl text-xs font-bold text-white" /></div>
+                                 <div className="space-y-1"><label className="text-[7px] font-black text-white/20 uppercase">Fichas</label><input type="number" value={(editingTourney.config as any)[opt.key].chips} onChange={e => setEditingTourney({...editingTourney, config: {...editingTourney.config!, [opt.key]: {...(editingTourney.config as any)[opt.key], chips: Number(e.target.value)}}})} className="w-full bg-black/40 p-3 rounded-xl text-xs font-bold text-white" /></div>
+                              </div>
+                           </div>
+                        ))}
+                     </div>
+
+                     <div className="space-y-4">
+                        <h4 className="text-[10px] font-black text-white/40 uppercase tracking-widest px-4">Alocar Mesas Disponíveis</h4>
+                        <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
+                           {state.roomTables.map(rt => {
+                             const isAssignedToMe = editingTourney.assignedTableIds?.includes(rt.id);
+                             const otherTourney = state.tournaments.find(t => t.id !== editingTourney.id && t.assignedTableIds.includes(rt.id));
+                             return (
+                               <button 
+                                 type="button" 
+                                 key={rt.id} 
+                                 disabled={!!otherTourney}
+                                 onClick={() => toggleTableSelection(rt.id)} 
+                                 className={`h-14 rounded-2xl font-black transition-all border flex flex-col items-center justify-center relative overflow-hidden ${isAssignedToMe ? 'bg-yellow-500 border-yellow-400 text-black shadow-lg shadow-yellow-500/20' : otherTourney ? 'bg-red-500/10 border-red-500/30 text-red-500/40 cursor-not-allowed' : 'bg-white/5 border-white/5 text-white/20 hover:border-white/20'}`}
+                               >
+                                  <span className="text-sm">{rt.id}</span>
+                                  {otherTourney && <span className="text-[6px] absolute bottom-1 font-black uppercase">{otherTourney.acronym}</span>}
+                               </button>
+                             );
+                           })}
+                        </div>
+                     </div>
+
+                     <button type="submit" className="w-full bg-yellow-600 hover:bg-yellow-500 text-black font-black py-8 rounded-[40px] text-xl shadow-2xl transition-all uppercase tracking-tighter">EFETIVAR CONFIGURAÇÕES</button>
+                  </div>
+               </form>
+             )}
+          </div>
+        )}
+
+        {/* ROOM MANAGEMENT (SALAO) */}
+        {activeTab === 'salao' && (
+          <div className="p-10 space-y-10 animate-in fade-in">
+             <div className="flex justify-between items-end">
+                <div>
+                   <h2 className="text-4xl font-outfit font-black text-white italic">Gestão de Salão</h2>
+                   <p className="text-white/30 text-xs font-bold uppercase mt-2 tracking-widest">Layout físico de mesas do estabelecimento</p>
+                </div>
+                <button onClick={() => onDispatch({ type: 'ADD_ROOM_TABLE', payload: null, senderId: 'DIR' })} className="bg-white text-black font-black px-10 py-5 rounded-3xl text-[10px] uppercase shadow-lg hover:bg-yellow-500 transition-all">NOVA MESA FÍSICA</button>
+             </div>
+             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                {state.roomTables.map(rt => {
+                  const tourneyAtTable = state.tournaments.find(t => t.assignedTableIds.includes(rt.id));
+                  return (
+                    <div key={rt.id} className={`glass p-10 rounded-[50px] flex flex-col items-center justify-center relative group transition-all border-2 ${tourneyAtTable ? 'border-green-500 bg-green-500/5' : 'border-white/5'}`}>
+                       <span className={`text-5xl font-black mb-2 ${tourneyAtTable ? 'text-green-500' : 'text-white/10'}`}>{rt.id}</span>
+                       <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">Mesa {rt.id}</span>
+                       {tourneyAtTable && (
+                         <div className="mt-4 bg-green-600 text-white text-[8px] font-black px-3 py-1 rounded-full uppercase">
+                           ATIVO: {tourneyAtTable.acronym}
+                         </div>
+                       )}
+                       {!tourneyAtTable && (
+                         <button onClick={() => onDispatch({ type: 'REMOVE_ROOM_TABLE', payload: { id: rt.id }, senderId: 'DIR' })} className="absolute top-4 right-4 text-red-500 opacity-0 group-hover:opacity-100 transition-all p-2">🗑️</button>
+                       )}
+                    </div>
+                  );
+                })}
+             </div>
+          </div>
+        )}
+
+        {/* PLAYER REGISTRY */}
+        {activeTab === 'registry' && (
+          <div className="p-10 max-w-5xl mx-auto space-y-10 animate-in fade-in">
+             <h2 className="text-4xl font-outfit font-black text-white italic">Base Geral de Jogadores</h2>
+             <form onSubmit={handleRegisterPerson} className="glass p-10 rounded-[50px] flex flex-col md:flex-row gap-6 items-end border-white/10 border shadow-2xl">
+                <div className="flex-1 space-y-2 w-full"><label className="text-[10px] font-black text-white/40 uppercase tracking-widest ml-4">Nome Completo</label><input type="text" value={regName} onChange={e => setRegName(e.target.value)} className="w-full bg-black/60 border border-white/5 rounded-3xl p-5 outline-none focus:border-yellow-500 text-white font-bold" /></div>
+                <div className="flex-1 space-y-2 w-full"><label className="text-[10px] font-black text-white/40 uppercase tracking-widest ml-4">Apelido (Nickname)</label><input type="text" value={regNick} onChange={e => setRegNick(e.target.value)} className="w-full bg-black/60 border border-white/5 rounded-3xl p-5 outline-none focus:border-yellow-500 text-white font-bold" /></div>
+                <button className="bg-yellow-600 hover:bg-yellow-500 text-white font-black px-12 py-5 rounded-3xl uppercase text-xs tracking-widest shadow-xl transition-all">CADASTRAR</button>
+             </form>
+             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {state.registry.map(p => (
+                  <div key={p.id} className="p-8 bg-white/5 rounded-[40px] border border-white/5 group hover:bg-white/10 transition-all flex justify-between items-center">
+                     <div>
+                        <div className="font-bold text-white text-lg">{p.name}</div>
+                        <div className="text-[10px] text-yellow-500 font-black uppercase tracking-widest">{p.nickname || 'Sem Apelido'}</div>
+                     </div>
+                     <button onClick={() => onDispatch({ type: 'DELETE_PERSON', payload: { personId: p.id }, senderId: 'DIR' })} className="text-white/10 hover:text-red-500 transition-all opacity-0 group-hover:opacity-100">🗑️</button>
+                  </div>
+                ))}
+             </div>
+          </div>
+        )}
+
+        {/* TV MODE */}
+        {activeTab === 'tv' && (
+          <div className="h-full w-full bg-[#050505] relative flex flex-col">
+             <div className="absolute top-10 left-1/2 -translate-x-1/2 z-[100] flex flex-wrap gap-2 glass p-2 rounded-full border-white/10 max-w-[90%] justify-center">
+                {state.tournaments.filter(t => t.isActive).map(t => (
+                  t.assignedTableIds.map(tid => (
+                    <button 
+                      key={`${t.id}-${tid}`} 
+                      onClick={() => { setActiveTourneyId(t.id); onDispatch({ type: 'SET_ACTIVE_TOURNAMENT', payload: { id: t.id }, senderId: 'DIR' }); }}
+                      className={`px-6 py-2 rounded-full font-black text-[9px] uppercase transition-all tracking-widest border ${currentTourney?.assignedTableIds.includes(tid) ? 'bg-yellow-500 text-black border-yellow-400' : 'bg-white/5 text-white/30 border-transparent'}`}
+                    >
+                      {t.acronym} - Mesa {tid}
+                    </button>
+                  ))
+                ))}
+             </div>
+             
+             {/* List tables of active tournament */}
+             <div className="flex-1 p-20 flex flex-wrap gap-10 justify-center overflow-y-auto">
+                {currentTourney ? currentTourney.assignedTableIds.map(tid => (
+                  <div key={tid} className="w-full max-w-4xl h-[500px] glass rounded-[100px] border-2 border-white/5 relative group overflow-hidden">
+                     <div className="absolute top-6 left-1/2 -translate-x-1/2 text-white/20 font-black uppercase tracking-widest text-[10px] z-50">Transmissão Mesa {tid} • {currentTourney.acronym}</div>
+                     <TableView state={state} tableId={tid} showEmptySeats={false} />
+                  </div>
+                )) : (
+                  <div className="h-full w-full flex items-center justify-center text-white/5 text-4xl font-black uppercase tracking-[20px]">Nenhuma Mesa Ativa</div>
+                )}
+             </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default DealerControls;

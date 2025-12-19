@@ -1,0 +1,5 @@
+{
+  "name": "Digital Poker Chips - Table Manager",
+  "description": "A sophisticated digital chip management system for physical poker games. Replace physical chips with a synced digital interface for players and dealers, featuring real-time pot tracking and betting controls.",
+  "requestFramePermissions": []
+}
