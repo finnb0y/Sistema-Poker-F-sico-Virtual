@@ -288,7 +288,7 @@ const App: React.FC = () => {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-6 poker-felt">
         <div className="w-full max-w-md glass p-10 rounded-[40px] shadow-2xl text-center border-white/20 border">
-          <h1 className="text-6xl font-outfit font-black text-white mb-2 italic tracking-tighter">POKER <span className="text-yellow-500">2.0</span></h1>
+          <h1 className="text-6xl font-outfit font-black text-white mb-2 italic tracking-tighter">POKER<span className="text-yellow-500"> 2</span></h1>
           <p className="text-white/40 mb-10 text-[10px] font-bold tracking-[6px] uppercase">Gerenciador de Fichas & Suite Profissional</p>
           <div className="space-y-4">
             <form onSubmit={(e) => {
