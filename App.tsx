@@ -288,8 +288,8 @@ const App: React.FC = () => {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-6 poker-felt">
         <div className="w-full max-w-md glass p-10 rounded-[40px] shadow-2xl text-center border-white/20 border">
-          <h1 className="text-6xl font-outfit font-black text-white mb-2 italic tracking-tighter">POKER<span className="text-yellow-500">PRO</span></h1>
-          <p className="text-white/40 mb-10 text-[10px] font-bold tracking-[6px] uppercase">Chip Manager & Suite Profissional</p>
+          <h1 className="text-6xl font-outfit font-black text-white mb-2 italic tracking-tighter">POKER <span className="text-yellow-500">2.0</span></h1>
+          <p className="text-white/40 mb-10 text-[10px] font-bold tracking-[6px] uppercase">Gerenciador de Fichas & Suite Profissional</p>
           <div className="space-y-4">
             <form onSubmit={(e) => {
               e.preventDefault();
@@ -318,7 +318,7 @@ const App: React.FC = () => {
           <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 bg-black">
             <div className="flex items-center gap-4">
                <div className="w-10 h-10 rounded-xl bg-yellow-500 flex items-center justify-center font-black text-black text-xl">D</div>
-               <h1 className="text-2xl font-outfit font-black text-white italic tracking-tight uppercase">Control Center</h1>
+               <h1 className="text-2xl font-outfit font-black text-white italic tracking-tight uppercase">Gerenciamento</h1>
             </div>
             <button onClick={exitRole} className="px-6 py-2 rounded-xl bg-white/5 hover:bg-red-600/20 text-white/40 hover:text-red-500 text-[10px] font-black uppercase transition-all tracking-widest">LOGOUT</button>
           </div>
