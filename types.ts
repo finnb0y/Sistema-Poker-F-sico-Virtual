@@ -19,12 +19,24 @@ export interface RegisteredPerson {
   nickname?: string;
 }
 
+export interface BlindLevel {
+  smallBlind: number;
+  bigBlind: number;
+  duration: number; // in minutes
+}
+
 export interface TournamentConfig {
   buyIn: { enabled: boolean, price: number, chips: number };
   rebuy: { enabled: boolean, price: number, chips: number, maxCount: number, threshold: number };
   reentry: { enabled: boolean, price: number, chips: number };
   addon: { enabled: boolean, active: boolean, price: number, chips: number };
   maxSeats: number;
+  blindStructure: {
+    initialSmallBlind: number;
+    initialBigBlind: number;
+    levelDuration: number; // in minutes
+    levels: BlindLevel[];
+  };
 }
 
 export interface RoomTable {
@@ -64,6 +76,8 @@ export interface TableState {
   pot: number;
   currentTurn: string | null;
   dealerId: string | null;
+  dealerButtonPosition: number | null; // seat number of the dealer button
+  currentBlindLevel: number; // index in the blindStructure.levels array
 }
 
 export interface GameState {
@@ -99,7 +113,9 @@ export type ActionType =
   | 'RESET_HAND' 
   | 'UPDATE_BLINDS'
   | 'AUTO_BALANCE'
-  | 'SET_ACTIVE_TOURNAMENT';
+  | 'SET_ACTIVE_TOURNAMENT'
+  | 'MOVE_DEALER_BUTTON'
+  | 'ADVANCE_BLIND_LEVEL';
 
 export interface ActionMessage {
   type: ActionType;

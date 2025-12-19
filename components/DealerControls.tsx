@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { GameState, ActionMessage, TournamentConfig, Player, RegisteredPerson, Tournament, RoomTable } from '../types';
 import TableView from './TableView';
+import { generateBlindStructure } from '../utils/blindStructure';
 
 interface DealerControlsProps {
   state: GameState;
@@ -70,6 +71,8 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch }) =>
     if (t) {
       setEditingTourney({ ...t });
     } else {
+      const initialSmallBlind = 50;
+      const initialBigBlind = 100;
       setEditingTourney({
         name: '',
         acronym: '',
@@ -79,7 +82,13 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch }) =>
           rebuy: { enabled: false, price: 50, chips: 10000, maxCount: 3, threshold: 10000 },
           reentry: { enabled: false, price: 50, chips: 10000 },
           addon: { enabled: false, active: false, price: 50, chips: 20000 },
-          maxSeats: 9
+          maxSeats: 9,
+          blindStructure: {
+            initialSmallBlind,
+            initialBigBlind,
+            levelDuration: 15,
+            levels: generateBlindStructure(initialSmallBlind, initialBigBlind, 15, 20)
+          }
         },
         assignedTableIds: []
       });
@@ -313,6 +322,126 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch }) =>
                               </div>
                            </div>
                         ))}
+                     </div>
+
+                     {/* Blind Structure Configuration */}
+                     <div className="space-y-6">
+                        <div className="flex justify-between items-center">
+                          <h4 className="text-[10px] font-black text-white/40 uppercase tracking-widest px-4">Estrutura de Blinds</h4>
+                          <button 
+                            type="button"
+                            onClick={() => {
+                              if (editingTourney.config?.blindStructure) {
+                                const { initialSmallBlind, initialBigBlind, levelDuration } = editingTourney.config.blindStructure;
+                                setEditingTourney({
+                                  ...editingTourney,
+                                  config: {
+                                    ...editingTourney.config,
+                                    blindStructure: {
+                                      ...editingTourney.config.blindStructure,
+                                      levels: generateBlindStructure(initialSmallBlind, initialBigBlind, levelDuration, 20)
+                                    }
+                                  }
+                                });
+                              }
+                            }}
+                            className="bg-blue-600/20 hover:bg-blue-600 text-blue-500 hover:text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase transition-all"
+                          >
+                            Regenerar Níveis
+                          </button>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-black text-white/30 uppercase tracking-widest ml-4">Small Blind Inicial</label>
+                            <input 
+                              type="number" 
+                              value={editingTourney.config?.blindStructure?.initialSmallBlind || 50} 
+                              onChange={e => {
+                                const newSmallBlind = Number(e.target.value);
+                                const newBigBlind = editingTourney.config?.blindStructure?.initialBigBlind || 100;
+                                const levelDuration = editingTourney.config?.blindStructure?.levelDuration || 15;
+                                setEditingTourney({
+                                  ...editingTourney, 
+                                  config: {
+                                    ...editingTourney.config!, 
+                                    blindStructure: {
+                                      initialSmallBlind: newSmallBlind,
+                                      initialBigBlind: newBigBlind,
+                                      levelDuration,
+                                      levels: generateBlindStructure(newSmallBlind, newBigBlind, levelDuration, 20)
+                                    }
+                                  }
+                                });
+                              }} 
+                              className="w-full bg-black/60 border border-white/10 rounded-2xl p-4 text-lg font-black text-yellow-500 outline-none focus:border-yellow-500" 
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-black text-white/30 uppercase tracking-widest ml-4">Big Blind Inicial</label>
+                            <input 
+                              type="number" 
+                              value={editingTourney.config?.blindStructure?.initialBigBlind || 100} 
+                              onChange={e => {
+                                const newBigBlind = Number(e.target.value);
+                                const newSmallBlind = editingTourney.config?.blindStructure?.initialSmallBlind || 50;
+                                const levelDuration = editingTourney.config?.blindStructure?.levelDuration || 15;
+                                setEditingTourney({
+                                  ...editingTourney, 
+                                  config: {
+                                    ...editingTourney.config!, 
+                                    blindStructure: {
+                                      initialSmallBlind: newSmallBlind,
+                                      initialBigBlind: newBigBlind,
+                                      levelDuration,
+                                      levels: generateBlindStructure(newSmallBlind, newBigBlind, levelDuration, 20)
+                                    }
+                                  }
+                                });
+                              }} 
+                              className="w-full bg-black/60 border border-white/10 rounded-2xl p-4 text-lg font-black text-yellow-500 outline-none focus:border-yellow-500" 
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-black text-white/30 uppercase tracking-widest ml-4">Duração do Nível (min)</label>
+                            <input 
+                              type="number" 
+                              value={editingTourney.config?.blindStructure?.levelDuration || 15} 
+                              onChange={e => {
+                                const levelDuration = Number(e.target.value);
+                                const newSmallBlind = editingTourney.config?.blindStructure?.initialSmallBlind || 50;
+                                const newBigBlind = editingTourney.config?.blindStructure?.initialBigBlind || 100;
+                                setEditingTourney({
+                                  ...editingTourney, 
+                                  config: {
+                                    ...editingTourney.config!, 
+                                    blindStructure: {
+                                      initialSmallBlind: newSmallBlind,
+                                      initialBigBlind: newBigBlind,
+                                      levelDuration,
+                                      levels: generateBlindStructure(newSmallBlind, newBigBlind, levelDuration, 20)
+                                    }
+                                  }
+                                });
+                              }} 
+                              className="w-full bg-black/60 border border-white/10 rounded-2xl p-4 text-lg font-black text-white outline-none focus:border-yellow-500" 
+                            />
+                          </div>
+                        </div>
+
+                        {/* Blind Levels Preview */}
+                        <div className="bg-black/40 rounded-3xl p-6 max-h-[300px] overflow-y-auto">
+                          <h5 className="text-[9px] font-black text-white/30 uppercase tracking-widest mb-4">Níveis Gerados (Primeiros 10)</h5>
+                          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                            {editingTourney.config?.blindStructure?.levels?.slice(0, 10).map((level, idx) => (
+                              <div key={idx} className="bg-white/5 rounded-xl p-3 border border-white/5">
+                                <div className="text-[8px] font-black text-white/40 uppercase tracking-widest mb-1">Nível {idx + 1}</div>
+                                <div className="text-sm font-black text-yellow-500">{level.smallBlind}/{level.bigBlind}</div>
+                                <div className="text-[7px] font-black text-white/30 mt-1">{level.duration}min</div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                      </div>
 
                      <div className="space-y-4">

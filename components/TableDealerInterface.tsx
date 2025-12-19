@@ -42,6 +42,10 @@ const TableDealerInterface: React.FC<TableDealerInterfaceProps> = ({ state, onDi
 
   const tableState = state.tableStates.find(t => t.id === selectedTableId);
   const tablePlayers = state.players.filter(p => p.tableId === selectedTableId);
+  const tournament = state.tournaments.find(t => t.id === tableState?.tournamentId);
+  
+  // Get current blind level
+  const currentBlindLevel = tournament?.config.blindStructure?.levels?.[tableState?.currentBlindLevel || 0];
 
   return (
     <div className="h-screen flex flex-col lg:flex-row bg-[#050805]">
@@ -52,7 +56,32 @@ const TableDealerInterface: React.FC<TableDealerInterfaceProps> = ({ state, onDi
         <TableView state={state} tableId={selectedTableId} onPlayerClick={(p) => onDispatch({ type: 'AWARD_POT', payload: { winnerId: p.id }, senderId: 'DEALER' })} showEmptySeats={true} />
       </div>
 
-      <div className="lg:w-[400px] bg-[#0a0f0a] flex flex-col border-l border-white/10 p-8 space-y-10">
+      <div className="lg:w-[400px] bg-[#0a0f0a] flex flex-col border-l border-white/10 p-8 space-y-6">
+         {/* Current Blind Level Display */}
+         <div className="bg-black/40 p-6 rounded-[32px] border border-white/5 space-y-3">
+            <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Nível Atual</div>
+            <div className="text-3xl font-black text-yellow-500">
+              {currentBlindLevel ? `${currentBlindLevel.smallBlind}/${currentBlindLevel.bigBlind}` : 'N/A'}
+            </div>
+            <div className="text-[10px] font-black text-white/40 uppercase">Nível {(tableState?.currentBlindLevel || 0) + 1}</div>
+         </div>
+         
+         {/* Dealer Button and Blind Controls */}
+         <div className="grid grid-cols-2 gap-3">
+            <button 
+              onClick={() => onDispatch({ type: 'MOVE_DEALER_BUTTON', payload: { tableId: selectedTableId }, senderId: 'DEALER' })} 
+              className="bg-yellow-600/20 hover:bg-yellow-600 text-yellow-500 hover:text-white font-black py-4 rounded-2xl text-[10px] uppercase shadow-lg transition-all border border-yellow-500/20"
+            >
+              🔄 Mover Dealer
+            </button>
+            <button 
+              onClick={() => onDispatch({ type: 'ADVANCE_BLIND_LEVEL', payload: { tableId: selectedTableId }, senderId: 'DEALER' })} 
+              className="bg-blue-600/20 hover:bg-blue-600 text-blue-500 hover:text-white font-black py-4 rounded-2xl text-[10px] uppercase shadow-lg transition-all border border-blue-500/20"
+            >
+              ⬆️ Subir Blind
+            </button>
+         </div>
+
          <div className="text-center bg-black/40 p-6 rounded-[32px] border border-white/5">
             <div className="text-[10px] font-black text-gray-500 uppercase mb-1 tracking-widest">Pote Atual</div>
             <div className="text-4xl font-black text-green-500">${tableState?.pot || 0}</div>

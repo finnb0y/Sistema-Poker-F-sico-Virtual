@@ -78,7 +78,15 @@ const App: React.FC = () => {
           });
           payload.assignedTableIds.forEach((tid: number) => {
             if (!newState.tableStates.find(ts => ts.id === tid)) {
-              newState.tableStates.push({ id: tid, tournamentId: newId, pot: 0, currentTurn: null, dealerId: null });
+              newState.tableStates.push({ 
+                id: tid, 
+                tournamentId: newId, 
+                pot: 0, 
+                currentTurn: null, 
+                dealerId: null,
+                dealerButtonPosition: null,
+                currentBlindLevel: 0
+              });
             }
           });
           break;
@@ -89,7 +97,15 @@ const App: React.FC = () => {
             newState.tournaments[tIdx] = { ...newState.tournaments[tIdx], ...payload };
             payload.assignedTableIds.forEach((tid: number) => {
               if (!newState.tableStates.find(ts => ts.id === tid)) {
-                newState.tableStates.push({ id: tid, tournamentId: payload.id, pot: 0, currentTurn: null, dealerId: null });
+                newState.tableStates.push({ 
+                  id: tid, 
+                  tournamentId: payload.id, 
+                  pot: 0, 
+                  currentTurn: null, 
+                  dealerId: null,
+                  dealerButtonPosition: null,
+                  currentBlindLevel: 0
+                });
               }
             });
             newState.tableStates = newState.tableStates.filter(ts => 
@@ -252,6 +268,43 @@ const App: React.FC = () => {
               reentryPlayer.totalInvested += reentryTourney.config.reentry.price;
               reentryPlayer.tableId = null;
               reentryPlayer.seatNumber = 0;
+            }
+          }
+          break;
+
+        case 'MOVE_DEALER_BUTTON':
+          const tableStateForDealer = newState.tableStates.find(ts => ts.id === payload.tableId);
+          if (tableStateForDealer) {
+            const tablePlayers = newState.players
+              .filter(p => p.tableId === payload.tableId && p.status !== PlayerStatus.OUT)
+              .sort((a, b) => a.seatNumber - b.seatNumber);
+            
+            if (tablePlayers.length > 0) {
+              // Find current dealer button position
+              const currentPos = tableStateForDealer.dealerButtonPosition;
+              
+              if (currentPos === null) {
+                // First time setting dealer button - use first player's seat
+                tableStateForDealer.dealerButtonPosition = tablePlayers[0].seatNumber;
+              } else {
+                // Move to next player clockwise
+                const currentIdx = tablePlayers.findIndex(p => p.seatNumber === currentPos);
+                const nextIdx = (currentIdx + 1) % tablePlayers.length;
+                tableStateForDealer.dealerButtonPosition = tablePlayers[nextIdx].seatNumber;
+              }
+            }
+          }
+          break;
+
+        case 'ADVANCE_BLIND_LEVEL':
+          const tableStateForBlinds = newState.tableStates.find(ts => ts.id === payload.tableId);
+          if (tableStateForBlinds) {
+            const tournament = newState.tournaments.find(t => t.id === tableStateForBlinds.tournamentId);
+            if (tournament && tournament.config.blindStructure.levels) {
+              const nextLevel = tableStateForBlinds.currentBlindLevel + 1;
+              if (nextLevel < tournament.config.blindStructure.levels.length) {
+                tableStateForBlinds.currentBlindLevel = nextLevel;
+              }
             }
           }
           break;

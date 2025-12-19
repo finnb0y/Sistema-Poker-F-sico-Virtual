@@ -24,6 +24,13 @@ const TableView: React.FC<TableViewProps> = ({
 
   const maxSeats = tournament.config.maxSeats;
   const tablePlayers = state.players.filter(p => p.tableId === tableId);
+  
+  // Get current blinds from the blind structure
+  const currentBlindLevel = tournament.config.blindStructure?.levels?.[tableState.currentBlindLevel] || {
+    smallBlind: state.smallBlind,
+    bigBlind: state.bigBlind,
+    duration: 15
+  };
 
   const getSeatStyle = (seatNumber: number) => {
     const angleOffset = Math.PI / 2; 
@@ -51,7 +58,10 @@ const TableView: React.FC<TableViewProps> = ({
           </div>
           <div className="mt-2 sm:mt-4 flex flex-wrap justify-center gap-2 sm:gap-6">
              <div className="text-white/40 text-[7px] sm:text-[9px] font-black uppercase tracking-widest bg-black/20 px-2 sm:px-4 py-0.5 sm:py-1 rounded-full border border-white/5">
-                {state.smallBlind}/{state.bigBlind}
+                {currentBlindLevel.smallBlind}/{currentBlindLevel.bigBlind}
+             </div>
+             <div className="text-white/40 text-[7px] sm:text-[9px] font-black uppercase tracking-widest bg-black/20 px-2 sm:px-4 py-0.5 sm:py-1 rounded-full border border-white/5">
+                Nível {tableState.currentBlindLevel + 1}
              </div>
              <div className="text-white/40 text-[7px] sm:text-[9px] font-black uppercase tracking-widest bg-black/20 px-2 sm:px-4 py-0.5 sm:py-1 rounded-full border border-white/5">
                 {maxSeats}-MAX
@@ -100,6 +110,7 @@ const TableView: React.FC<TableViewProps> = ({
 
           const isActive = tableState.currentTurn === player.id;
           const isFolded = player.status === PlayerStatus.FOLDED;
+          const isDealerButton = tableState.dealerButtonPosition === seatNum;
 
           return (
             <div 
@@ -114,6 +125,13 @@ const TableView: React.FC<TableViewProps> = ({
                 <div className="text-[7px] sm:text-[10px] font-black text-white/70 mb-0.5 sm:mb-1 uppercase truncate max-w-[60px] sm:max-w-full">{player.name}</div>
                 <div className="text-sm sm:text-2xl font-outfit font-black text-green-400">${player.balance}</div>
                 <div className="absolute -top-1.5 -left-1.5 sm:-top-3 sm:-left-3 w-4 h-4 sm:w-7 sm:h-7 bg-black border border-white/10 rounded-md sm:rounded-lg flex items-center justify-center text-[6px] sm:text-[10px] font-black text-white/40">{seatNum}</div>
+                
+                {/* Dealer Button Indicator */}
+                {isDealerButton && (
+                  <div className="absolute -top-1.5 -right-1.5 sm:-top-3 sm:-right-3 w-6 h-6 sm:w-10 sm:h-10 bg-yellow-500 border-2 border-white rounded-full flex items-center justify-center text-[8px] sm:text-sm font-black text-black shadow-lg shadow-yellow-500/50">
+                    D
+                  </div>
+                )}
                 
                 {player.currentBet > 0 && (
                   <div className="absolute -bottom-6 sm:-bottom-10 bg-yellow-600 px-2 sm:px-5 py-0.5 sm:py-2 rounded-full text-white font-black text-[8px] sm:text-xs shadow-xl border border-white/10 whitespace-nowrap">
