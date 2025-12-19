@@ -289,8 +289,13 @@ const App: React.FC = () => {
               } else {
                 // Move to next player clockwise
                 const currentIdx = tablePlayers.findIndex(p => p.seatNumber === currentPos);
-                const nextIdx = (currentIdx + 1) % tablePlayers.length;
-                tableStateForDealer.dealerButtonPosition = tablePlayers[nextIdx].seatNumber;
+                if (currentIdx === -1) {
+                  // Current dealer button position no longer has a player, start from first player
+                  tableStateForDealer.dealerButtonPosition = tablePlayers[0].seatNumber;
+                } else {
+                  const nextIdx = (currentIdx + 1) % tablePlayers.length;
+                  tableStateForDealer.dealerButtonPosition = tablePlayers[nextIdx].seatNumber;
+                }
               }
             }
           }

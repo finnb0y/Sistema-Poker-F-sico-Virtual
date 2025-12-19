@@ -4,6 +4,8 @@ import { GameState, ActionMessage, TournamentConfig, Player, RegisteredPerson, T
 import TableView from './TableView';
 import { generateBlindStructure } from '../utils/blindStructure';
 
+const DEFAULT_BLIND_LEVELS_COUNT = 20;
+
 interface DealerControlsProps {
   state: GameState;
   onDispatch: (action: ActionMessage) => void;
@@ -87,7 +89,7 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch }) =>
             initialSmallBlind,
             initialBigBlind,
             levelDuration: 15,
-            levels: generateBlindStructure(initialSmallBlind, initialBigBlind, 15, 20)
+            levels: generateBlindStructure(initialSmallBlind, initialBigBlind, 15, DEFAULT_BLIND_LEVELS_COUNT)
           }
         },
         assignedTableIds: []
@@ -339,7 +341,7 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch }) =>
                                     ...editingTourney.config,
                                     blindStructure: {
                                       ...editingTourney.config.blindStructure,
-                                      levels: generateBlindStructure(initialSmallBlind, initialBigBlind, levelDuration, 20)
+                                      levels: generateBlindStructure(initialSmallBlind, initialBigBlind, levelDuration, DEFAULT_BLIND_LEVELS_COUNT)
                                     }
                                   }
                                 });
@@ -369,7 +371,7 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch }) =>
                                       initialSmallBlind: newSmallBlind,
                                       initialBigBlind: newBigBlind,
                                       levelDuration,
-                                      levels: generateBlindStructure(newSmallBlind, newBigBlind, levelDuration, 20)
+                                      levels: generateBlindStructure(newSmallBlind, newBigBlind, levelDuration, DEFAULT_BLIND_LEVELS_COUNT)
                                     }
                                   }
                                 });
@@ -394,7 +396,7 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch }) =>
                                       initialSmallBlind: newSmallBlind,
                                       initialBigBlind: newBigBlind,
                                       levelDuration,
-                                      levels: generateBlindStructure(newSmallBlind, newBigBlind, levelDuration, 20)
+                                      levels: generateBlindStructure(newSmallBlind, newBigBlind, levelDuration, DEFAULT_BLIND_LEVELS_COUNT)
                                     }
                                   }
                                 });
@@ -419,7 +421,7 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch }) =>
                                       initialSmallBlind: newSmallBlind,
                                       initialBigBlind: newBigBlind,
                                       levelDuration,
-                                      levels: generateBlindStructure(newSmallBlind, newBigBlind, levelDuration, 20)
+                                      levels: generateBlindStructure(newSmallBlind, newBigBlind, levelDuration, DEFAULT_BLIND_LEVELS_COUNT)
                                     }
                                   }
                                 });
