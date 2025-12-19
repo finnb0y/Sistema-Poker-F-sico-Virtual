@@ -1,7 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
-import { GameState, ActionMessage, TournamentConfig, Player, RegisteredPerson, Tournament, RoomTable } from '../types';
+import { GameState, ActionMessage, TournamentConfig, Player, RegisteredPerson, Tournament, RoomTable, BlindInterval, BlindLevel } from '../types';
 import TableView from './TableView';
+import BlindStructureManager from './BlindStructureManager';
+import { createDefaultBlindStructure } from '../utils/blindStructure';
 
 interface DealerControlsProps {
   state: GameState;
@@ -36,6 +38,9 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch }) =>
   const [selectedTableId, setSelectedTableId] = useState<number | null>(null);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [showMoveMenu, setShowMoveMenu] = useState(false);
+  
+  // Blind Structure Manager State
+  const [showBlindStructureManager, setShowBlindStructureManager] = useState(false);
 
   useEffect(() => {
     setActiveTourneyId(state.activeTournamentId);
@@ -70,6 +75,7 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch }) =>
     if (t) {
       setEditingTourney({ ...t });
     } else {
+      const defaultStructure = createDefaultBlindStructure();
       setEditingTourney({
         name: '',
         acronym: '',
@@ -79,7 +85,14 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch }) =>
           rebuy: { enabled: false, price: 50, chips: 10000, maxCount: 3, threshold: 10000 },
           reentry: { enabled: false, price: 50, chips: 10000 },
           addon: { enabled: false, active: false, price: 50, chips: 20000 },
-          maxSeats: 9
+          maxSeats: 9,
+          blindStructure: {
+            intervals: defaultStructure.intervals,
+            levels: defaultStructure.levels,
+            breakEnabled: false,
+            breakDuration: 10,
+            breakFrequency: 0
+          }
         },
         assignedTableIds: []
       });
@@ -112,6 +125,31 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch }) =>
     setRegisteringPerson(null);
     setCartRebuys(0);
     setCartAddon(false);
+  };
+
+  const handleSaveBlindStructure = (
+    intervals: BlindInterval[], 
+    levels: BlindLevel[], 
+    breakEnabled: boolean, 
+    breakDuration: number, 
+    breakFrequency: number
+  ) => {
+    if (editingTourney) {
+      setEditingTourney({
+        ...editingTourney,
+        config: {
+          ...editingTourney.config!,
+          blindStructure: {
+            intervals,
+            levels,
+            breakEnabled,
+            breakDuration,
+            breakFrequency
+          }
+        }
+      });
+    }
+    setShowBlindStructureManager(false);
   };
 
   return (
@@ -313,6 +351,39 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch }) =>
                               </div>
                            </div>
                         ))}
+                     </div>
+
+                     {/* Blind Structure Configuration */}
+                     <div className="bg-gradient-to-r from-blue-600/10 to-purple-600/10 rounded-3xl p-8 border border-blue-500/20">
+                        <div className="flex justify-between items-center mb-4">
+                          <div>
+                            <h4 className="text-xl font-black text-white mb-2">Estrutura de Blinds</h4>
+                            <p className="text-white/40 text-xs font-bold">
+                              {editingTourney.config?.blindStructure?.levels?.length || 0} níveis configurados
+                              {editingTourney.config?.blindStructure?.breakEnabled && 
+                                ` • Breaks a cada ${editingTourney.config.blindStructure.breakFrequency} níveis`
+                              }
+                            </p>
+                          </div>
+                          <button 
+                            type="button"
+                            onClick={() => setShowBlindStructureManager(true)}
+                            className="bg-blue-600 hover:bg-blue-500 text-white font-black px-8 py-4 rounded-2xl text-sm uppercase shadow-lg transition-all"
+                          >
+                            ⚙️ Gerenciar Estrutura
+                          </button>
+                        </div>
+                        
+                        {/* Quick Preview */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
+                          {editingTourney.config?.blindStructure?.levels?.filter(l => !l.isBreak).slice(0, 4).map((level, idx) => (
+                            <div key={idx} className="bg-black/40 rounded-xl p-3 border border-white/5">
+                              <div className="text-[7px] font-black text-white/40 uppercase tracking-widest mb-1">Nível {idx + 1}</div>
+                              <div className="text-sm font-black text-yellow-500">{level.smallBlind}/{level.bigBlind}</div>
+                              <div className="text-[6px] font-black text-blue-400 mt-1">Ante: {level.ante}</div>
+                            </div>
+                          ))}
+                        </div>
                      </div>
 
                      <div className="space-y-4">
@@ -576,6 +647,19 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch }) =>
           </div>
         )}
       </div>
+      
+      {/* Blind Structure Manager Modal */}
+      {showBlindStructureManager && editingTourney?.config?.blindStructure && (
+        <BlindStructureManager
+          initialIntervals={editingTourney.config.blindStructure.intervals}
+          initialLevels={editingTourney.config.blindStructure.levels}
+          breakEnabled={editingTourney.config.blindStructure.breakEnabled}
+          breakDuration={editingTourney.config.blindStructure.breakDuration}
+          breakFrequency={editingTourney.config.blindStructure.breakFrequency}
+          onSave={handleSaveBlindStructure}
+          onClose={() => setShowBlindStructureManager(false)}
+        />
+      )}
     </div>
   );
 };

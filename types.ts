@@ -19,12 +19,34 @@ export interface RegisteredPerson {
   nickname?: string;
 }
 
+export interface BlindLevel {
+  smallBlind: number;
+  bigBlind: number;
+  ante: number;
+  duration: number; // in minutes
+  isBreak?: boolean; // if true, this is a break period
+}
+
+export interface BlindInterval {
+  startingSmallBlind: number;
+  increment: number; // how much to increase small blind each level
+  levelDuration: number; // duration in minutes for each level in this interval
+  numberOfLevels: number; // how many levels in this interval
+}
+
 export interface TournamentConfig {
   buyIn: { enabled: boolean, price: number, chips: number };
   rebuy: { enabled: boolean, price: number, chips: number, maxCount: number, threshold: number };
   reentry: { enabled: boolean, price: number, chips: number };
   addon: { enabled: boolean, active: boolean, price: number, chips: number };
   maxSeats: number;
+  blindStructure: {
+    intervals: BlindInterval[];
+    levels: BlindLevel[];
+    breakEnabled: boolean;
+    breakDuration: number; // in minutes
+    breakFrequency: number; // insert break after every X levels (0 = no breaks)
+  };
 }
 
 export interface RoomTable {
@@ -58,12 +80,26 @@ export interface Player {
   totalInvested: number;
 }
 
+export enum BettingRound {
+  PRE_FLOP = 'PRE_FLOP',
+  FLOP = 'FLOP',
+  TURN = 'TURN',
+  RIVER = 'RIVER',
+  SHOWDOWN = 'SHOWDOWN'
+}
+
 export interface TableState {
   id: number;
   tournamentId: string;
   pot: number;
   currentTurn: string | null;
   dealerId: string | null;
+  dealerButtonPosition: number | null; // seat number of the dealer button
+  currentBlindLevel: number; // index in the blindStructure.levels array
+  bettingRound: BettingRound | null; // current betting round
+  currentBet: number; // current bet amount in this round
+  lastRaiseAmount: number; // amount of the last raise
+  handInProgress: boolean; // whether a hand is currently being played
 }
 
 export interface GameState {
@@ -94,12 +130,16 @@ export type ActionType =
   | 'BET' 
   | 'FOLD' 
   | 'CHECK' 
-  | 'CALL' 
+  | 'CALL'
+  | 'RAISE'
+  | 'ADVANCE_BETTING_ROUND'
   | 'AWARD_POT' 
   | 'RESET_HAND' 
   | 'UPDATE_BLINDS'
   | 'AUTO_BALANCE'
-  | 'SET_ACTIVE_TOURNAMENT';
+  | 'SET_ACTIVE_TOURNAMENT'
+  | 'MOVE_DEALER_BUTTON'
+  | 'ADVANCE_BLIND_LEVEL';
 
 export interface ActionMessage {
   type: ActionType;

@@ -24,6 +24,15 @@ const TableView: React.FC<TableViewProps> = ({
 
   const maxSeats = tournament.config.maxSeats;
   const tablePlayers = state.players.filter(p => p.tableId === tableId);
+  
+  // Get current blinds from the blind structure
+  const currentBlindLevel = tournament.config.blindStructure?.levels?.[tableState.currentBlindLevel] || {
+    smallBlind: state.smallBlind,
+    bigBlind: state.bigBlind,
+    ante: state.bigBlind,
+    duration: 15,
+    isBreak: false
+  };
 
   const getSeatStyle = (seatNumber: number) => {
     const angleOffset = Math.PI / 2; 
@@ -46,12 +55,53 @@ const TableView: React.FC<TableViewProps> = ({
         
         <div className="text-center z-10 select-none px-4">
           <div className="text-yellow-500/30 text-[7px] sm:text-[10px] font-black uppercase tracking-[4px] sm:tracking-[10px] mb-1 sm:mb-2">{tournament.acronym} • MESA {tableId}</div>
+          
+          {/* Community Cards */}
+          {tableState.handInProgress && tableState.bettingRound && tableState.bettingRound !== 'PRE_FLOP' && (
+            <div className="flex justify-center gap-1 sm:gap-2 mb-3 sm:mb-4">
+              {/* Flop */}
+              {(tableState.bettingRound === 'FLOP' || tableState.bettingRound === 'TURN' || tableState.bettingRound === 'RIVER' || tableState.bettingRound === 'SHOWDOWN') && (
+                <>
+                  <div className="w-8 h-11 sm:w-12 sm:h-16 bg-white/10 border border-white/20 rounded opacity-40 flex items-center justify-center">
+                    <span className="text-white/30 text-xs sm:text-sm">🂠</span>
+                  </div>
+                  <div className="w-8 h-11 sm:w-12 sm:h-16 bg-white/10 border border-white/20 rounded opacity-40 flex items-center justify-center">
+                    <span className="text-white/30 text-xs sm:text-sm">🂠</span>
+                  </div>
+                  <div className="w-8 h-11 sm:w-12 sm:h-16 bg-white/10 border border-white/20 rounded opacity-40 flex items-center justify-center">
+                    <span className="text-white/30 text-xs sm:text-sm">🂠</span>
+                  </div>
+                </>
+              )}
+              {/* Turn */}
+              {(tableState.bettingRound === 'TURN' || tableState.bettingRound === 'RIVER' || tableState.bettingRound === 'SHOWDOWN') && (
+                <div className="w-8 h-11 sm:w-12 sm:h-16 bg-white/10 border border-white/20 rounded opacity-40 flex items-center justify-center ml-1 sm:ml-2">
+                  <span className="text-white/30 text-xs sm:text-sm">🂠</span>
+                </div>
+              )}
+              {/* River */}
+              {(tableState.bettingRound === 'RIVER' || tableState.bettingRound === 'SHOWDOWN') && (
+                <div className="w-8 h-11 sm:w-12 sm:h-16 bg-white/10 border border-white/20 rounded opacity-40 flex items-center justify-center">
+                  <span className="text-white/30 text-xs sm:text-sm">🂠</span>
+                </div>
+              )}
+            </div>
+          )}
+          
           <div className="text-4xl sm:text-8xl font-outfit font-black text-white drop-shadow-[0_5px_15px_rgba(0,0,0,0.5)]">
             ${tableState.pot}
           </div>
           <div className="mt-2 sm:mt-4 flex flex-wrap justify-center gap-2 sm:gap-6">
              <div className="text-white/40 text-[7px] sm:text-[9px] font-black uppercase tracking-widest bg-black/20 px-2 sm:px-4 py-0.5 sm:py-1 rounded-full border border-white/5">
-                {state.smallBlind}/{state.bigBlind}
+                SB/BB: {currentBlindLevel.smallBlind}/{currentBlindLevel.bigBlind}
+             </div>
+             {currentBlindLevel.ante > 0 && (
+               <div className="text-blue-400 text-[7px] sm:text-[9px] font-black uppercase tracking-widest bg-blue-900/20 px-2 sm:px-4 py-0.5 sm:py-1 rounded-full border border-blue-500/20">
+                  Ante: {currentBlindLevel.ante}
+               </div>
+             )}
+             <div className="text-white/40 text-[7px] sm:text-[9px] font-black uppercase tracking-widest bg-black/20 px-2 sm:px-4 py-0.5 sm:py-1 rounded-full border border-white/5">
+                Nível {tableState.currentBlindLevel + 1}
              </div>
              <div className="text-white/40 text-[7px] sm:text-[9px] font-black uppercase tracking-widest bg-black/20 px-2 sm:px-4 py-0.5 sm:py-1 rounded-full border border-white/5">
                 {maxSeats}-MAX
@@ -73,18 +123,9 @@ const TableView: React.FC<TableViewProps> = ({
 
           if (!player) {
             if (!showEmptySeats) return null;
-            // Seat 1 is reserved for the dealer
+            // Seat 1 is reserved for the physical dealer (no visual indicator needed)
             if (isDealerSeat) {
-              return (
-                <div 
-                  key={`seat-${seatNum}`}
-                  style={style}
-                  className="absolute w-16 h-12 sm:w-28 sm:h-20 rounded-xl sm:rounded-3xl border-2 border-yellow-600/50 bg-yellow-900/20 flex flex-col items-center justify-center"
-                >
-                  <span className="text-yellow-500/60 text-[7px] sm:text-[9px] font-black uppercase">DEALER</span>
-                  <span className="text-yellow-500/40 text-[6px] sm:text-[8px] font-black">RESERVED</span>
-                </div>
-              );
+              return null; // Don't show seat 1 at all
             }
             return (
               <div 
@@ -100,6 +141,7 @@ const TableView: React.FC<TableViewProps> = ({
 
           const isActive = tableState.currentTurn === player.id;
           const isFolded = player.status === PlayerStatus.FOLDED;
+          const isDealerButton = tableState.dealerButtonPosition === seatNum;
 
           return (
             <div 
@@ -114,6 +156,13 @@ const TableView: React.FC<TableViewProps> = ({
                 <div className="text-[7px] sm:text-[10px] font-black text-white/70 mb-0.5 sm:mb-1 uppercase truncate max-w-[60px] sm:max-w-full">{player.name}</div>
                 <div className="text-sm sm:text-2xl font-outfit font-black text-green-400">${player.balance}</div>
                 <div className="absolute -top-1.5 -left-1.5 sm:-top-3 sm:-left-3 w-4 h-4 sm:w-7 sm:h-7 bg-black border border-white/10 rounded-md sm:rounded-lg flex items-center justify-center text-[6px] sm:text-[10px] font-black text-white/40">{seatNum}</div>
+                
+                {/* Dealer Button Indicator */}
+                {isDealerButton && (
+                  <div className="absolute -top-1.5 -right-1.5 sm:-top-3 sm:-right-3 w-6 h-6 sm:w-10 sm:h-10 bg-yellow-500 border-2 border-white rounded-full flex items-center justify-center text-[8px] sm:text-sm font-black text-black shadow-lg shadow-yellow-500/50">
+                    D
+                  </div>
+                )}
                 
                 {player.currentBet > 0 && (
                   <div className="absolute -bottom-6 sm:-bottom-10 bg-yellow-600 px-2 sm:px-5 py-0.5 sm:py-2 rounded-full text-white font-black text-[8px] sm:text-xs shadow-xl border border-white/10 whitespace-nowrap">
