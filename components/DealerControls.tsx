@@ -35,6 +35,7 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch }) =>
   // Table Details Modal State
   const [selectedTableId, setSelectedTableId] = useState<number | null>(null);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
+  const [showMoveMenu, setShowMoveMenu] = useState(false);
 
   useEffect(() => {
     setActiveTourneyId(state.activeTournamentId);
@@ -456,24 +457,30 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch }) =>
                                      </button>
                                      
                                      {tableTourney && tableTourney.assignedTableIds.length > 1 && (
-                                       <div className="relative group">
-                                         <button className="w-full bg-blue-600/20 hover:bg-blue-600 text-blue-500 hover:text-white px-4 py-3 rounded-xl text-[9px] font-black uppercase transition-all">
+                                       <div className="relative">
+                                         <button 
+                                           onClick={() => setShowMoveMenu(!showMoveMenu)}
+                                           className="w-full bg-blue-600/20 hover:bg-blue-600 text-blue-500 hover:text-white px-4 py-3 rounded-xl text-[9px] font-black uppercase transition-all"
+                                         >
                                            🔄 Mover
                                          </button>
-                                         <div className="absolute hidden group-hover:block top-full mt-2 left-0 bg-black border border-white/10 rounded-2xl p-2 min-w-[150px] z-10">
-                                           {tableTourney.assignedTableIds.filter(tid => tid !== selectedTableId).map(tid => (
-                                             <button
-                                               key={tid}
-                                               onClick={() => {
-                                                 onDispatch({ type: 'MOVE_PLAYER', payload: { playerId: player.id, targetTableId: tid }, senderId: 'DIR' });
-                                                 setSelectedPlayer(null);
-                                               }}
-                                               className="w-full text-left px-4 py-2 hover:bg-white/10 rounded-xl text-white text-[10px] font-black"
-                                             >
-                                               Para Mesa {tid}
-                                             </button>
-                                           ))}
-                                         </div>
+                                         {showMoveMenu && (
+                                           <div className="absolute top-full mt-2 left-0 bg-black border border-white/10 rounded-2xl p-2 min-w-[150px] z-10">
+                                             {tableTourney.assignedTableIds.filter(tid => tid !== selectedTableId).map(tid => (
+                                               <button
+                                                 key={tid}
+                                                 onClick={() => {
+                                                   onDispatch({ type: 'MOVE_PLAYER', payload: { playerId: player.id, targetTableId: tid }, senderId: 'DIR' });
+                                                   setSelectedPlayer(null);
+                                                   setShowMoveMenu(false);
+                                                 }}
+                                                 className="w-full text-left px-4 py-2 hover:bg-white/10 rounded-xl text-white text-[10px] font-black"
+                                               >
+                                                 Para Mesa {tid}
+                                               </button>
+                                             ))}
+                                           </div>
+                                         )}
                                        </div>
                                      )}
                                      
