@@ -1,20 +1,107 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# 🃏 Sistema de Poker Físico-Virtual
 
-# Run and deploy your AI Studio app
+Sistema de fichas de poker virtual para unificação de jogos de poker com cartas físicas.
 
-This contains everything you need to run your app locally.
+## 📋 Sobre o Projeto
 
-View your app in AI Studio: https://ai.studio/apps/drive/1cZqc_Q323PsJL2FW78G5Gh6fRyJQ0M5p
+Este projeto permite jogar poker usando cartas físicas reais enquanto gerencia fichas, apostas e o pot de forma virtual através de uma interface web moderna.
 
-## Run Locally
+## 🚀 Tecnologias
 
-**Prerequisites:**  Node.js
+- **React** - Biblioteca para construção da interface
+- **TypeScript** - Tipagem estática para JavaScript
+- **Vite** - Build tool e dev server ultra-rápido
+- **Vercel** - Hospedagem e deploy contínuo
 
+## 💻 Rodando Localmente
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+### Pré-requisitos
+
+- Node.js 16+ instalado
+- npm ou yarn
+
+### Instalação
+
+```bash
+# Clone o repositório
+git clone https://github.com/finnb0y/Sistema-Poker-F-sico-Virtual.git
+
+# Entre na pasta do projeto
+cd Sistema-Poker-F-sico-Virtual
+
+# Instale as dependências
+npm install
+
+# Inicie o servidor de desenvolvimento
+npm run dev
+```
+
+O projeto estará rodando em `http://localhost:3000`
+
+## 🏗️ Build
+
+```bash
+# Criar build de produção
+npm run build
+
+# Preview do build
+npm run preview
+```
+
+## 🌐 Deploy
+
+Este projeto está configurado para deploy automático na Vercel:
+
+1. Faça push para o repositório GitHub
+2. Conecte o repositório na [Vercel](https://vercel.com)
+3. O deploy acontece automaticamente a cada push
+
+### Deploy Manual via CLI
+
+```bash
+# Instalar Vercel CLI
+npm i -g vercel
+
+# Deploy
+vercel
+
+# Deploy em produção
+vercel --prod
+```
+
+## 📁 Estrutura do Projeto
+
+```
+├── components/          # Componentes React
+├── services/           # Lógica de negócio e serviços
+├── App.tsx            # Componente principal
+├── index.tsx          # Entry point
+├── types.ts           # Definições de tipos TypeScript
+├── vite.config.ts     # Configuração do Vite
+└── package.json       # Dependências e scripts
+```
+
+## 🎮 Funcionalidades
+
+- ✅ Gerenciamento de fichas virtuais
+- ✅ Controle de apostas e pot
+- ✅ Interface intuitiva e responsiva
+- ✅ Sincronização em tempo real
+- ✅ Suporte para múltiplos jogadores
+
+## 🤝 Contribuindo
+
+Contribuições são bem-vindas! Sinta-se à vontade para abrir issues e pull requests.
+
+## 📝 Licença
+
+Este projeto é de código aberto e está disponível sob a licença MIT.
+
+## 👤 Autor
+
+**finnb0y**
+- GitHub: [@finnb0y](https://github.com/finnb0y)
+
+---
+
+Feito com ♠️ por finnb0y
