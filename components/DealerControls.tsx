@@ -31,6 +31,11 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch }) =>
   const [cartEntryType, setCartEntryType] = useState<'buyIn' | 'reentry'>('buyIn');
   const [cartRebuys, setCartRebuys] = useState(0);
   const [cartAddon, setCartAddon] = useState(false);
+  
+  // Table Details Modal State
+  const [selectedTableId, setSelectedTableId] = useState<number | null>(null);
+  const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
+  const [showMoveMenu, setShowMoveMenu] = useState(false);
 
   useEffect(() => {
     setActiveTourneyId(state.activeTournamentId);
@@ -352,14 +357,24 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch }) =>
              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
                 {state.roomTables.map(rt => {
                   const tourneyAtTable = state.tournaments.find(t => t.assignedTableIds.includes(rt.id));
+                  const playersAtTable = state.players.filter(p => p.tableId === rt.id);
                   return (
-                    <div key={rt.id} className={`glass p-10 rounded-[50px] flex flex-col items-center justify-center relative group transition-all border-2 ${tourneyAtTable ? 'border-green-500 bg-green-500/5' : 'border-white/5'}`}>
+                    <div 
+                      key={rt.id} 
+                      onClick={() => tourneyAtTable && setSelectedTableId(rt.id)}
+                      className={`glass p-10 rounded-[50px] flex flex-col items-center justify-center relative group transition-all border-2 ${tourneyAtTable ? 'border-green-500 bg-green-500/5 cursor-pointer hover:bg-green-500/10' : 'border-white/5'}`}
+                    >
                        <span className={`text-5xl font-black mb-2 ${tourneyAtTable ? 'text-green-500' : 'text-white/10'}`}>{rt.id}</span>
                        <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">Mesa {rt.id}</span>
                        {tourneyAtTable && (
-                         <div className="mt-4 bg-green-600 text-white text-[8px] font-black px-3 py-1 rounded-full uppercase">
-                           ATIVO: {tourneyAtTable.acronym}
-                         </div>
+                         <>
+                           <div className="mt-4 bg-green-600 text-white text-[8px] font-black px-3 py-1 rounded-full uppercase">
+                             ATIVO: {tourneyAtTable.acronym}
+                           </div>
+                           <div className="mt-2 text-white/60 text-[10px] font-black">
+                             {playersAtTable.length} jogador{playersAtTable.length !== 1 ? 'es' : ''}
+                           </div>
+                         </>
                        )}
                        {!tourneyAtTable && (
                          <button onClick={() => onDispatch({ type: 'REMOVE_ROOM_TABLE', payload: { id: rt.id }, senderId: 'DIR' })} className="absolute top-4 right-4 text-red-500 opacity-0 group-hover:opacity-100 transition-all p-2">🗑️</button>
@@ -368,6 +383,142 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch }) =>
                   );
                 })}
              </div>
+
+             {/* Table Details Modal */}
+             {selectedTableId && (
+               <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[200] flex items-center justify-center p-8 animate-in fade-in" onClick={() => { setSelectedTableId(null); setSelectedPlayer(null); }}>
+                 <div className="glass max-w-4xl w-full max-h-[90vh] rounded-[50px] p-10 border-2 border-white/10 overflow-y-auto animate-in zoom-in-95" onClick={(e) => e.stopPropagation()}>
+                   {(() => {
+                     const tableData = state.roomTables.find(t => t.id === selectedTableId);
+                     const tableTourney = state.tournaments.find(t => t.assignedTableIds.includes(selectedTableId));
+                     const tablePlayers = state.players.filter(p => p.tableId === selectedTableId);
+                     
+                     return (
+                       <>
+                         <div className="flex justify-between items-start mb-8">
+                           <div>
+                             <h3 className="text-3xl font-black text-white italic">Mesa {selectedTableId}</h3>
+                             <p className="text-white/40 text-xs font-black uppercase tracking-widest mt-1">
+                               {tableTourney?.name} • {tablePlayers.length} jogador{tablePlayers.length !== 1 ? 'es' : ''}
+                             </p>
+                           </div>
+                           <div className="flex gap-3">
+                             <button 
+                               onClick={() => { setActiveTourneyId(tableTourney?.id || null); setActiveTab('tv'); setSelectedTableId(null); }}
+                               className="bg-blue-600 hover:bg-blue-500 text-white font-black px-6 py-3 rounded-2xl text-[10px] uppercase shadow-lg transition-all"
+                             >
+                               📡 VER MODO TV
+                             </button>
+                             <button onClick={() => setSelectedTableId(null)} className="text-white/40 hover:text-white text-2xl">✕</button>
+                           </div>
+                         </div>
+
+                         <div className="space-y-4">
+                           {tablePlayers.length === 0 ? (
+                             <div className="text-center py-20 text-white/20 font-black uppercase tracking-[10px]">
+                               Nenhum jogador na mesa
+                             </div>
+                           ) : (
+                             tablePlayers.map(player => (
+                               <div key={player.id} className="p-6 bg-white/5 rounded-3xl border border-white/5 hover:bg-white/10 transition-all">
+                                 <div className="flex justify-between items-center">
+                                   <div className="flex items-center gap-6">
+                                     <div className="w-12 h-12 rounded-2xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center">
+                                       <span className="text-xl font-black text-yellow-500">{player.seatNumber}</span>
+                                     </div>
+                                     <div>
+                                       <div className="font-black text-white text-lg">{player.name}</div>
+                                       <div className="flex gap-4 text-[10px] font-black uppercase tracking-widest mt-1">
+                                         <span className="text-green-500">Stack: ${player.balance}</span>
+                                         <span className="text-white/40">Código: {player.accessCode}</span>
+                                         <span className="text-white/40">Investido: ${player.totalInvested}</span>
+                                       </div>
+                                     </div>
+                                   </div>
+                                   <button 
+                                     onClick={() => setSelectedPlayer(selectedPlayer?.id === player.id ? null : player)}
+                                     className="px-6 py-3 rounded-xl bg-white/5 hover:bg-yellow-500 hover:text-black text-white/60 font-black text-[10px] uppercase transition-all"
+                                   >
+                                     {selectedPlayer?.id === player.id ? 'FECHAR' : 'AÇÕES'}
+                                   </button>
+                                 </div>
+
+                                 {/* Player Actions Menu */}
+                                 {selectedPlayer?.id === player.id && (
+                                   <div className="mt-4 pt-4 border-t border-white/10 grid grid-cols-2 md:grid-cols-4 gap-3 animate-in slide-in-from-top-2">
+                                     <button 
+                                       onClick={() => {
+                                         onDispatch({ type: 'REMOVE_PLAYER', payload: { playerId: player.id }, senderId: 'DIR' });
+                                         setSelectedPlayer(null);
+                                       }}
+                                       className="bg-red-600/20 hover:bg-red-600 text-red-500 hover:text-white px-4 py-3 rounded-xl text-[9px] font-black uppercase transition-all"
+                                     >
+                                       🗑️ Remover
+                                     </button>
+                                     
+                                     {tableTourney && tableTourney.assignedTableIds.length > 1 && (
+                                       <div className="relative">
+                                         <button 
+                                           onClick={() => setShowMoveMenu(!showMoveMenu)}
+                                           className="w-full bg-blue-600/20 hover:bg-blue-600 text-blue-500 hover:text-white px-4 py-3 rounded-xl text-[9px] font-black uppercase transition-all"
+                                         >
+                                           🔄 Mover
+                                         </button>
+                                         {showMoveMenu && (
+                                           <div className="absolute top-full mt-2 left-0 bg-black border border-white/10 rounded-2xl p-2 min-w-[150px] z-10">
+                                             {tableTourney.assignedTableIds.filter(tid => tid !== selectedTableId).map(tid => (
+                                               <button
+                                                 key={tid}
+                                                 onClick={() => {
+                                                   onDispatch({ type: 'MOVE_PLAYER', payload: { playerId: player.id, targetTableId: tid }, senderId: 'DIR' });
+                                                   setSelectedPlayer(null);
+                                                   setShowMoveMenu(false);
+                                                 }}
+                                                 className="w-full text-left px-4 py-2 hover:bg-white/10 rounded-xl text-white text-[10px] font-black"
+                                               >
+                                                 Para Mesa {tid}
+                                               </button>
+                                             ))}
+                                           </div>
+                                         )}
+                                       </div>
+                                     )}
+                                     
+                                     {tableTourney?.config.rebuy.enabled && player.rebuysCount < tableTourney.config.rebuy.maxCount && (
+                                       <button 
+                                         onClick={() => {
+                                           onDispatch({ type: 'REBUY_PLAYER', payload: { playerId: player.id }, senderId: 'DIR' });
+                                           setSelectedPlayer(null);
+                                         }}
+                                         className="bg-purple-600/20 hover:bg-purple-600 text-purple-500 hover:text-white px-4 py-3 rounded-xl text-[9px] font-black uppercase transition-all"
+                                       >
+                                         💰 Recompra
+                                       </button>
+                                     )}
+                                     
+                                     {tableTourney?.config.reentry.enabled && player.balance === 0 && (
+                                       <button 
+                                         onClick={() => {
+                                           onDispatch({ type: 'REENTRY_PLAYER', payload: { playerId: player.id }, senderId: 'DIR' });
+                                           setSelectedPlayer(null);
+                                         }}
+                                         className="bg-orange-600/20 hover:bg-orange-600 text-orange-500 hover:text-white px-4 py-3 rounded-xl text-[9px] font-black uppercase transition-all"
+                                       >
+                                         🔁 Re-entry
+                                       </button>
+                                     )}
+                                   </div>
+                                 )}
+                               </div>
+                             ))
+                           )}
+                         </div>
+                       </>
+                     );
+                   })()}
+                 </div>
+               </div>
+             )}
           </div>
         )}
 

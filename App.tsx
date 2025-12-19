@@ -166,10 +166,12 @@ const App: React.FC = () => {
                count: newState.players.filter(p2 => p2.tableId === tid).length 
              }));
              const leastBusyTable = tableUsage.sort((a, b) => a.count - b.count)[0];
-             if (leastBusyTable && leastBusyTable.count < targetTourney.config.maxSeats) {
+             // Reserve seat 1 for dealer - maxSeats - 1 available seats for players
+             if (leastBusyTable && leastBusyTable.count < (targetTourney.config.maxSeats - 1)) {
                 p.tableId = leastBusyTable.id;
                 const takenSeats = newState.players.filter(p2 => p2.tableId === leastBusyTable.id).map(p2 => p2.seatNumber);
-                for(let s=1; s<=targetTourney.config.maxSeats; s++) {
+                // Skip seat 1 (dealer position) when assigning seats
+                for(let s=2; s<=targetTourney.config.maxSeats; s++) {
                    if (!takenSeats.includes(s)) { p.seatNumber = s; break; }
                 }
              }
@@ -199,6 +201,57 @@ const App: React.FC = () => {
               tState.pot = 0;
               tState.currentTurn = null;
               newState.players.filter(p => p.tableId === tState.id).forEach(p => p.currentBet = 0);
+            }
+          }
+          break;
+
+        case 'REMOVE_PLAYER':
+          newState.players = newState.players.filter(p => p.id !== payload.playerId);
+          break;
+
+        case 'MOVE_PLAYER':
+          const playerToMove = newState.players.find(p => p.id === payload.playerId);
+          if (playerToMove) {
+            const targetTable = payload.targetTableId;
+            const targetTourney = newState.tournaments.find(t => t.id === playerToMove.tournamentId);
+            if (targetTourney) {
+              playerToMove.tableId = targetTable;
+              playerToMove.currentBet = 0;
+              playerToMove.status = PlayerStatus.SITTING;
+              // Find available seat at target table (skip seat 1 - dealer position)
+              const takenSeats = newState.players.filter(p => p.tableId === targetTable && p.id !== payload.playerId).map(p => p.seatNumber);
+              for(let s=2; s<=targetTourney.config.maxSeats; s++) {
+                if (!takenSeats.includes(s)) { playerToMove.seatNumber = s; break; }
+              }
+            }
+          }
+          break;
+
+        case 'REBUY_PLAYER':
+          const rebuyPlayer = newState.players.find(p => p.id === payload.playerId);
+          if (rebuyPlayer) {
+            const rebuyTourney = newState.tournaments.find(t => t.id === rebuyPlayer.tournamentId);
+            if (rebuyTourney && rebuyTourney.config.rebuy.enabled) {
+              if (rebuyPlayer.rebuysCount < rebuyTourney.config.rebuy.maxCount) {
+                rebuyPlayer.balance += rebuyTourney.config.rebuy.chips;
+                rebuyPlayer.rebuysCount += 1;
+                rebuyPlayer.totalInvested += rebuyTourney.config.rebuy.price;
+              }
+            }
+          }
+          break;
+
+        case 'REENTRY_PLAYER':
+          const reentryPlayer = newState.players.find(p => p.id === payload.playerId);
+          if (reentryPlayer) {
+            const reentryTourney = newState.tournaments.find(t => t.id === reentryPlayer.tournamentId);
+            if (reentryTourney && reentryTourney.config.reentry.enabled) {
+              reentryPlayer.balance = reentryTourney.config.reentry.chips;
+              reentryPlayer.currentBet = 0;
+              reentryPlayer.status = PlayerStatus.SITTING;
+              reentryPlayer.totalInvested += reentryTourney.config.reentry.price;
+              reentryPlayer.tableId = null;
+              reentryPlayer.seatNumber = 0;
             }
           }
           break;
