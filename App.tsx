@@ -297,7 +297,7 @@ const App: React.FC = () => {
               if (found) { setPlayerId(found.id); selectRole(Role.PLAYER); }
             }} className="space-y-4">
               <input type="text" maxLength={4} value={accessCodeInput} onChange={e => setAccessCodeInput(e.target.value.toUpperCase())} placeholder="CÓDIGO" className="w-full bg-black/40 border border-white/10 rounded-3xl p-6 text-center text-4xl font-black text-yellow-500 outline-none transition-all tracking-[12px]" />
-              <button type="submit" className="w-full bg-yellow-600 hover:bg-yellow-500 text-white font-black py-5 rounded-3xl text-xl shadow-xl transition-all">ACESSAR FICHA</button>
+              <button type="submit" className="w-full bg-yellow-600 hover:bg-yellow-500 text-white font-black py-5 rounded-3xl text-xl shadow-xl transition-all">SENTAR NA MESA</button>
             </form>
             <div className="grid grid-cols-2 gap-3 pt-4">
               <button onClick={() => selectRole(Role.DEALER)} className="bg-white/5 hover:bg-white/10 border border-white/10 text-white font-black py-4 rounded-2xl transition-all uppercase text-[10px] tracking-widest">DEALER</button>
