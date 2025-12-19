@@ -55,6 +55,39 @@ const TableView: React.FC<TableViewProps> = ({
         
         <div className="text-center z-10 select-none px-4">
           <div className="text-yellow-500/30 text-[7px] sm:text-[10px] font-black uppercase tracking-[4px] sm:tracking-[10px] mb-1 sm:mb-2">{tournament.acronym} • MESA {tableId}</div>
+          
+          {/* Community Cards */}
+          {tableState.handInProgress && tableState.bettingRound && tableState.bettingRound !== 'PRE_FLOP' && (
+            <div className="flex justify-center gap-1 sm:gap-2 mb-3 sm:mb-4">
+              {/* Flop */}
+              {(tableState.bettingRound === 'FLOP' || tableState.bettingRound === 'TURN' || tableState.bettingRound === 'RIVER' || tableState.bettingRound === 'SHOWDOWN') && (
+                <>
+                  <div className="w-8 h-11 sm:w-12 sm:h-16 bg-white/10 border border-white/20 rounded opacity-40 flex items-center justify-center">
+                    <span className="text-white/30 text-xs sm:text-sm">🂠</span>
+                  </div>
+                  <div className="w-8 h-11 sm:w-12 sm:h-16 bg-white/10 border border-white/20 rounded opacity-40 flex items-center justify-center">
+                    <span className="text-white/30 text-xs sm:text-sm">🂠</span>
+                  </div>
+                  <div className="w-8 h-11 sm:w-12 sm:h-16 bg-white/10 border border-white/20 rounded opacity-40 flex items-center justify-center">
+                    <span className="text-white/30 text-xs sm:text-sm">🂠</span>
+                  </div>
+                </>
+              )}
+              {/* Turn */}
+              {(tableState.bettingRound === 'TURN' || tableState.bettingRound === 'RIVER' || tableState.bettingRound === 'SHOWDOWN') && (
+                <div className="w-8 h-11 sm:w-12 sm:h-16 bg-white/10 border border-white/20 rounded opacity-40 flex items-center justify-center ml-1 sm:ml-2">
+                  <span className="text-white/30 text-xs sm:text-sm">🂠</span>
+                </div>
+              )}
+              {/* River */}
+              {(tableState.bettingRound === 'RIVER' || tableState.bettingRound === 'SHOWDOWN') && (
+                <div className="w-8 h-11 sm:w-12 sm:h-16 bg-white/10 border border-white/20 rounded opacity-40 flex items-center justify-center">
+                  <span className="text-white/30 text-xs sm:text-sm">🂠</span>
+                </div>
+              )}
+            </div>
+          )}
+          
           <div className="text-4xl sm:text-8xl font-outfit font-black text-white drop-shadow-[0_5px_15px_rgba(0,0,0,0.5)]">
             ${tableState.pot}
           </div>
@@ -90,18 +123,9 @@ const TableView: React.FC<TableViewProps> = ({
 
           if (!player) {
             if (!showEmptySeats) return null;
-            // Seat 1 is reserved for the dealer
+            // Seat 1 is reserved for the physical dealer (no visual indicator needed)
             if (isDealerSeat) {
-              return (
-                <div 
-                  key={`seat-${seatNum}`}
-                  style={style}
-                  className="absolute w-16 h-12 sm:w-28 sm:h-20 rounded-xl sm:rounded-3xl border-2 border-yellow-600/50 bg-yellow-900/20 flex flex-col items-center justify-center"
-                >
-                  <span className="text-yellow-500/60 text-[7px] sm:text-[9px] font-black uppercase">DEALER</span>
-                  <span className="text-yellow-500/40 text-[6px] sm:text-[8px] font-black">RESERVED</span>
-                </div>
-              );
+              return null; // Don't show seat 1 at all
             }
             return (
               <div 

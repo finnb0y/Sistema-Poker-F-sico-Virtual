@@ -80,6 +80,14 @@ export interface Player {
   totalInvested: number;
 }
 
+export enum BettingRound {
+  PRE_FLOP = 'PRE_FLOP',
+  FLOP = 'FLOP',
+  TURN = 'TURN',
+  RIVER = 'RIVER',
+  SHOWDOWN = 'SHOWDOWN'
+}
+
 export interface TableState {
   id: number;
   tournamentId: string;
@@ -88,6 +96,10 @@ export interface TableState {
   dealerId: string | null;
   dealerButtonPosition: number | null; // seat number of the dealer button
   currentBlindLevel: number; // index in the blindStructure.levels array
+  bettingRound: BettingRound | null; // current betting round
+  currentBet: number; // current bet amount in this round
+  lastRaiseAmount: number; // amount of the last raise
+  handInProgress: boolean; // whether a hand is currently being played
 }
 
 export interface GameState {
@@ -118,7 +130,9 @@ export type ActionType =
   | 'BET' 
   | 'FOLD' 
   | 'CHECK' 
-  | 'CALL' 
+  | 'CALL'
+  | 'RAISE'
+  | 'ADVANCE_BETTING_ROUND'
   | 'AWARD_POT' 
   | 'RESET_HAND' 
   | 'UPDATE_BLINDS'
