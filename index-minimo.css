@@ -1,0 +1,6 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Todos os estilos customizados já estão no index.html inline */
+/* Este arquivo só carrega o Tailwind compilado */
