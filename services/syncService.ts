@@ -24,7 +24,11 @@ export const syncService = {
   },
   
   subscribe: (callback: (msg: ActionMessage) => void) => {
-    if (!channel) return () => {};
+    // If BroadcastChannel is not available, return a no-op cleanup function
+    if (!channel) {
+      console.warn('BroadcastChannel not available, sync disabled');
+      return () => { /* No cleanup needed when channel is unavailable */ };
+    }
     
     const handler = (event: MessageEvent) => {
       try {

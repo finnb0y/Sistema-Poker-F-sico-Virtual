@@ -60,7 +60,7 @@ const App: React.FC = () => {
     return Math.max(...tablePlayers.map(p => p.currentBet), 0);
   };
 
-  const checkBettingRoundComplete = (players: Player[], tableId: number, tableState: any): boolean => {
+  const checkBettingRoundComplete = (players: Player[], tableId: number, tableState: TableState): boolean => {
     const activePlayers = players.filter(p => 
       p.tableId === tableId && 
       p.status !== PlayerStatus.FOLDED && 
@@ -73,9 +73,9 @@ const App: React.FC = () => {
     
     // Check if all active players have either:
     // 1. Matched the max bet, or
-    // 2. Are all-in
+    // 2. Are all-in (balance is zero after betting)
     const allPlayersMatched = activePlayers.every(p => 
-      p.currentBet === maxBet || p.status === PlayerStatus.ALL_IN || p.balance === 0
+      p.currentBet === maxBet || p.status === PlayerStatus.ALL_IN
     );
     
     return allPlayersMatched;
