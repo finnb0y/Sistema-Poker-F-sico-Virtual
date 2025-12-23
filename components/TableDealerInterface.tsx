@@ -75,7 +75,7 @@ const TableDealerInterface: React.FC<TableDealerInterfaceProps> = ({ state, onDi
         <div className="absolute top-6 left-8 z-50">
            <button onClick={() => setSelectedTableId(null)} className="bg-black/60 p-4 rounded-2xl text-yellow-500 font-black border border-white/10">← VOLTAR</button>
         </div>
-        <TableView state={state} tableId={selectedTableId} onPlayerClick={(p) => onDispatch({ type: 'AWARD_POT', payload: { winnerId: p.id }, senderId: 'DEALER' })} showEmptySeats={true} />
+        <TableView state={state} tableId={selectedTableId} showEmptySeats={true} />
       </div>
 
       <div className="lg:w-[400px] bg-[#0a0f0a] flex flex-col border-l border-white/10 p-8 space-y-6">
@@ -137,11 +137,16 @@ const TableDealerInterface: React.FC<TableDealerInterfaceProps> = ({ state, onDi
              {/* Hand in Progress Controls */}
              <button 
                onClick={() => onDispatch({ type: 'ADVANCE_BETTING_ROUND', payload: { tableId: selectedTableId }, senderId: 'DEALER' })} 
-               className="w-full bg-purple-600 hover:bg-purple-500 text-white font-black py-8 rounded-[32px] text-lg shadow-2xl transition-all uppercase"
-               disabled={tableState.bettingRound === 'SHOWDOWN'}
+               className="w-full bg-purple-600 hover:bg-purple-500 text-white font-black py-8 rounded-[32px] text-lg shadow-2xl transition-all uppercase disabled:opacity-50 disabled:cursor-not-allowed"
+               disabled={tableState.bettingRound === 'SHOWDOWN' || tableState.currentTurn !== null}
              >
                🃏 {getNextRoundLabel(tableState.bettingRound)}
              </button>
+             {tableState.currentTurn !== null && (
+               <div className="text-center text-xs text-purple-400/60 font-black uppercase tracking-wide -mt-3">
+                 Aguardando ações dos jogadores
+               </div>
+             )}
              
              <button 
                onClick={() => {
