@@ -173,7 +173,9 @@ const TableView: React.FC<TableViewProps> = ({
               <div 
                 onClick={() => onPlayerClick?.(player)}
                 className={`flex flex-col items-center p-2 sm:p-4 rounded-xl sm:rounded-[32px] glass min-w-[70px] sm:min-w-[140px] transition-all cursor-pointer relative group ${
-                  isActive 
+                  isActive && isCurrentPlayer
+                    ? 'ring-2 sm:ring-4 ring-yellow-500 scale-110 shadow-[0_0_20px_rgba(234,179,8,0.4)] bg-blue-500/10'
+                    : isActive 
                     ? 'ring-2 sm:ring-4 ring-yellow-500 scale-110 shadow-[0_0_20px_rgba(234,179,8,0.4)]' 
                     : isCurrentPlayer 
                     ? 'ring-2 sm:ring-4 ring-blue-500 bg-blue-500/10 shadow-[0_0_15px_rgba(59,130,246,0.4)]'

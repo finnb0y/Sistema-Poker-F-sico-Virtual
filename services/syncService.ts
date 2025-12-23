@@ -45,17 +45,24 @@ export const syncService = {
   persistState: (state: GameState) => {
     try {
       localStorage.setItem('poker_game_state', JSON.stringify(state));
+      console.log('Estado salvo no localStorage');
     } catch (error) {
-      console.error('Failed to persist state:', error);
+      console.error('Erro ao salvar estado no localStorage:', error);
     }
   },
 
   loadState: (): GameState | null => {
     try {
       const saved = localStorage.getItem('poker_game_state');
-      return saved ? JSON.parse(saved) : null;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        console.log('Estado recuperado do localStorage');
+        return parsed;
+      }
+      console.log('Nenhum estado encontrado no localStorage');
+      return null;
     } catch (error) {
-      console.error('Failed to load state:', error);
+      console.error('Erro ao carregar estado do localStorage:', error);
       return null;
     }
   }

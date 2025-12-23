@@ -27,9 +27,19 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [gameState, setGameState] = useState<GameState>(() => {
     try {
-      return syncService.loadState() || INITIAL_STATE;
+      const loadedState = syncService.loadState();
+      if (loadedState) {
+        console.log('Estado carregado do localStorage:', { 
+          torneos: loadedState.tournaments.length,
+          jogadores: loadedState.players.length,
+          registro: loadedState.registry.length
+        });
+        return loadedState;
+      }
+      console.log('Nenhum estado salvo encontrado, iniciando com estado inicial');
+      return INITIAL_STATE;
     } catch (error) {
-      console.error('Failed to load initial state:', error);
+      console.error('Erro ao carregar estado inicial:', error);
       return INITIAL_STATE;
     }
   });
