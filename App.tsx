@@ -60,6 +60,17 @@ const App: React.FC = () => {
     return Math.max(...tablePlayers.map(p => p.currentBet), 0);
   };
 
+  /**
+   * Checks if the current betting round is complete.
+   * A round is complete when all active players have either:
+   * 1. Matched the highest bet at the table, or
+   * 2. Gone all-in with their remaining chips
+   * 
+   * @param players - Array of all players in the game
+   * @param tableId - The table ID to check
+   * @param tableState - The current table state
+   * @returns true if betting round is complete, false otherwise
+   */
   const checkBettingRoundComplete = (players: Player[], tableId: number, tableState: TableState): boolean => {
     const activePlayers = players.filter(p => 
       p.tableId === tableId && 

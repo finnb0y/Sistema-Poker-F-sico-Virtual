@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { GameState, PlayerStatus, Player } from '../types';
 
 interface TableViewProps {
@@ -22,6 +22,15 @@ const TableView: React.FC<TableViewProps> = ({
   const [showingRealNames, setShowingRealNames] = useState<Record<string, boolean>>({});
   const tableState = state.tableStates.find(t => t.id === tableId);
   const tournament = state.tournaments.find(t => t.id === tableState?.tournamentId);
+  
+  // Memoize the registry lookup map for performance
+  const registryMap = useMemo(() => {
+    const map = new Map<string, { name: string; nickname?: string }>();
+    state.registry.forEach(person => {
+      map.set(person.id, { name: person.name, nickname: person.nickname });
+    });
+    return map;
+  }, [state.registry]);
   
   if (!tableState || !tournament || !tournament.isActive) return <div className="h-full w-full flex items-center justify-center text-white/10 font-black uppercase tracking-[10px]">MESA DESATIVADA</div>;
 
@@ -147,8 +156,8 @@ const TableView: React.FC<TableViewProps> = ({
           const isDealerButton = tableState.dealerButtonPosition === seatNum;
           const isCurrentPlayer = currentPlayerId === player.id;
           
-          // Get the registered person to access their real name and nickname
-          const registeredPerson = state.registry.find(r => r.id === player.personId);
+          // Get the registered person to access their real name and nickname (using memoized map)
+          const registeredPerson = registryMap.get(player.personId);
           // By default, show nickname if available, otherwise show real name
           const displayName = showingRealNames[player.id] 
             ? (registeredPerson?.name || player.name)  // Show real name when toggled

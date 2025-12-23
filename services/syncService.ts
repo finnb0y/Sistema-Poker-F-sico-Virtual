@@ -27,7 +27,7 @@ export const syncService = {
     // If BroadcastChannel is not available, return a no-op cleanup function
     if (!channel) {
       console.warn('BroadcastChannel not available, sync disabled');
-      return () => { /* No cleanup needed when channel is unavailable */ };
+      return () => { /* BroadcastChannel unavailable - return no-op cleanup function */ };
     }
     
     const handler = (event: MessageEvent) => {
