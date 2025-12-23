@@ -205,13 +205,70 @@ const App: React.FC = () => {
 
         case 'BET':
           const bP = newState.players.find(p => p.id === senderId);
-          if (bP) {
-            const betDiff = payload.amount - bP.currentBet;
-            bP.balance -= betDiff;
-            bP.currentBet = payload.amount;
+          if (bP && bP.tableId) {
             const tState = newState.tableStates.find(t => t.id === bP.tableId);
-            if (tState) {
+            // Only allow action if it's player's turn
+            if (tState && tState.currentTurn === senderId) {
+              const betDiff = payload.amount - bP.currentBet;
+              bP.balance -= betDiff;
+              bP.currentBet = payload.amount;
               tState.pot += betDiff;
+              tState.currentBet = Math.max(tState.currentBet, payload.amount);
+              tState.currentTurn = getNextTurnId(newState.players, tState.id, senderId);
+            }
+          }
+          break;
+
+        case 'FOLD':
+          const foldPlayer = newState.players.find(p => p.id === senderId);
+          if (foldPlayer && foldPlayer.tableId) {
+            const tState = newState.tableStates.find(t => t.id === foldPlayer.tableId);
+            // Only allow action if it's player's turn
+            if (tState && tState.currentTurn === senderId) {
+              foldPlayer.status = PlayerStatus.FOLDED;
+              tState.currentTurn = getNextTurnId(newState.players, tState.id, senderId);
+            }
+          }
+          break;
+
+        case 'CHECK':
+          const checkPlayer = newState.players.find(p => p.id === senderId);
+          if (checkPlayer && checkPlayer.tableId) {
+            const tState = newState.tableStates.find(t => t.id === checkPlayer.tableId);
+            // Only allow action if it's player's turn and no bet to call
+            if (tState && tState.currentTurn === senderId) {
+              const tablePlayers = newState.players.filter(p => p.tableId === checkPlayer.tableId);
+              const maxBet = Math.max(...tablePlayers.map(p => p.currentBet), 0);
+              // Can only check if current bet matches the max bet
+              if (checkPlayer.currentBet === maxBet) {
+                tState.currentTurn = getNextTurnId(newState.players, tState.id, senderId);
+              }
+            }
+          }
+          break;
+
+        case 'CALL':
+          const callPlayer = newState.players.find(p => p.id === senderId);
+          if (callPlayer && callPlayer.tableId) {
+            const tState = newState.tableStates.find(t => t.id === callPlayer.tableId);
+            // Only allow action if it's player's turn
+            if (tState && tState.currentTurn === senderId) {
+              const tablePlayers = newState.players.filter(p => p.tableId === callPlayer.tableId);
+              const maxBet = Math.max(...tablePlayers.map(p => p.currentBet), 0);
+              const callAmount = maxBet - callPlayer.currentBet;
+              
+              if (callAmount > 0) {
+                const amountToCall = Math.min(callAmount, callPlayer.balance);
+                callPlayer.balance -= amountToCall;
+                callPlayer.currentBet += amountToCall;
+                tState.pot += amountToCall;
+                
+                // If player is all-in, mark status
+                if (callPlayer.balance === 0) {
+                  callPlayer.status = PlayerStatus.ALL_IN;
+                }
+              }
+              
               tState.currentTurn = getNextTurnId(newState.players, tState.id, senderId);
             }
           }
