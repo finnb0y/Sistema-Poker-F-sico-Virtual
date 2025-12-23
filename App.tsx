@@ -41,6 +41,11 @@ const App: React.FC = () => {
     return sorted[(currIdx + 1) % sorted.length].id;
   };
 
+  const getMaxBetAtTable = (players: Player[], tableId: number): number => {
+    const tablePlayers = players.filter(p => p.tableId === tableId);
+    return Math.max(...tablePlayers.map(p => p.currentBet), 0);
+  };
+
   const processAction = useCallback((msg: ActionMessage) => {
     setGameState(prev => {
       let newState = { ...prev };
@@ -237,8 +242,7 @@ const App: React.FC = () => {
             const tState = newState.tableStates.find(t => t.id === checkPlayer.tableId);
             // Only allow action if it's player's turn and no bet to call
             if (tState && tState.currentTurn === senderId) {
-              const tablePlayers = newState.players.filter(p => p.tableId === checkPlayer.tableId);
-              const maxBet = Math.max(...tablePlayers.map(p => p.currentBet), 0);
+              const maxBet = getMaxBetAtTable(newState.players, checkPlayer.tableId);
               // Can only check if current bet matches the max bet
               if (checkPlayer.currentBet === maxBet) {
                 tState.currentTurn = getNextTurnId(newState.players, tState.id, senderId);
@@ -253,8 +257,7 @@ const App: React.FC = () => {
             const tState = newState.tableStates.find(t => t.id === callPlayer.tableId);
             // Only allow action if it's player's turn
             if (tState && tState.currentTurn === senderId) {
-              const tablePlayers = newState.players.filter(p => p.tableId === callPlayer.tableId);
-              const maxBet = Math.max(...tablePlayers.map(p => p.currentBet), 0);
+              const maxBet = getMaxBetAtTable(newState.players, callPlayer.tableId);
               const callAmount = maxBet - callPlayer.currentBet;
               
               if (callAmount > 0) {
