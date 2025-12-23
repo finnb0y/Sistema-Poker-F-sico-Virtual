@@ -1,5 +1,19 @@
 import { Player, PlayerStatus } from '../types';
 
+/**
+ * Dealer Logic Utility Functions
+ * 
+ * This module implements the complete dealer button and blind logic for poker games,
+ * including proper handling of heads-up (2-player) and multi-player scenarios.
+ * 
+ * Key Rules Implemented:
+ * - 2 Players (Heads-Up): Dealer button is also small blind, acts first pre-flop
+ * - 3+ Players: Small blind left of dealer, big blind left of small blind, 
+ *               action starts at UTG (left of big blind) pre-flop
+ * - Post-Flop: Action always starts from small blind position or first active player
+ * - Button Movement: Automatically moves clockwise to next player after each hand
+ */
+
 export interface DealerPositions {
   dealerIdx: number;
   smallBlindIdx: number;
@@ -67,10 +81,10 @@ export function getPostFlopFirstToAct(
 }
 
 /**
- * Move dealer button to the next player position
+ * Move dealer button to the next player position, or set it initially if null
  * @param players - Array of players at the table (sorted by seat number)
- * @param currentDealerPosition - Current dealer button seat number
- * @returns New dealer button seat number
+ * @param currentDealerPosition - Current dealer button seat number, or null for initial setup
+ * @returns New dealer button seat number, or null if no players
  */
 export function moveButtonToNextPlayer(
   players: Player[],
@@ -79,7 +93,7 @@ export function moveButtonToNextPlayer(
   if (players.length === 0) return null;
 
   if (currentDealerPosition === null) {
-    // First time setting dealer button - use first player's seat
+    // Initial dealer button setup - manual selection uses first player by default
     return players[0].seatNumber;
   }
 

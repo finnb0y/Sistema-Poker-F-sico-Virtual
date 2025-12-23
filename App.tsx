@@ -376,6 +376,7 @@ const App: React.FC = () => {
               tableForAdvance.lastRaiseAmount = 0;
               
               // Reset player bets for new round
+              // Post-flop: only players who are ACTIVE (not folded) participate
               const activePlayers = getActivePlayers(
                 newState.players,
                 payload.tableId,
