@@ -23,6 +23,8 @@ const PlayerDashboard: React.FC<PlayerDashboardProps> = ({ state, playerId, onDi
   const handleAction = (type: ActionMessage['type'], amount?: number) => {
     onDispatch({ type, payload: { amount: amount || 0 }, senderId: playerId });
     setBetAmount(0);
+    // Automatically show table view after action
+    setShowTable(true);
   };
 
   const chips = [
@@ -159,13 +161,15 @@ const PlayerDashboard: React.FC<PlayerDashboardProps> = ({ state, playerId, onDi
       <div className="p-3 grid grid-cols-3 gap-2 bg-black border-t border-white/5 pb-8 sm:pb-4">
          <button 
            onClick={() => handleAction('FOLD')}
-           className="bg-red-950/40 border border-red-500/20 py-6 rounded-[24px] font-black text-[10px] uppercase text-red-200 active:scale-95 transition-all"
+           disabled={!isMyTurn}
+           className={`py-6 rounded-[24px] font-black text-[10px] uppercase transition-all border-2 ${isMyTurn ? 'bg-red-950/40 border-red-500/20 text-red-200 active:scale-95' : 'bg-white/5 border-transparent text-white/10 pointer-events-none'}`}
          >
            FOLD
          </button>
          
          <button 
            onClick={() => handleAction(callAmount > 0 ? 'CALL' : 'CHECK')}
+           disabled={!isMyTurn}
            className={`py-6 rounded-[24px] font-black text-[10px] uppercase transition-all border-2 ${isMyTurn ? 'bg-blue-600 border-blue-400 text-white active:scale-95 shadow-[0_0_20px_rgba(37,99,235,0.3)]' : 'bg-white/5 border-transparent text-white/10 pointer-events-none'}`}
          >
            {callAmount > 0 ? `CALL $${callAmount}` : 'CHECK'}

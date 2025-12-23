@@ -74,6 +74,8 @@ vercel --prod
 ```
 ├── components/          # Componentes React
 ├── services/           # Lógica de negócio e serviços
+├── utils/              # Utilitários e lógica de jogo
+├── docs/               # Documentação técnica
 ├── App.tsx            # Componente principal
 ├── index.tsx          # Entry point
 ├── types.ts           # Definições de tipos TypeScript
@@ -85,9 +87,11 @@ vercel --prod
 
 - ✅ Gerenciamento de fichas virtuais
 - ✅ Controle de apostas e pot
+- ✅ Lógica completa do dealer (botão, blinds, ordem de ação)
+- ✅ Suporte para heads-up (2 jogadores) e multi-jogador (3+)
 - ✅ Interface intuitiva e responsiva
 - ✅ Sincronização em tempo real
-- ✅ Suporte para múltiplos jogadores
+- ✅ Suporte para múltiplos jogadores e torneios
 
 ## 🤝 Contribuindo
 

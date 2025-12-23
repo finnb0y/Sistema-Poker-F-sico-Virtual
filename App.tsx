@@ -5,6 +5,7 @@ import { syncService } from './services/syncService';
 import PlayerDashboard from './components/PlayerDashboard';
 import DealerControls from './components/DealerControls';
 import TableDealerInterface from './components/TableDealerInterface';
+import { calculateDealerPositions, getPostFlopFirstToAct, moveButtonToNextPlayer, getActivePlayers } from './utils/dealerLogic';
 
 const INITIAL_STATE: GameState = {
   roomTables: Array.from({ length: 10 }, (_, i) => ({ id: i + 1, name: `Mesa ${i + 1}` })),
@@ -38,6 +39,11 @@ const App: React.FC = () => {
     const sorted = [...tablePlayers].sort((a, b) => a.seatNumber - b.seatNumber);
     const currIdx = sorted.findIndex(p => p.id === currentId);
     return sorted[(currIdx + 1) % sorted.length].id;
+  };
+
+  const getMaxBetAtTable = (players: Player[], tableId: number): number => {
+    const tablePlayers = players.filter(p => p.tableId === tableId);
+    return Math.max(...tablePlayers.map(p => p.currentBet), 0);
   };
 
   const processAction = useCallback((msg: ActionMessage) => {
@@ -204,13 +210,68 @@ const App: React.FC = () => {
 
         case 'BET':
           const bP = newState.players.find(p => p.id === senderId);
-          if (bP) {
-            const betDiff = payload.amount - bP.currentBet;
-            bP.balance -= betDiff;
-            bP.currentBet = payload.amount;
+          if (bP && bP.tableId) {
             const tState = newState.tableStates.find(t => t.id === bP.tableId);
-            if (tState) {
+            // Only allow action if it's player's turn
+            if (tState && tState.currentTurn === senderId) {
+              const betDiff = payload.amount - bP.currentBet;
+              bP.balance -= betDiff;
+              bP.currentBet = payload.amount;
               tState.pot += betDiff;
+              tState.currentBet = Math.max(tState.currentBet, payload.amount);
+              tState.currentTurn = getNextTurnId(newState.players, tState.id, senderId);
+            }
+          }
+          break;
+
+        case 'FOLD':
+          const foldPlayer = newState.players.find(p => p.id === senderId);
+          if (foldPlayer && foldPlayer.tableId) {
+            const tState = newState.tableStates.find(t => t.id === foldPlayer.tableId);
+            // Only allow action if it's player's turn
+            if (tState && tState.currentTurn === senderId) {
+              foldPlayer.status = PlayerStatus.FOLDED;
+              tState.currentTurn = getNextTurnId(newState.players, tState.id, senderId);
+            }
+          }
+          break;
+
+        case 'CHECK':
+          const checkPlayer = newState.players.find(p => p.id === senderId);
+          if (checkPlayer && checkPlayer.tableId) {
+            const tState = newState.tableStates.find(t => t.id === checkPlayer.tableId);
+            // Only allow action if it's player's turn and no bet to call
+            if (tState && tState.currentTurn === senderId) {
+              const maxBet = getMaxBetAtTable(newState.players, checkPlayer.tableId);
+              // Can only check if current bet matches the max bet
+              if (checkPlayer.currentBet === maxBet) {
+                tState.currentTurn = getNextTurnId(newState.players, tState.id, senderId);
+              }
+            }
+          }
+          break;
+
+        case 'CALL':
+          const callPlayer = newState.players.find(p => p.id === senderId);
+          if (callPlayer && callPlayer.tableId) {
+            const tState = newState.tableStates.find(t => t.id === callPlayer.tableId);
+            // Only allow action if it's player's turn
+            if (tState && tState.currentTurn === senderId) {
+              const maxBet = getMaxBetAtTable(newState.players, callPlayer.tableId);
+              const callAmount = maxBet - callPlayer.currentBet;
+              
+              if (callAmount > 0) {
+                const amountToCall = Math.min(callAmount, callPlayer.balance);
+                callPlayer.balance -= amountToCall;
+                callPlayer.currentBet += amountToCall;
+                tState.pot += amountToCall;
+                
+                // If player is all-in, mark status
+                if (callPlayer.balance === 0) {
+                  callPlayer.status = PlayerStatus.ALL_IN;
+                }
+              }
+              
               tState.currentTurn = getNextTurnId(newState.players, tState.id, senderId);
             }
           }
@@ -283,28 +344,14 @@ const App: React.FC = () => {
         case 'MOVE_DEALER_BUTTON':
           const tableStateForDealer = newState.tableStates.find(ts => ts.id === payload.tableId);
           if (tableStateForDealer) {
-            const tablePlayers = newState.players
-              .filter(p => p.tableId === payload.tableId && p.status !== PlayerStatus.OUT)
-              .sort((a, b) => a.seatNumber - b.seatNumber);
+            const tablePlayers = getActivePlayers(newState.players, payload.tableId);
             
             if (tablePlayers.length > 0) {
-              // Find current dealer button position
-              const currentPos = tableStateForDealer.dealerButtonPosition;
-              
-              if (currentPos === null) {
-                // First time setting dealer button - use first player's seat
-                tableStateForDealer.dealerButtonPosition = tablePlayers[0].seatNumber;
-              } else {
-                // Move to next player clockwise
-                const currentIdx = tablePlayers.findIndex(p => p.seatNumber === currentPos);
-                if (currentIdx === -1) {
-                  // Current dealer button position no longer has a player, start from first player
-                  tableStateForDealer.dealerButtonPosition = tablePlayers[0].seatNumber;
-                } else {
-                  const nextIdx = (currentIdx + 1) % tablePlayers.length;
-                  tableStateForDealer.dealerButtonPosition = tablePlayers[nextIdx].seatNumber;
-                }
-              }
+              const newButtonPosition = moveButtonToNextPlayer(
+                tablePlayers,
+                tableStateForDealer.dealerButtonPosition
+              );
+              tableStateForDealer.dealerButtonPosition = newButtonPosition;
             }
           }
           break;
@@ -318,11 +365,17 @@ const App: React.FC = () => {
             const currentBlindLevel = tournament.config.blindStructure.levels[tableForHand.currentBlindLevel];
             if (!currentBlindLevel) break;
             
-            const tablePlayers = newState.players
-              .filter(p => p.tableId === payload.tableId && p.status !== PlayerStatus.OUT)
-              .sort((a, b) => a.seatNumber - b.seatNumber);
+            const tablePlayers = getActivePlayers(newState.players, payload.tableId);
             
             if (tablePlayers.length < 2) break;
+            
+            // Calculate dealer positions based on player count
+            const positions = calculateDealerPositions(
+              tablePlayers,
+              tableForHand.dealerButtonPosition!
+            );
+            
+            if (!positions) break;
             
             // Reset for new hand
             tableForHand.pot = 0;
@@ -335,16 +388,9 @@ const App: React.FC = () => {
               p.status = PlayerStatus.ACTIVE;
             });
             
-            // Find dealer button position, small blind (left of button), and big blind (left of small blind)
-            const dealerIdx = tablePlayers.findIndex(p => p.seatNumber === tableForHand.dealerButtonPosition);
-            if (dealerIdx === -1) break;
-            
-            const smallBlindIdx = (dealerIdx + 1) % tablePlayers.length;
-            const bigBlindIdx = (smallBlindIdx + 1) % tablePlayers.length;
-            
             // Post blinds
-            const sbPlayer = tablePlayers[smallBlindIdx];
-            const bbPlayer = tablePlayers[bigBlindIdx];
+            const sbPlayer = tablePlayers[positions.smallBlindIdx];
+            const bbPlayer = tablePlayers[positions.bigBlindIdx];
             
             sbPlayer.balance -= currentBlindLevel.smallBlind;
             sbPlayer.currentBet = currentBlindLevel.smallBlind;
@@ -354,9 +400,8 @@ const App: React.FC = () => {
             bbPlayer.currentBet = currentBlindLevel.bigBlind;
             tableForHand.pot += currentBlindLevel.bigBlind;
             
-            // Action starts with player to the left of big blind in pre-flop
-            const firstToActIdx = (bigBlindIdx + 1) % tablePlayers.length;
-            tableForHand.currentTurn = tablePlayers[firstToActIdx].id;
+            // Set first to act based on player count and positions
+            tableForHand.currentTurn = tablePlayers[positions.firstToActIdx].id;
           }
           break;
 
@@ -391,18 +436,23 @@ const App: React.FC = () => {
               tableForAdvance.lastRaiseAmount = 0;
               
               // Reset player bets for new round
-              const activePlayers = newState.players.filter(p => 
-                p.tableId === payload.tableId && 
-                p.status === PlayerStatus.ACTIVE
-              ).sort((a, b) => a.seatNumber - b.seatNumber);
+              // Post-flop: only players who are ACTIVE (not folded) participate
+              const activePlayers = getActivePlayers(
+                newState.players,
+                payload.tableId,
+                [PlayerStatus.OUT, PlayerStatus.FOLDED]
+              );
               
               activePlayers.forEach(p => p.currentBet = 0);
               
-              // Action starts with first player left of dealer button (post-flop)
+              // Post-flop action starts with first player left of dealer button (small blind position)
               if (tableForAdvance.dealerButtonPosition && activePlayers.length > 0) {
-                const dealerIdx = activePlayers.findIndex(p => p.seatNumber === tableForAdvance.dealerButtonPosition);
-                if (dealerIdx !== -1) {
-                  const firstToActIdx = (dealerIdx + 1) % activePlayers.length;
+                const firstToActIdx = getPostFlopFirstToAct(
+                  activePlayers,
+                  tableForAdvance.dealerButtonPosition
+                );
+                
+                if (firstToActIdx !== -1) {
                   tableForAdvance.currentTurn = activePlayers[firstToActIdx].id;
                 }
               }
