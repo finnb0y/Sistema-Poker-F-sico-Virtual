@@ -62,6 +62,21 @@ const App: React.FC = () => {
     if (tablePlayers.length <= 1) return null;
     const sorted = [...tablePlayers].sort((a, b) => a.seatNumber - b.seatNumber);
     const currIdx = sorted.findIndex(p => p.id === currentId);
+    
+    // If current player was removed (currIdx === -1), find next player after their seat number
+    if (currIdx === -1 && currentId) {
+      // Try to find the removed player to get their seat number
+      const allPlayers = players.filter(p => p.tableId === tableId);
+      const removedPlayer = allPlayers.find(p => p.id === currentId);
+      if (removedPlayer) {
+        // Find next active player after the removed player's seat
+        const nextIdx = sorted.findIndex(p => p.seatNumber > removedPlayer.seatNumber);
+        return nextIdx !== -1 ? sorted[nextIdx].id : sorted[0].id;
+      }
+      // If we can't find the removed player, start from the beginning
+      return sorted[0].id;
+    }
+    
     return sorted[(currIdx + 1) % sorted.length].id;
   };
 
@@ -373,6 +388,14 @@ const App: React.FC = () => {
           break;
 
         case 'REMOVE_PLAYER':
+          const playerToRemove = newState.players.find(p => p.id === payload.playerId);
+          if (playerToRemove && playerToRemove.tableId) {
+            const tableState = newState.tableStates.find(ts => ts.id === playerToRemove.tableId);
+            // If it's the removed player's turn, advance to next player before removing
+            if (tableState && tableState.currentTurn === payload.playerId) {
+              tableState.currentTurn = getNextTurnId(newState.players, playerToRemove.tableId, payload.playerId);
+            }
+          }
           newState.players = newState.players.filter(p => p.id !== payload.playerId);
           break;
 

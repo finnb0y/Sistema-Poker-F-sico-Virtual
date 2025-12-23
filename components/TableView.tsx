@@ -174,7 +174,7 @@ const TableView: React.FC<TableViewProps> = ({
                 onClick={() => onPlayerClick?.(player)}
                 className={`flex flex-col items-center p-2 sm:p-4 rounded-xl sm:rounded-[32px] glass min-w-[70px] sm:min-w-[140px] transition-all cursor-pointer relative group ${
                   isActive && isCurrentPlayer
-                    ? 'ring-2 sm:ring-4 ring-yellow-500 scale-110 shadow-[0_0_20px_rgba(234,179,8,0.4)] bg-blue-500/10'
+                    ? 'ring-4 sm:ring-6 ring-yellow-500 scale-110 shadow-[0_0_20px_rgba(234,179,8,0.4)] bg-blue-500/10'
                     : isActive 
                     ? 'ring-2 sm:ring-4 ring-yellow-500 scale-110 shadow-[0_0_20px_rgba(234,179,8,0.4)]' 
                     : isCurrentPlayer 
@@ -200,7 +200,7 @@ const TableView: React.FC<TableViewProps> = ({
                 {/* Current Player Indicator */}
                 {isCurrentPlayer && (
                   <div 
-                    className="absolute top-0 right-0 w-5 h-5 sm:w-8 sm:h-8 bg-blue-500 border-2 border-white rounded-full flex items-center justify-center text-[10px] sm:text-sm font-black text-white shadow-lg shadow-blue-500/50" 
+                    className="absolute top-0 left-0 w-5 h-5 sm:w-8 sm:h-8 bg-blue-500 border-2 border-white rounded-full flex items-center justify-center text-[10px] sm:text-sm font-black text-white shadow-lg shadow-blue-500/50" 
                     title="Você"
                     role="img"
                     aria-label="Você - jogador atual"
