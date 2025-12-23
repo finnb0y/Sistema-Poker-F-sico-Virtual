@@ -4,28 +4,55 @@ import { ActionMessage, GameState } from '../types';
 // BroadcastChannel allows communication between tabs/windows on the same origin
 // This simulates a real-time socket connection for local demos
 const CHANNEL_NAME = 'poker_sync_channel';
-const channel = new BroadcastChannel(CHANNEL_NAME);
+let channel: BroadcastChannel | null = null;
+
+try {
+  channel = new BroadcastChannel(CHANNEL_NAME);
+} catch (error) {
+  console.warn('BroadcastChannel not supported, using fallback');
+}
 
 export const syncService = {
   sendMessage: (msg: ActionMessage) => {
-    channel.postMessage(msg);
+    if (channel) {
+      try {
+        channel.postMessage(msg);
+      } catch (error) {
+        console.error('Failed to send message:', error);
+      }
+    }
   },
   
   subscribe: (callback: (msg: ActionMessage) => void) => {
+    if (!channel) return () => {};
+    
     const handler = (event: MessageEvent) => {
-      callback(event.data);
+      try {
+        callback(event.data);
+      } catch (error) {
+        console.error('Failed to process message:', error);
+      }
     };
     channel.addEventListener('message', handler);
-    return () => channel.removeEventListener('message', handler);
+    return () => channel?.removeEventListener('message', handler);
   },
 
   // Save state locally to survive refreshes
   persistState: (state: GameState) => {
-    localStorage.setItem('poker_game_state', JSON.stringify(state));
+    try {
+      localStorage.setItem('poker_game_state', JSON.stringify(state));
+    } catch (error) {
+      console.error('Failed to persist state:', error);
+    }
   },
 
   loadState: (): GameState | null => {
-    const saved = localStorage.getItem('poker_game_state');
-    return saved ? JSON.parse(saved) : null;
+    try {
+      const saved = localStorage.getItem('poker_game_state');
+      return saved ? JSON.parse(saved) : null;
+    } catch (error) {
+      console.error('Failed to load state:', error);
+      return null;
+    }
   }
 };

@@ -24,13 +24,27 @@ const App: React.FC = () => {
   const [role, setRole] = useState<Role | null>(null);
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [accessCodeInput, setAccessCodeInput] = useState('');
-  const [gameState, setGameState] = useState<GameState>(syncService.loadState() || INITIAL_STATE);
+  const [isLoading, setIsLoading] = useState(true);
+  const [gameState, setGameState] = useState<GameState>(() => {
+    try {
+      return syncService.loadState() || INITIAL_STATE;
+    } catch (error) {
+      console.error('Failed to load initial state:', error);
+      return INITIAL_STATE;
+    }
+  });
   
   useEffect(() => {
-    const savedRole = localStorage.getItem('poker_current_role');
-    const savedPlayerId = localStorage.getItem('poker_current_player_id');
-    if (savedRole) setRole(savedRole as Role);
-    if (savedPlayerId) setPlayerId(savedPlayerId);
+    try {
+      const savedRole = localStorage.getItem('poker_current_role');
+      const savedPlayerId = localStorage.getItem('poker_current_player_id');
+      if (savedRole) setRole(savedRole as Role);
+      if (savedPlayerId) setPlayerId(savedPlayerId);
+    } catch (error) {
+      console.error('Failed to restore session:', error);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
   const getNextTurnId = (players: Player[], tableId: number, currentId: string | null): string | null => {
@@ -44,6 +58,27 @@ const App: React.FC = () => {
   const getMaxBetAtTable = (players: Player[], tableId: number): number => {
     const tablePlayers = players.filter(p => p.tableId === tableId);
     return Math.max(...tablePlayers.map(p => p.currentBet), 0);
+  };
+
+  const checkBettingRoundComplete = (players: Player[], tableId: number, tableState: any): boolean => {
+    const activePlayers = players.filter(p => 
+      p.tableId === tableId && 
+      p.status !== PlayerStatus.FOLDED && 
+      p.status !== PlayerStatus.OUT
+    );
+    
+    if (activePlayers.length <= 1) return true;
+    
+    const maxBet = getMaxBetAtTable(players, tableId);
+    
+    // Check if all active players have either:
+    // 1. Matched the max bet, or
+    // 2. Are all-in
+    const allPlayersMatched = activePlayers.every(p => 
+      p.currentBet === maxBet || p.status === PlayerStatus.ALL_IN || p.balance === 0
+    );
+    
+    return allPlayersMatched;
   };
 
   const processAction = useCallback((msg: ActionMessage) => {
@@ -219,7 +254,14 @@ const App: React.FC = () => {
               bP.currentBet = payload.amount;
               tState.pot += betDiff;
               tState.currentBet = Math.max(tState.currentBet, payload.amount);
-              tState.currentTurn = getNextTurnId(newState.players, tState.id, senderId);
+              
+              const nextTurn = getNextTurnId(newState.players, tState.id, senderId);
+              // Check if betting round is complete after setting next turn
+              if (checkBettingRoundComplete(newState.players, tState.id, tState)) {
+                tState.currentTurn = null; // Return control to dealer
+              } else {
+                tState.currentTurn = nextTurn;
+              }
             }
           }
           break;
@@ -231,7 +273,14 @@ const App: React.FC = () => {
             // Only allow action if it's player's turn
             if (tState && tState.currentTurn === senderId) {
               foldPlayer.status = PlayerStatus.FOLDED;
-              tState.currentTurn = getNextTurnId(newState.players, tState.id, senderId);
+              
+              const nextTurn = getNextTurnId(newState.players, tState.id, senderId);
+              // Check if betting round is complete after setting next turn
+              if (checkBettingRoundComplete(newState.players, tState.id, tState)) {
+                tState.currentTurn = null; // Return control to dealer
+              } else {
+                tState.currentTurn = nextTurn;
+              }
             }
           }
           break;
@@ -245,7 +294,13 @@ const App: React.FC = () => {
               const maxBet = getMaxBetAtTable(newState.players, checkPlayer.tableId);
               // Can only check if current bet matches the max bet
               if (checkPlayer.currentBet === maxBet) {
-                tState.currentTurn = getNextTurnId(newState.players, tState.id, senderId);
+                const nextTurn = getNextTurnId(newState.players, tState.id, senderId);
+                // Check if betting round is complete after setting next turn
+                if (checkBettingRoundComplete(newState.players, tState.id, tState)) {
+                  tState.currentTurn = null; // Return control to dealer
+                } else {
+                  tState.currentTurn = nextTurn;
+                }
               }
             }
           }
@@ -272,7 +327,13 @@ const App: React.FC = () => {
                 }
               }
               
-              tState.currentTurn = getNextTurnId(newState.players, tState.id, senderId);
+              const nextTurn = getNextTurnId(newState.players, tState.id, senderId);
+              // Check if betting round is complete after setting next turn
+              if (checkBettingRoundComplete(newState.players, tState.id, tState)) {
+                tState.currentTurn = null; // Return control to dealer
+              } else {
+                tState.currentTurn = nextTurn;
+              }
             }
           }
           break;
@@ -419,7 +480,14 @@ const App: React.FC = () => {
               tableForRaise.pot += totalToPay;
               tableForRaise.currentBet = raisePlayer.currentBet;
               tableForRaise.lastRaiseAmount = raiseAmount;
-              tableForRaise.currentTurn = getNextTurnId(newState.players, tableForRaise.id, senderId);
+              
+              const nextTurn = getNextTurnId(newState.players, tableForRaise.id, senderId);
+              // Check if betting round is complete after setting next turn
+              if (checkBettingRoundComplete(newState.players, tableForRaise.id, tableForRaise)) {
+                tableForRaise.currentTurn = null; // Return control to dealer
+              } else {
+                tableForRaise.currentTurn = nextTurn;
+              }
             }
           }
           break;
@@ -500,6 +568,19 @@ const App: React.FC = () => {
     localStorage.removeItem('poker_current_role');
     localStorage.removeItem('poker_current_player_id');
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center poker-felt">
+        <div className="text-center">
+          <div className="text-6xl font-outfit font-black text-white mb-4 italic tracking-tighter animate-pulse">
+            POKER<span className="text-yellow-500"> 2</span>
+          </div>
+          <div className="text-white/40 text-xs font-bold uppercase tracking-widest">Carregando...</div>
+        </div>
+      </div>
+    );
+  }
 
   if (!role) {
     return (
