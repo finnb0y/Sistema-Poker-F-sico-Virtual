@@ -51,7 +51,9 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch }) =>
   const handleRegisterPerson = (e: React.FormEvent) => {
     e.preventDefault();
     if (!regName) return;
-    onDispatch({ type: 'REGISTER_PERSON', payload: { name: regName, nickname: regNick }, senderId: 'DIR' });
+    // Capitalize first letter of name
+    const capitalizedName = regName.charAt(0).toUpperCase() + regName.slice(1);
+    onDispatch({ type: 'REGISTER_PERSON', payload: { name: capitalizedName, nickname: regNick }, senderId: 'DIR' });
     setRegName(''); setRegNick('');
   };
 

@@ -4,28 +4,66 @@ import { ActionMessage, GameState } from '../types';
 // BroadcastChannel allows communication between tabs/windows on the same origin
 // This simulates a real-time socket connection for local demos
 const CHANNEL_NAME = 'poker_sync_channel';
-const channel = new BroadcastChannel(CHANNEL_NAME);
+let channel: BroadcastChannel | null = null;
+
+try {
+  channel = new BroadcastChannel(CHANNEL_NAME);
+} catch (error) {
+  console.warn('BroadcastChannel not supported, using fallback');
+}
 
 export const syncService = {
   sendMessage: (msg: ActionMessage) => {
-    channel.postMessage(msg);
+    if (channel) {
+      try {
+        channel.postMessage(msg);
+      } catch (error) {
+        console.error('Failed to send message:', error);
+      }
+    }
   },
   
   subscribe: (callback: (msg: ActionMessage) => void) => {
+    // If BroadcastChannel is not available, return a no-op cleanup function
+    if (!channel) {
+      console.warn('BroadcastChannel not available, sync disabled');
+      return () => { /* BroadcastChannel unavailable - return no-op cleanup function */ };
+    }
+    
     const handler = (event: MessageEvent) => {
-      callback(event.data);
+      try {
+        callback(event.data);
+      } catch (error) {
+        console.error('Failed to process message:', error);
+      }
     };
     channel.addEventListener('message', handler);
-    return () => channel.removeEventListener('message', handler);
+    return () => channel?.removeEventListener('message', handler);
   },
 
   // Save state locally to survive refreshes
   persistState: (state: GameState) => {
-    localStorage.setItem('poker_game_state', JSON.stringify(state));
+    try {
+      localStorage.setItem('poker_game_state', JSON.stringify(state));
+      console.log('Estado salvo no localStorage');
+    } catch (error) {
+      console.error('Erro ao salvar estado no localStorage:', error);
+    }
   },
 
   loadState: (): GameState | null => {
-    const saved = localStorage.getItem('poker_game_state');
-    return saved ? JSON.parse(saved) : null;
+    try {
+      const saved = localStorage.getItem('poker_game_state');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        console.log('Estado recuperado do localStorage');
+        return parsed;
+      }
+      console.log('Nenhum estado encontrado no localStorage');
+      return null;
+    } catch (error) {
+      console.error('Erro ao carregar estado do localStorage:', error);
+      return null;
+    }
   }
 };

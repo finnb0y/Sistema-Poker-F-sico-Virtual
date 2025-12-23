@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { GameState, PlayerStatus, Player } from '../types';
 
 interface TableViewProps {
@@ -8,6 +8,7 @@ interface TableViewProps {
   onPlayerClick?: (player: Player) => void;
   onSeatClick?: (seatNumber: number) => void;
   showEmptySeats?: boolean;
+  currentPlayerId?: string; // ID of the logged-in player to highlight
 }
 
 const TableView: React.FC<TableViewProps> = ({ 
@@ -15,10 +16,21 @@ const TableView: React.FC<TableViewProps> = ({
   tableId, 
   onPlayerClick, 
   onSeatClick, 
-  showEmptySeats = true 
+  showEmptySeats = true,
+  currentPlayerId
 }) => {
+  const [showingRealNames, setShowingRealNames] = useState<Record<string, boolean>>({});
   const tableState = state.tableStates.find(t => t.id === tableId);
   const tournament = state.tournaments.find(t => t.id === tableState?.tournamentId);
+  
+  // Memoize the registry lookup map for performance
+  const registryMap = useMemo(() => {
+    const map = new Map<string, { name: string; nickname?: string }>();
+    state.registry.forEach(person => {
+      map.set(person.id, { name: person.name, nickname: person.nickname });
+    });
+    return map;
+  }, [state.registry]);
   
   if (!tableState || !tournament || !tournament.isActive) return <div className="h-full w-full flex items-center justify-center text-white/10 font-black uppercase tracking-[10px]">MESA DESATIVADA</div>;
 
@@ -142,6 +154,15 @@ const TableView: React.FC<TableViewProps> = ({
           const isActive = tableState.currentTurn === player.id;
           const isFolded = player.status === PlayerStatus.FOLDED;
           const isDealerButton = tableState.dealerButtonPosition === seatNum;
+          const isCurrentPlayer = currentPlayerId === player.id;
+          
+          // Get the registered person to access their real name and nickname (using memoized map)
+          const registeredPerson = registryMap.get(player.personId);
+          // By default, show nickname if available, otherwise show real name
+          const displayName = showingRealNames[player.id] 
+            ? (registeredPerson?.name || player.name)  // Show real name when toggled
+            : (registeredPerson?.nickname || registeredPerson?.name || player.name); // Show nickname by default
+          const canToggle = registeredPerson?.nickname && registeredPerson.nickname !== '';
 
           return (
             <div 
@@ -151,11 +172,42 @@ const TableView: React.FC<TableViewProps> = ({
             >
               <div 
                 onClick={() => onPlayerClick?.(player)}
-                className={`flex flex-col items-center p-2 sm:p-4 rounded-xl sm:rounded-[32px] glass min-w-[70px] sm:min-w-[140px] transition-all cursor-pointer relative group ${isActive ? 'ring-2 sm:ring-4 ring-yellow-500 scale-110 shadow-[0_0_20px_rgba(234,179,8,0.4)]' : 'hover:scale-105'}`}
+                className={`flex flex-col items-center p-2 sm:p-4 rounded-xl sm:rounded-[32px] glass min-w-[70px] sm:min-w-[140px] transition-all cursor-pointer relative group ${
+                  isActive && isCurrentPlayer
+                    ? 'ring-4 sm:ring-6 ring-yellow-500 scale-110 shadow-[0_0_20px_rgba(234,179,8,0.4)] bg-blue-500/10'
+                    : isActive 
+                    ? 'ring-2 sm:ring-4 ring-yellow-500 scale-110 shadow-[0_0_20px_rgba(234,179,8,0.4)]' 
+                    : isCurrentPlayer 
+                    ? 'ring-2 sm:ring-4 ring-blue-500 bg-blue-500/10 shadow-[0_0_15px_rgba(59,130,246,0.4)]'
+                    : 'hover:scale-105'
+                }`}
               >
-                <div className="text-[7px] sm:text-[10px] font-black text-white/70 mb-0.5 sm:mb-1 uppercase truncate max-w-[60px] sm:max-w-full">{player.name}</div>
+                <div 
+                  onClick={(e) => {
+                    if (canToggle) {
+                      e.stopPropagation();
+                      setShowingRealNames(prev => ({ ...prev, [player.id]: !prev[player.id] }));
+                    }
+                  }}
+                  className={`text-[7px] sm:text-[10px] font-black text-white/70 mb-0.5 sm:mb-1 uppercase truncate max-w-[60px] sm:max-w-full ${canToggle ? 'hover:text-yellow-400 cursor-pointer' : ''}`}
+                  title={canToggle ? 'Clique para alternar nome/apelido' : ''}
+                >
+                  {displayName}
+                </div>
                 <div className="text-sm sm:text-2xl font-outfit font-black text-green-400">${player.balance}</div>
                 <div className="absolute -top-1.5 -left-1.5 sm:-top-3 sm:-left-3 w-4 h-4 sm:w-7 sm:h-7 bg-black border border-white/10 rounded-md sm:rounded-lg flex items-center justify-center text-[6px] sm:text-[10px] font-black text-white/40">{seatNum}</div>
+                
+                {/* Current Player Indicator */}
+                {isCurrentPlayer && (
+                  <div 
+                    className="absolute top-0 left-0 w-5 h-5 sm:w-8 sm:h-8 bg-blue-500 border-2 border-white rounded-full flex items-center justify-center text-[10px] sm:text-sm font-black text-white shadow-lg shadow-blue-500/50" 
+                    title="Você"
+                    role="img"
+                    aria-label="Você - jogador atual"
+                  >
+                    👤
+                  </div>
+                )}
                 
                 {/* Dealer Button Indicator */}
                 {isDealerButton && (

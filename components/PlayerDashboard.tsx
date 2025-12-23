@@ -58,7 +58,7 @@ const PlayerDashboard: React.FC<PlayerDashboardProps> = ({ state, playerId, onDi
                 </div>
              </div>
              <div className="flex-1 scale-95 sm:scale-100">
-               <TableView state={state} tableId={player.tableId!} showEmptySeats={true} />
+               <TableView state={state} tableId={player.tableId!} showEmptySeats={true} currentPlayerId={playerId} />
              </div>
           </div>
       </div>
