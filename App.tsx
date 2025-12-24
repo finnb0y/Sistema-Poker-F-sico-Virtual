@@ -35,11 +35,16 @@ const App: React.FC = () => {
           registro: loadedState.registry.length
         });
         // Migrate old table states to include new fields
-        loadedState.tableStates = loadedState.tableStates.map(ts => ({
-          ...ts,
-          lastAggressorId: (ts as any).lastAggressorId ?? null,
-          playersActedInRound: (ts as any).playersActedInRound ?? []
-        }));
+        loadedState.tableStates = loadedState.tableStates.map(ts => {
+          const migratedState = ts as TableState;
+          if (!('lastAggressorId' in migratedState)) {
+            migratedState.lastAggressorId = null;
+          }
+          if (!('playersActedInRound' in migratedState)) {
+            migratedState.playersActedInRound = [];
+          }
+          return migratedState;
+        });
         return loadedState;
       }
       console.log('Nenhum estado salvo encontrado, iniciando com estado inicial');
@@ -322,10 +327,14 @@ const App: React.FC = () => {
                 tState.playersActedInRound.push(senderId);
               }
               
-              // If this is a new bet or raise, update the aggressor and current bet
+              // If this bet is higher than the current bet, update aggressor
+              // This handles both initial bets and raises
               if (payload.amount > tState.currentBet) {
                 tState.currentBet = payload.amount;
                 tState.lastAggressorId = senderId;
+                // Reset players acted when there's a new bet/raise
+                // Only keep the current player in the acted list
+                tState.playersActedInRound = [senderId];
               }
               
               const nextTurn = getNextTurnId(newState.players, tState.id, senderId);
@@ -542,6 +551,8 @@ const App: React.FC = () => {
             tableForHand.handInProgress = true;
             tableForHand.playersActedInRound = []; // Reset action tracking
             // In pre-flop, big blind is the initial aggressor (they posted the big blind)
+            // Note: BB is NOT added to playersActedInRound yet - posting blind is not an action
+            // BB must still get a chance to check or raise when action returns to them
             tableForHand.lastAggressorId = tablePlayers[positions.bigBlindIdx].id;
             
             tablePlayers.forEach(p => {
@@ -582,10 +593,9 @@ const App: React.FC = () => {
               tableForRaise.lastRaiseAmount = raiseAmount;
               tableForRaise.lastAggressorId = senderId; // Mark this player as the aggressor
               
-              // Track that this player acted
-              if (!tableForRaise.playersActedInRound.includes(senderId)) {
-                tableForRaise.playersActedInRound.push(senderId);
-              }
+              // When someone raises, reset the acted tracking so everyone must act again
+              // Only the raiser is marked as having acted
+              tableForRaise.playersActedInRound = [senderId];
               
               const nextTurn = getNextTurnId(newState.players, tableForRaise.id, senderId);
               // Check if betting round is complete after setting next turn
