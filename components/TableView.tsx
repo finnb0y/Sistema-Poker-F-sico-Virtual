@@ -1,6 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { GameState, PlayerStatus, Player } from '../types';
+import { calculateSidePots, preparePlayerBetsForPotCalculation } from '../utils/sidePotLogic';
 
 interface TableViewProps {
   state: GameState;
@@ -31,6 +32,23 @@ const TableView: React.FC<TableViewProps> = ({
     });
     return map;
   }, [state.registry]);
+  
+  // Calculate side pots if there are all-in players during the hand
+  const sidePots = useMemo(() => {
+    if (!tableState?.handInProgress) return null;
+    
+    const tablePlayers = state.players.filter(p => p.tableId === tableId);
+    const hasAllInPlayers = tablePlayers.some(p => p.status === PlayerStatus.ALL_IN);
+    
+    if (!hasAllInPlayers) return null;
+    
+    // Calculate potential side pots based on current bets
+    const playerBets = preparePlayerBetsForPotCalculation(state.players, tableId);
+    const pots = calculateSidePots(playerBets, tableState.pot);
+    
+    // Only show side pots if there are multiple pots
+    return pots.length > 1 ? pots : null;
+  }, [state.players, tableId, tableState?.pot, tableState?.handInProgress]);
   
   if (!tableState || !tournament || !tournament.isActive) return <div className="h-full w-full flex items-center justify-center text-white/10 font-black uppercase tracking-[10px]">MESA DESATIVADA</div>;
 
@@ -100,9 +118,28 @@ const TableView: React.FC<TableViewProps> = ({
             </div>
           )}
           
-          <div className="text-4xl sm:text-8xl font-outfit font-black text-white drop-shadow-[0_5px_15px_rgba(0,0,0,0.5)]">
-            ${tableState.pot}
-          </div>
+          {/* Pot Display - Main Pot and Side Pots */}
+          {sidePots ? (
+            // Display side pots when all-ins create multiple pots
+            <div className="space-y-2 sm:space-y-3">
+              {sidePots.map((pot, index) => (
+                <div key={index} className={`${index === 0 ? 'text-2xl sm:text-4xl' : 'text-3xl sm:text-6xl'} font-outfit font-black ${index === 0 ? 'text-white/60' : 'text-green-400'} drop-shadow-[0_5px_15px_rgba(0,0,0,0.5)]`}>
+                  <div className={`${index === 0 ? 'text-[8px] sm:text-[10px]' : 'text-[10px] sm:text-xs'} text-white/40 font-black uppercase tracking-widest mb-0.5 sm:mb-1`}>
+                    {index === 0 ? 'Pote Principal' : `Side Pot ${index}`}
+                  </div>
+                  ${pot.amount}
+                </div>
+              ))}
+              <div className="text-[8px] sm:text-[10px] text-white/30 font-black uppercase tracking-widest">
+                Total: ${tableState.pot}
+              </div>
+            </div>
+          ) : (
+            // Display single pot normally
+            <div className="text-4xl sm:text-8xl font-outfit font-black text-white drop-shadow-[0_5px_15px_rgba(0,0,0,0.5)]">
+              ${tableState.pot}
+            </div>
+          )}
           <div className="mt-2 sm:mt-4 flex flex-wrap justify-center gap-2 sm:gap-6">
              <div className="text-white/40 text-[7px] sm:text-[9px] font-black uppercase tracking-widest bg-black/20 px-2 sm:px-4 py-0.5 sm:py-1 rounded-full border border-white/5">
                 SB/BB: {currentBlindLevel.smallBlind}/{currentBlindLevel.bigBlind}

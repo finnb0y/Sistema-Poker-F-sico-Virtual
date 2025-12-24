@@ -543,7 +543,10 @@ const App: React.FC = () => {
                 newState.players.filter(p => p.tableId === tableForDelivery.id).forEach(p => {
                   p.currentBet = 0;
                   p.totalContributedThisHand = 0;
-                  if (p.status !== PlayerStatus.OUT) {
+                  // Mark players with zero balance as OUT
+                  if (p.balance <= 0) {
+                    p.status = PlayerStatus.OUT;
+                  } else if (p.status !== PlayerStatus.OUT) {
                     p.status = PlayerStatus.SITTING;
                   }
                 });
@@ -653,6 +656,14 @@ const App: React.FC = () => {
             const currentBlindLevel = tournament.config.blindStructure.levels[tableForHand.currentBlindLevel];
             if (!currentBlindLevel) break;
             
+            // First, mark players with zero or negative balance as OUT
+            const allTablePlayers = newState.players.filter(p => p.tableId === payload.tableId);
+            allTablePlayers.forEach(p => {
+              if (p.balance <= 0 && p.status !== PlayerStatus.OUT) {
+                p.status = PlayerStatus.OUT;
+              }
+            });
+            
             const tablePlayers = getActivePlayers(newState.players, payload.tableId);
             
             if (tablePlayers.length < 2) break;
@@ -683,19 +694,29 @@ const App: React.FC = () => {
               p.status = PlayerStatus.ACTIVE;
             });
             
-            // Post blinds
+            // Post blinds - ensure players have enough chips
             const sbPlayer = tablePlayers[positions.smallBlindIdx];
             const bbPlayer = tablePlayers[positions.bigBlindIdx];
             
-            sbPlayer.balance -= currentBlindLevel.smallBlind;
-            sbPlayer.currentBet = currentBlindLevel.smallBlind;
-            sbPlayer.totalContributedThisHand = currentBlindLevel.smallBlind;
-            tableForHand.pot += currentBlindLevel.smallBlind;
+            // Small blind
+            const sbAmount = Math.min(currentBlindLevel.smallBlind, sbPlayer.balance);
+            sbPlayer.balance -= sbAmount;
+            sbPlayer.currentBet = sbAmount;
+            sbPlayer.totalContributedThisHand = sbAmount;
+            tableForHand.pot += sbAmount;
+            if (sbPlayer.balance === 0) {
+              sbPlayer.status = PlayerStatus.ALL_IN;
+            }
             
-            bbPlayer.balance -= currentBlindLevel.bigBlind;
-            bbPlayer.currentBet = currentBlindLevel.bigBlind;
-            bbPlayer.totalContributedThisHand = currentBlindLevel.bigBlind;
-            tableForHand.pot += currentBlindLevel.bigBlind;
+            // Big blind
+            const bbAmount = Math.min(currentBlindLevel.bigBlind, bbPlayer.balance);
+            bbPlayer.balance -= bbAmount;
+            bbPlayer.currentBet = bbAmount;
+            bbPlayer.totalContributedThisHand = bbAmount;
+            tableForHand.pot += bbAmount;
+            if (bbPlayer.balance === 0) {
+              bbPlayer.status = PlayerStatus.ALL_IN;
+            }
             
             // Set first to act based on player count and positions
             tableForHand.currentTurn = tablePlayers[positions.firstToActIdx].id;
