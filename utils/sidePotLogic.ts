@@ -107,8 +107,11 @@ export function calculateSidePots(
  * Check if all remaining active players are all-in (no more actions possible)
  * 
  * A betting round should end immediately when:
- * 1. Only one player has chips remaining, OR
- * 2. All players are either all-in, folded, or out
+ * 1. One or fewer players remain (winner by default), OR
+ * 2. All players are either all-in, folded, or out (no one can act)
+ * 
+ * Note: If exactly one player can still act while others are all-in,
+ * that player should get the opportunity to call/fold the all-in bet.
  * 
  * @param players - All players at the table
  * @param tableId - The table ID to check
@@ -124,6 +127,7 @@ export function areAllPlayersAllInOrCapped(
     p.status !== PlayerStatus.OUT
   );
 
+  // If one or fewer players remain, hand is over
   if (activePlayers.length <= 1) {
     return true;
   }
@@ -133,8 +137,9 @@ export function areAllPlayersAllInOrCapped(
     p.status !== PlayerStatus.ALL_IN && p.balance > 0
   );
 
-  // If 0 or 1 player can act, no more meaningful actions possible
-  return playersWhoCanAct.length <= 1;
+  // If NO players can act, betting round is complete
+  // If 1+ players can act, betting should continue (they need to respond to all-ins)
+  return playersWhoCanAct.length === 0;
 }
 
 /**
