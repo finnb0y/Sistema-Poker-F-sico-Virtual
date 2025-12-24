@@ -153,6 +153,7 @@ const TableView: React.FC<TableViewProps> = ({
 
           const isActive = tableState.currentTurn === player.id;
           const isFolded = player.status === PlayerStatus.FOLDED;
+          const isAllIn = player.status === PlayerStatus.ALL_IN;
           const isDealerButton = tableState.dealerButtonPosition === seatNum;
           const isCurrentPlayer = currentPlayerId === player.id;
           
@@ -182,6 +183,13 @@ const TableView: React.FC<TableViewProps> = ({
                     : 'hover:scale-105'
                 }`}
               >
+                {/* All-In Tag */}
+                {isAllIn && (
+                  <div className="absolute -top-5 sm:-top-7 left-1/2 -translate-x-1/2 bg-red-600 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-white font-black text-[6px] sm:text-[8px] uppercase tracking-wider shadow-lg border border-red-400 whitespace-nowrap z-10">
+                    ALL-IN
+                  </div>
+                )}
+                
                 <div 
                   onClick={(e) => {
                     if (canToggle) {
