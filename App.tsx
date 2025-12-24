@@ -150,16 +150,22 @@ const App: React.FC = () => {
     
     if (!allPlayersMatched) return false;
     
-    // Check if all active players have acted at least once
-    const allPlayersActed = activePlayers.every(p => 
-      tableState.playersActedInRound.includes(p.id)
-    );
+    // Check if all active players who can act have acted at least once
+    // ALL_IN players cannot act, so they should not be expected to have acted
+    const allPlayersActed = activePlayers
+      .filter(p => p.status !== PlayerStatus.ALL_IN)
+      .every(p => tableState.playersActedInRound.includes(p.id));
     
     if (!allPlayersActed) return false;
     
     // If there's a last aggressor (someone who bet/raised, or big blind in pre-flop),
-    // they must have acted for the round to complete
+    // they must have acted for the round to complete, unless they are all-in
     if (tableState.lastAggressorId) {
+      const lastAggressor = players.find(p => p.id === tableState.lastAggressorId);
+      // If aggressor is all-in, they can't act, so round can complete
+      if (lastAggressor && lastAggressor.status === PlayerStatus.ALL_IN) {
+        return true;
+      }
       return tableState.playersActedInRound.includes(tableState.lastAggressorId);
     }
     
