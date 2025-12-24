@@ -580,6 +580,7 @@ const App: React.FC = () => {
             if (targetTourney) {
               playerToMove.tableId = targetTable;
               playerToMove.currentBet = 0;
+              playerToMove.totalContributedThisHand = 0;
               playerToMove.status = PlayerStatus.SITTING;
               // Find available seat at target table (skip seat 1 - dealer position)
               const takenSeats = newState.players.filter(p => p.tableId === targetTable && p.id !== payload.playerId).map(p => p.seatNumber);
