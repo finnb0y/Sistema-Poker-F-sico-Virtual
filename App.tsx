@@ -96,9 +96,9 @@ const App: React.FC = () => {
    * A round is complete when:
    * 1. All active players have acted at least once, AND
    * 2. All active players have either matched the highest bet or gone all-in, AND
-   * 3. Action has returned to the last aggressor (or past them)
+   * 3. If there's an aggressor, action has returned to them (they've acted after becoming aggressor)
    * 
-   * Special case for pre-flop: Big blind must always get a chance to act, even if everyone limps.
+   * Special case for pre-flop: Big blind is initially the aggressor and must get a chance to act.
    * 
    * @param players - Array of all players in the game
    * @param tableId - The table ID to check
@@ -130,14 +130,8 @@ const App: React.FC = () => {
     
     if (!allPlayersActed) return false;
     
-    // Special case: In pre-flop, if there's a last aggressor (the big blind initially),
-    // make sure action has returned to them
-    if (tableState.bettingRound === 'PRE_FLOP' && tableState.lastAggressorId) {
-      // If the last aggressor has acted and everyone matched, round is complete
-      return tableState.playersActedInRound.includes(tableState.lastAggressorId);
-    }
-    
-    // If there's a last aggressor (someone who bet/raised), they must have acted
+    // If there's a last aggressor (someone who bet/raised, or big blind in pre-flop),
+    // they must have acted for the round to complete
     if (tableState.lastAggressorId) {
       return tableState.playersActedInRound.includes(tableState.lastAggressorId);
     }
