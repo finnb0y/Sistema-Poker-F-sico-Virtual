@@ -147,46 +147,108 @@ const TableDealerInterface: React.FC<TableDealerInterfaceProps> = ({ state, onDi
                  Aguardando ações dos jogadores
                </div>
              )}
-             
-             <button 
-               onClick={() => {
-                 // Reset hand
-                 const resetTableState = state.tableStates.find(ts => ts.id === selectedTableId);
-                 if (resetTableState) {
-                   resetTableState.handInProgress = false;
-                   resetTableState.bettingRound = null;
-                   resetTableState.currentBet = 0;
-                   resetTableState.currentTurn = null;
-                   tablePlayers.forEach(p => {
-                     p.currentBet = 0;
-                     p.status = PlayerStatus.SITTING;
-                   });
-                 }
-               }} 
-               className="w-full bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white font-black py-6 rounded-[32px] text-sm shadow-lg transition-all uppercase border border-red-500/30"
-             >
-               ❌ Resetar Mão
-             </button>
            </>
          )}
 
-         <div className="text-center bg-black/40 p-6 rounded-[32px] border border-white/5">
-            <div className="text-[10px] font-black text-gray-500 uppercase mb-1 tracking-widest">Pote Atual</div>
-            <div className="text-4xl font-black text-green-500">${tableState?.pot || 0}</div>
-         </div>
-         
-         <div className="space-y-4">
-            {tablePlayers.map(p => (
-              <div key={p.id} className="p-4 bg-white/5 rounded-2xl flex justify-between items-center border border-white/5">
-                 <div className="flex gap-4 items-center">
-                    <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center font-black text-white/40 text-xs">{p.seatNumber}</div>
-                    <span className="font-bold text-white">{p.name}</span>
-                 </div>
-                 <button onClick={() => onDispatch({ type: 'AWARD_POT', payload: { winnerId: p.id }, senderId: 'DEALER' })} className="bg-green-600/20 text-green-500 px-4 py-2 rounded-xl text-[10px] font-black uppercase">VENCEU</button>
+                   {/* Pot Display and Distribution Controls */}
+          {tableState?.potDistribution ? (
+            <>
+              {/* Active Pot Distribution UI */}
+              <div className="bg-gradient-to-br from-green-900/40 to-yellow-900/40 p-6 rounded-[32px] border-2 border-green-500/50 space-y-4 animate-pulse-slow">
+                <div className="text-[10px] font-black text-green-400 uppercase tracking-widest">Entrega de Pote</div>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <div className="text-xs text-white/60 font-black uppercase">
+                      Pote {tableState.potDistribution.currentPotIndex + 1} de {tableState.potDistribution.pots.length}
+                    </div>
+                    <div className="text-3xl font-black text-green-400">
+                      ${tableState.potDistribution.pots[tableState.potDistribution.currentPotIndex].amount}
+                    </div>
+                  </div>
+                  <div className="w-16 h-16 rounded-full bg-green-500/20 border-4 border-green-500 flex items-center justify-center animate-pulse">
+                    <span className="text-2xl">💰</span>
+                  </div>
+                </div>
               </div>
-            ))}
-         </div>
-      </div>
+
+              {/* Eligible Players for Current Pot */}
+              <div className="space-y-3">
+                <div className="text-[10px] font-black text-white/40 uppercase tracking-widest px-2">
+                  Jogadores Elegíveis ({tableState.potDistribution.selectedWinnerIds.length} selecionados)
+                </div>
+                {tablePlayers
+                  .filter(p => tableState.potDistribution!.pots[tableState.potDistribution!.currentPotIndex].eligiblePlayerIds.includes(p.id))
+                  .map(p => {
+                    const isSelected = tableState.potDistribution!.selectedWinnerIds.includes(p.id);
+                    return (
+                      <div 
+                        key={p.id} 
+                        className={`p-4 rounded-2xl flex justify-between items-center border-2 transition-all cursor-pointer ${
+                          isSelected 
+                            ? 'bg-green-500/20 border-green-500 shadow-lg shadow-green-500/20' 
+                            : 'bg-white/5 border-white/10 hover:border-white/30'
+                        }`}
+                        onClick={() => onDispatch({ type: 'TOGGLE_POT_WINNER', payload: { tableId: selectedTableId, playerId: p.id }, senderId: 'DEALER' })}
+                      >
+                        <div className="flex gap-4 items-center">
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs ${
+                            isSelected ? 'bg-green-500 text-white' : 'bg-white/10 text-white/40'
+                          }`}>
+                            {isSelected ? '✓' : p.seatNumber}
+                          </div>
+                          <span className={`font-bold ${isSelected ? 'text-green-400' : 'text-white'}`}>{p.name}</span>
+                        </div>
+                        {isSelected && (
+                          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-green-500 rounded-r-full animate-pulse"></div>
+                        )}
+                      </div>
+                    );
+                  })}
+              </div>
+
+              {/* Deliver Pot Button */}
+              <button 
+                onClick={() => onDispatch({ type: 'DELIVER_CURRENT_POT', payload: { tableId: selectedTableId }, senderId: 'DEALER' })} 
+                disabled={tableState.potDistribution.selectedWinnerIds.length === 0}
+                className="w-full bg-green-600 hover:bg-green-500 text-white font-black py-8 rounded-[32px] text-xl shadow-2xl transition-all uppercase disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                🎯 Entregar Pote
+              </button>
+            </>
+          ) : (
+            <>
+              {/* Normal Pot Display */}
+              <div className="text-center bg-black/40 p-6 rounded-[32px] border border-white/5">
+                <div className="text-[10px] font-black text-gray-500 uppercase mb-1 tracking-widest">Pote Atual</div>
+                <div className="text-4xl font-black text-green-500">${tableState?.pot || 0}</div>
+              </div>
+              
+              {/* Player List with Manual Distribution Button */}
+              {tableState?.handInProgress && tableState.bettingRound === 'SHOWDOWN' && (
+                <button 
+                  onClick={() => onDispatch({ type: 'START_POT_DISTRIBUTION', payload: { tableId: selectedTableId }, senderId: 'DEALER' })} 
+                  className="w-full bg-yellow-600 hover:bg-yellow-500 text-white font-black py-6 rounded-[32px] text-sm shadow-xl transition-all uppercase"
+                >
+                  🏆 Iniciar Distribuição Manual
+                </button>
+              )}
+
+              <div className="space-y-4">
+                {tablePlayers.map(p => (
+                  <div key={p.id} className="p-4 bg-white/5 rounded-2xl flex justify-between items-center border border-white/5">
+                    <div className="flex gap-4 items-center">
+                      <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center font-black text-white/40 text-xs">{p.seatNumber}</div>
+                      <div>
+                        <span className="font-bold text-white">{p.name}</span>
+                        <div className="text-[10px] text-green-500 font-black">${p.balance}</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+       </div>
     </div>
   );
 };

@@ -43,6 +43,9 @@ const App: React.FC = () => {
           if (!('playersActedInRound' in migratedState)) {
             migratedState.playersActedInRound = [];
           }
+          if (!('potDistribution' in migratedState)) {
+            migratedState.potDistribution = null;
+          }
           return migratedState;
         });
         return loadedState;
@@ -196,7 +199,8 @@ const App: React.FC = () => {
                 lastRaiseAmount: 0,
                 handInProgress: false,
                 lastAggressorId: null,
-                playersActedInRound: []
+                playersActedInRound: [],
+                potDistribution: null
               });
             }
           });
@@ -221,7 +225,8 @@ const App: React.FC = () => {
                   lastRaiseAmount: 0,
                   handInProgress: false,
                   lastAggressorId: null,
-                  playersActedInRound: []
+                  playersActedInRound: [],
+                  potDistribution: null
                 });
               }
             });
@@ -430,6 +435,88 @@ const App: React.FC = () => {
                 tState.currentTurn = null; // Return control to dealer
               } else {
                 tState.currentTurn = nextTurn;
+              }
+            }
+          }
+          break;
+
+        case 'START_POT_DISTRIBUTION':
+          const tableForDistribution = newState.tableStates.find(t => t.id === payload.tableId);
+          if (tableForDistribution) {
+            // Get all players at the table who are not folded/out
+            const eligiblePlayers = newState.players.filter(p => 
+              p.tableId === payload.tableId && 
+              p.status !== PlayerStatus.FOLDED && 
+              p.status !== PlayerStatus.OUT
+            ).map(p => p.id);
+            
+            // For now, create a single main pot. Side pot logic can be added later
+            tableForDistribution.potDistribution = {
+              pots: [{
+                amount: tableForDistribution.pot,
+                eligiblePlayerIds: eligiblePlayers
+              }],
+              currentPotIndex: 0,
+              selectedWinnerIds: []
+            };
+          }
+          break;
+
+        case 'TOGGLE_POT_WINNER':
+          const tableForToggle = newState.tableStates.find(t => t.id === payload.tableId);
+          if (tableForToggle?.potDistribution) {
+            const playerId = payload.playerId;
+            const selectedIds = tableForToggle.potDistribution.selectedWinnerIds;
+            
+            if (selectedIds.includes(playerId)) {
+              // Unmark player
+              tableForToggle.potDistribution.selectedWinnerIds = selectedIds.filter(id => id !== playerId);
+            } else {
+              // Mark player
+              tableForToggle.potDistribution.selectedWinnerIds = [...selectedIds, playerId];
+            }
+          }
+          break;
+
+        case 'DELIVER_CURRENT_POT':
+          const tableForDelivery = newState.tableStates.find(t => t.id === payload.tableId);
+          if (tableForDelivery?.potDistribution) {
+            const { pots, currentPotIndex, selectedWinnerIds } = tableForDelivery.potDistribution;
+            
+            if (selectedWinnerIds.length > 0 && currentPotIndex < pots.length) {
+              const currentPot = pots[currentPotIndex];
+              const amountPerWinner = Math.floor(currentPot.amount / selectedWinnerIds.length);
+              
+              // Distribute pot to selected winners
+              selectedWinnerIds.forEach(winnerId => {
+                const winner = newState.players.find(p => p.id === winnerId);
+                if (winner) {
+                  winner.balance += amountPerWinner;
+                }
+              });
+              
+              // Subtract distributed amount from main pot
+              tableForDelivery.pot -= currentPot.amount;
+              
+              // Move to next pot or clear distribution state
+              if (currentPotIndex + 1 < pots.length) {
+                tableForDelivery.potDistribution.currentPotIndex = currentPotIndex + 1;
+                tableForDelivery.potDistribution.selectedWinnerIds = [];
+              } else {
+                // All pots distributed - end hand
+                tableForDelivery.potDistribution = null;
+                tableForDelivery.handInProgress = false;
+                tableForDelivery.bettingRound = null;
+                tableForDelivery.currentBet = 0;
+                tableForDelivery.currentTurn = null;
+                tableForDelivery.lastAggressorId = null;
+                tableForDelivery.playersActedInRound = [];
+                newState.players.filter(p => p.tableId === tableForDelivery.id).forEach(p => {
+                  p.currentBet = 0;
+                  if (p.status !== PlayerStatus.OUT) {
+                    p.status = PlayerStatus.SITTING;
+                  }
+                });
               }
             }
           }
