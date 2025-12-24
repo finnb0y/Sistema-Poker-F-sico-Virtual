@@ -534,6 +534,7 @@ const App: React.FC = () => {
                 tableForDelivery.playersActedInRound = [];
                 newState.players.filter(p => p.tableId === tableForDelivery.id).forEach(p => {
                   p.currentBet = 0;
+                  p.totalContributedThisHand = 0;
                   if (p.status !== PlayerStatus.OUT) {
                     p.status = PlayerStatus.SITTING;
                   }
@@ -551,7 +552,10 @@ const App: React.FC = () => {
               winner.balance += tState.pot;
               tState.pot = 0;
               tState.currentTurn = null;
-              newState.players.filter(p => p.tableId === tState.id).forEach(p => p.currentBet = 0);
+              newState.players.filter(p => p.tableId === tState.id).forEach(p => {
+                p.currentBet = 0;
+                p.totalContributedThisHand = 0;
+              });
             }
           }
           break;
