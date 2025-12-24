@@ -299,6 +299,7 @@ const App: React.FC = () => {
             name: person.nickname || person.name,
             balance: totalChips,
             currentBet: 0,
+            totalContributedThisHand: 0,
             status: PlayerStatus.SITTING,
             tableId: null,
             seatNumber: 0,
@@ -342,6 +343,7 @@ const App: React.FC = () => {
               const betDiff = payload.amount - bP.currentBet;
               bP.balance -= betDiff;
               bP.currentBet = payload.amount;
+              bP.totalContributedThisHand += betDiff;
               tState.pot += betDiff;
               
               // Check and set all-in status if no chips left
@@ -436,6 +438,7 @@ const App: React.FC = () => {
                 const amountToCall = Math.min(callAmount, callPlayer.balance);
                 callPlayer.balance -= amountToCall;
                 callPlayer.currentBet += amountToCall;
+                callPlayer.totalContributedThisHand += amountToCall;
                 tState.pot += amountToCall;
                 
                 // If player is all-in, mark status
@@ -604,6 +607,7 @@ const App: React.FC = () => {
             if (reentryTourney && reentryTourney.config.reentry.enabled) {
               reentryPlayer.balance = reentryTourney.config.reentry.chips;
               reentryPlayer.currentBet = 0;
+              reentryPlayer.totalContributedThisHand = 0;
               reentryPlayer.status = PlayerStatus.SITTING;
               reentryPlayer.totalInvested += reentryTourney.config.reentry.price;
               reentryPlayer.tableId = null;
@@ -662,6 +666,7 @@ const App: React.FC = () => {
             
             tablePlayers.forEach(p => {
               p.currentBet = 0;
+              p.totalContributedThisHand = 0;
               p.status = PlayerStatus.ACTIVE;
             });
             
@@ -671,10 +676,12 @@ const App: React.FC = () => {
             
             sbPlayer.balance -= currentBlindLevel.smallBlind;
             sbPlayer.currentBet = currentBlindLevel.smallBlind;
+            sbPlayer.totalContributedThisHand = currentBlindLevel.smallBlind;
             tableForHand.pot += currentBlindLevel.smallBlind;
             
             bbPlayer.balance -= currentBlindLevel.bigBlind;
             bbPlayer.currentBet = currentBlindLevel.bigBlind;
+            bbPlayer.totalContributedThisHand = currentBlindLevel.bigBlind;
             tableForHand.pot += currentBlindLevel.bigBlind;
             
             // Set first to act based on player count and positions
@@ -693,6 +700,7 @@ const App: React.FC = () => {
               
               raisePlayer.balance -= totalToPay;
               raisePlayer.currentBet += totalToPay;
+              raisePlayer.totalContributedThisHand += totalToPay;
               tableForRaise.pot += totalToPay;
               tableForRaise.currentBet = raisePlayer.currentBet;
               tableForRaise.lastRaiseAmount = raiseAmount;
