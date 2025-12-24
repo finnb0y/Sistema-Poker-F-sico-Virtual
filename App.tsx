@@ -73,7 +73,13 @@ const App: React.FC = () => {
   }, []);
 
   const getNextTurnId = (players: Player[], tableId: number, currentId: string | null): string | null => {
-    const tablePlayers = players.filter(p => p.tableId === tableId && p.status !== PlayerStatus.FOLDED && p.status !== PlayerStatus.OUT);
+    // Only consider players who can still act (not folded, not out, not all-in)
+    const tablePlayers = players.filter(p => 
+      p.tableId === tableId && 
+      p.status !== PlayerStatus.FOLDED && 
+      p.status !== PlayerStatus.OUT &&
+      p.status !== PlayerStatus.ALL_IN
+    );
     if (tablePlayers.length <= 1) return null;
     const sorted = [...tablePlayers].sort((a, b) => a.seatNumber - b.seatNumber);
     const currIdx = sorted.findIndex(p => p.id === currentId);
@@ -338,8 +344,8 @@ const App: React.FC = () => {
           const bP = newState.players.find(p => p.id === senderId);
           if (bP && bP.tableId) {
             const tState = newState.tableStates.find(t => t.id === bP.tableId);
-            // Only allow action if it's player's turn
-            if (tState && tState.currentTurn === senderId) {
+            // Only allow action if it's player's turn and player is not all-in
+            if (tState && tState.currentTurn === senderId && bP.status !== PlayerStatus.ALL_IN) {
               const betDiff = payload.amount - bP.currentBet;
               bP.balance -= betDiff;
               bP.currentBet = payload.amount;
@@ -379,8 +385,8 @@ const App: React.FC = () => {
           const foldPlayer = newState.players.find(p => p.id === senderId);
           if (foldPlayer && foldPlayer.tableId) {
             const tState = newState.tableStates.find(t => t.id === foldPlayer.tableId);
-            // Only allow action if it's player's turn
-            if (tState && tState.currentTurn === senderId) {
+            // Only allow action if it's player's turn and player is not all-in
+            if (tState && tState.currentTurn === senderId && foldPlayer.status !== PlayerStatus.ALL_IN) {
               foldPlayer.status = PlayerStatus.FOLDED;
               
               // Track that this player acted
@@ -403,8 +409,8 @@ const App: React.FC = () => {
           const checkPlayer = newState.players.find(p => p.id === senderId);
           if (checkPlayer && checkPlayer.tableId) {
             const tState = newState.tableStates.find(t => t.id === checkPlayer.tableId);
-            // Only allow action if it's player's turn and no bet to call
-            if (tState && tState.currentTurn === senderId) {
+            // Only allow action if it's player's turn, no bet to call, and player is not all-in
+            if (tState && tState.currentTurn === senderId && checkPlayer.status !== PlayerStatus.ALL_IN) {
               const maxBet = getMaxBetAtTable(newState.players, checkPlayer.tableId);
               // Can only check if current bet matches the max bet
               if (checkPlayer.currentBet === maxBet) {
@@ -429,8 +435,8 @@ const App: React.FC = () => {
           const callPlayer = newState.players.find(p => p.id === senderId);
           if (callPlayer && callPlayer.tableId) {
             const tState = newState.tableStates.find(t => t.id === callPlayer.tableId);
-            // Only allow action if it's player's turn
-            if (tState && tState.currentTurn === senderId) {
+            // Only allow action if it's player's turn and player is not all-in
+            if (tState && tState.currentTurn === senderId && callPlayer.status !== PlayerStatus.ALL_IN) {
               const maxBet = getMaxBetAtTable(newState.players, callPlayer.tableId);
               const callAmount = maxBet - callPlayer.currentBet;
               
@@ -698,7 +704,8 @@ const App: React.FC = () => {
           const raisePlayer = newState.players.find(p => p.id === senderId);
           if (raisePlayer && raisePlayer.tableId) {
             const tableForRaise = newState.tableStates.find(ts => ts.id === raisePlayer.tableId);
-            if (tableForRaise) {
+            // Only allow action if player is not all-in
+            if (tableForRaise && raisePlayer.status !== PlayerStatus.ALL_IN) {
               const raiseAmount = payload.amount;
               const callAmount = tableForRaise.currentBet - raisePlayer.currentBet;
               const totalToPay = callAmount + raiseAmount;
