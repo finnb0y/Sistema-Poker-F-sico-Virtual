@@ -756,14 +756,17 @@ const App: React.FC = () => {
               activePlayers.forEach(p => p.currentBet = 0);
               
               // Post-flop action starts with first player left of dealer button (small blind position)
-              if (tableForAdvance.dealerButtonPosition && activePlayers.length > 0) {
+              // Filter out all-in players who cannot act in this betting round
+              const playersWhoCanAct = activePlayers.filter(p => canPlayerAct(p));
+              
+              if (tableForAdvance.dealerButtonPosition && playersWhoCanAct.length > 0) {
                 const firstToActIdx = getPostFlopFirstToAct(
-                  activePlayers,
+                  playersWhoCanAct,
                   tableForAdvance.dealerButtonPosition
                 );
                 
                 if (firstToActIdx !== -1) {
-                  tableForAdvance.currentTurn = activePlayers[firstToActIdx].id;
+                  tableForAdvance.currentTurn = playersWhoCanAct[firstToActIdx].id;
                 }
               }
             }
