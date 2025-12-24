@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { GameState, ActionMessage, PlayerStatus } from '../types';
 import TableView from './TableView';
+import { areAllPlayersAllInOrCapped } from '../utils/sidePotLogic';
 
 interface TableDealerInterfaceProps {
   state: GameState;
@@ -46,6 +47,9 @@ const TableDealerInterface: React.FC<TableDealerInterfaceProps> = ({ state, onDi
   
   // Get current blind level
   const currentBlindLevel = tournament?.config.blindStructure?.levels?.[tableState?.currentBlindLevel || 0];
+  
+  // Check if all players are all-in or capped (no more actions possible)
+  const allPlayersAllInOrCapped = tableState ? areAllPlayersAllInOrCapped(state.players, selectedTableId) : false;
   
   // Betting round labels
   const getRoundLabel = (round: string | null) => {
@@ -135,14 +139,21 @@ const TableDealerInterface: React.FC<TableDealerInterfaceProps> = ({ state, onDi
          ) : (
            <>
              {/* Hand in Progress Controls */}
+             {allPlayersAllInOrCapped && tableState.currentTurn === null && (
+               <div className="bg-orange-900/30 p-4 rounded-2xl border border-orange-500/30 mb-3">
+                 <div className="text-center text-xs text-orange-400 font-black uppercase tracking-wide">
+                   ⚠️ Todos All-In - Sem Ações Restantes
+                 </div>
+               </div>
+             )}
              <button 
                onClick={() => onDispatch({ type: 'ADVANCE_BETTING_ROUND', payload: { tableId: selectedTableId }, senderId: 'DEALER' })} 
                className="w-full bg-purple-600 hover:bg-purple-500 text-white font-black py-8 rounded-[32px] text-lg shadow-2xl transition-all uppercase disabled:opacity-50 disabled:cursor-not-allowed"
-               disabled={tableState.bettingRound === 'SHOWDOWN' || tableState.currentTurn !== null}
+               disabled={tableState.bettingRound === 'SHOWDOWN' || (tableState.currentTurn !== null && !allPlayersAllInOrCapped)}
              >
                🃏 {getNextRoundLabel(tableState.bettingRound)}
              </button>
-             {tableState.currentTurn !== null && (
+             {tableState.currentTurn !== null && !allPlayersAllInOrCapped && (
                <div className="text-center text-xs text-purple-400/60 font-black uppercase tracking-wide -mt-3">
                  Aguardando ações dos jogadores
                </div>
@@ -155,7 +166,9 @@ const TableDealerInterface: React.FC<TableDealerInterfaceProps> = ({ state, onDi
             <>
               {/* Active Pot Distribution UI */}
               <div className="bg-gradient-to-br from-green-900/40 to-yellow-900/40 p-6 rounded-[32px] border-2 border-green-500/50 space-y-4 animate-pulse-slow">
-                <div className="text-[10px] font-black text-green-400 uppercase tracking-widest">Entrega de Pote</div>
+                <div className="text-[10px] font-black text-green-400 uppercase tracking-widest">
+                  {tableState.potDistribution.currentPotIndex === 0 ? 'Pote Principal' : `Side Pot ${tableState.potDistribution.currentPotIndex}`}
+                </div>
                 <div className="flex justify-between items-center">
                   <div>
                     <div className="text-xs text-white/60 font-black uppercase">
