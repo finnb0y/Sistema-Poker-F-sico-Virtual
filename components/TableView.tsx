@@ -122,14 +122,22 @@ const TableView: React.FC<TableViewProps> = ({
           {sidePots ? (
             // Display side pots when all-ins create multiple pots
             <div className="space-y-2 sm:space-y-3">
-              {sidePots.map((pot, index) => (
-                <div key={index} className={`${index === 0 ? 'text-2xl sm:text-4xl' : 'text-3xl sm:text-6xl'} font-outfit font-black ${index === 0 ? 'text-white/60' : 'text-green-400'} drop-shadow-[0_5px_15px_rgba(0,0,0,0.5)]`}>
-                  <div className={`${index === 0 ? 'text-[8px] sm:text-[10px]' : 'text-[10px] sm:text-xs'} text-white/40 font-black uppercase tracking-widest mb-0.5 sm:mb-1`}>
-                    {index === 0 ? 'Pote Principal' : `Side Pot ${index}`}
+              {sidePots.map((pot, index) => {
+                const isMainPot = index === 0;
+                const potSizeClass = isMainPot ? 'text-2xl sm:text-4xl' : 'text-3xl sm:text-6xl';
+                const potColorClass = isMainPot ? 'text-white/60' : 'text-green-400';
+                const labelSizeClass = isMainPot ? 'text-[8px] sm:text-[10px]' : 'text-[10px] sm:text-xs';
+                const potLabel = isMainPot ? 'Pote Principal' : `Side Pot ${index}`;
+                
+                return (
+                  <div key={index} className={`${potSizeClass} font-outfit font-black ${potColorClass} drop-shadow-[0_5px_15px_rgba(0,0,0,0.5)]`}>
+                    <div className={`${labelSizeClass} text-white/40 font-black uppercase tracking-widest mb-0.5 sm:mb-1`}>
+                      {potLabel}
+                    </div>
+                    ${pot.amount}
                   </div>
-                  ${pot.amount}
-                </div>
-              ))}
+                );
+              })}
               <div className="text-[8px] sm:text-[10px] text-white/30 font-black uppercase tracking-widest">
                 Total: ${tableState.pot}
               </div>

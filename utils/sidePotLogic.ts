@@ -107,7 +107,7 @@ export function calculateSidePots(
  * Check if all remaining active players are all-in (no more actions possible)
  * 
  * A betting round should end immediately when:
- * 1. Only one player remains (others folded/out), OR
+ * 1. One or fewer players remain (winner by default), OR
  * 2. All players are either all-in, folded, or out (no one can act)
  * 
  * Note: If exactly one player can still act while others are all-in,
@@ -127,6 +127,7 @@ export function areAllPlayersAllInOrCapped(
     p.status !== PlayerStatus.OUT
   );
 
+  // If one or fewer players remain, hand is over
   if (activePlayers.length <= 1) {
     return true;
   }
