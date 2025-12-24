@@ -88,6 +88,17 @@ export enum BettingRound {
   SHOWDOWN = 'SHOWDOWN'
 }
 
+export interface Pot {
+  amount: number;
+  eligiblePlayerIds: string[]; // Players eligible to win this pot
+}
+
+export interface PotDistributionState {
+  pots: Pot[]; // Array of pots (main pot + side pots)
+  currentPotIndex: number; // Which pot is being distributed
+  selectedWinnerIds: string[]; // Players marked to receive current pot
+}
+
 export interface TableState {
   id: number;
   tournamentId: string;
@@ -102,6 +113,7 @@ export interface TableState {
   handInProgress: boolean; // whether a hand is currently being played
   lastAggressorId: string | null; // player who last bet/raised, used to determine when betting round completes
   playersActedInRound: string[]; // track which players have acted in current betting round
+  potDistribution: PotDistributionState | null; // Active pot distribution state during showdown
 }
 
 export interface GameState {
@@ -135,7 +147,10 @@ export type ActionType =
   | 'CALL'
   | 'RAISE'
   | 'ADVANCE_BETTING_ROUND'
-  | 'AWARD_POT' 
+  | 'START_POT_DISTRIBUTION' // Initiate manual pot distribution during showdown
+  | 'TOGGLE_POT_WINNER' // Mark/unmark a player as winner for current pot
+  | 'DELIVER_CURRENT_POT' // Finalize delivery of current pot to marked winners
+  | 'AWARD_POT' // Legacy: direct award pot to a winner
   | 'RESET_HAND' 
   | 'UPDATE_BLINDS'
   | 'AUTO_BALANCE'
