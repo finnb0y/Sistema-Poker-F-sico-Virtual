@@ -140,10 +140,8 @@ export function areAllPlayersAllInOrCapped(
 /**
  * Prepare player bet information from the current game state
  * 
- * Note: This uses player.currentBet which represents bets in the current betting round.
- * In the current implementation, START_POT_DISTRIBUTION should be called during SHOWDOWN
- * before player bets are reset. For more robust tracking across multiple betting rounds,
- * consider adding a 'totalContributedInHand' field to Player interface.
+ * Uses player.totalContributedThisHand which tracks the total chips contributed
+ * across all betting rounds in the current hand (pre-flop, flop, turn, river).
  * 
  * @param players - All players at the table
  * @param tableId - The table ID
@@ -157,7 +155,7 @@ export function preparePlayerBetsForPotCalculation(
     .filter(p => p.tableId === tableId)
     .map(p => ({
       playerId: p.id,
-      totalBet: p.currentBet,
+      totalBet: p.totalContributedThisHand,
       isEligible: p.status !== PlayerStatus.FOLDED && p.status !== PlayerStatus.OUT
     }));
 }

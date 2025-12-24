@@ -71,6 +71,7 @@ export interface Player {
   name: string;
   balance: number;
   currentBet: number;
+  totalContributedThisHand: number; // Total chips contributed across all betting rounds in current hand
   status: PlayerStatus;
   tableId: number | null;
   seatNumber: number;
