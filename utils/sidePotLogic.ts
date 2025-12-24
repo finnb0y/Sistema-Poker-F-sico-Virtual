@@ -51,27 +51,27 @@ export function calculateSidePots(
 
   const pots: Pot[] = [];
   let remainingPotAmount = currentPotAmount;
-  let previousLevel = 0;
+  let previousBetLevel = 0;
 
   // Get all players who can participate (including those who bet 0 but are still eligible)
   const allPlayers = playerBets.filter(pb => pb.isEligible);
 
   // Process each bet level to create pots
   for (let i = 0; i < eligibleBets.length; i++) {
-    const currentLevel = eligibleBets[i].totalBet;
+    const currentBetLevel = eligibleBets[i].totalBet;
     
-    if (currentLevel > previousLevel) {
+    if (currentBetLevel > previousBetLevel) {
       // Calculate pot amount for this level
       // Count how many players contributed to this level
-      const contributingPlayers = allPlayers.filter(pb => pb.totalBet >= currentLevel);
-      const potAmount = (currentLevel - previousLevel) * contributingPlayers.length;
+      const contributingPlayers = allPlayers.filter(pb => pb.totalBet >= currentBetLevel);
+      const potAmount = (currentBetLevel - previousBetLevel) * contributingPlayers.length;
 
       if (potAmount > 0 && potAmount <= remainingPotAmount) {
         // Players eligible for this pot are those who:
         // 1. Are still in the hand (isEligible)
         // 2. Have bet at least up to this level
         const eligibleForThisPot = allPlayers
-          .filter(pb => pb.totalBet >= currentLevel)
+          .filter(pb => pb.totalBet >= currentBetLevel)
           .map(pb => pb.playerId);
 
         pots.push({
@@ -82,7 +82,7 @@ export function calculateSidePots(
         remainingPotAmount -= potAmount;
       }
 
-      previousLevel = currentLevel;
+      previousBetLevel = currentBetLevel;
     }
   }
 
@@ -139,6 +139,11 @@ export function areAllPlayersAllInOrCapped(
 
 /**
  * Prepare player bet information from the current game state
+ * 
+ * Note: This uses player.currentBet which represents bets in the current betting round.
+ * In the current implementation, START_POT_DISTRIBUTION should be called during SHOWDOWN
+ * before player bets are reset. For more robust tracking across multiple betting rounds,
+ * consider adding a 'totalContributedInHand' field to Player interface.
  * 
  * @param players - All players at the table
  * @param tableId - The table ID

@@ -101,9 +101,10 @@ const App: React.FC = () => {
   };
 
   /**
-   * Check and update player's all-in status based on their remaining balance
+   * Check if player should be marked as all-in and update status
+   * Mutates player object directly as part of state update pattern
    */
-  const checkAndSetAllInStatus = (player: Player): void => {
+  const updateAllInStatus = (player: Player): void => {
     if (player.balance === 0 && player.status !== PlayerStatus.ALL_IN) {
       player.status = PlayerStatus.ALL_IN;
     }
@@ -344,7 +345,7 @@ const App: React.FC = () => {
               tState.pot += betDiff;
               
               // Check and set all-in status if no chips left
-              checkAndSetAllInStatus(bP);
+              updateAllInStatus(bP);
               
               // Track that this player acted
               if (!tState.playersActedInRound.includes(senderId)) {
@@ -698,7 +699,7 @@ const App: React.FC = () => {
               tableForRaise.lastAggressorId = senderId; // Mark this player as the aggressor
               
               // Check and set all-in status if no chips left
-              checkAndSetAllInStatus(raisePlayer);
+              updateAllInStatus(raisePlayer);
               
               // When someone raises, reset the acted tracking so everyone must act again
               // Only the raiser is marked as having acted

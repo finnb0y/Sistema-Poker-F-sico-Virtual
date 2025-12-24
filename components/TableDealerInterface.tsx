@@ -56,6 +56,7 @@ const TableDealerInterface: React.FC<TableDealerInterfaceProps> = ({ state, onDi
   
   // Check if all players are all-in or capped (no more actions possible)
   const allPlayersAllInOrCapped = tableState ? areAllPlayersAllInOrCapped(state.players, selectedTableId) : false;
+  const isWaitingForPlayerAction = tableState?.currentTurn !== null;
   
   // Betting round labels
   const getRoundLabel = (round: string | null) => {
@@ -145,7 +146,7 @@ const TableDealerInterface: React.FC<TableDealerInterfaceProps> = ({ state, onDi
          ) : (
            <>
              {/* Hand in Progress Controls */}
-             {allPlayersAllInOrCapped && tableState.currentTurn === null && (
+             {allPlayersAllInOrCapped && !isWaitingForPlayerAction && (
                <div className="bg-orange-900/30 p-4 rounded-2xl border border-orange-500/30 mb-3">
                  <div className="text-center text-xs text-orange-400 font-black uppercase tracking-wide">
                    ⚠️ Todos All-In - Sem Ações Restantes
@@ -155,11 +156,11 @@ const TableDealerInterface: React.FC<TableDealerInterfaceProps> = ({ state, onDi
              <button 
                onClick={() => onDispatch({ type: 'ADVANCE_BETTING_ROUND', payload: { tableId: selectedTableId }, senderId: 'DEALER' })} 
                className="w-full bg-purple-600 hover:bg-purple-500 text-white font-black py-8 rounded-[32px] text-lg shadow-2xl transition-all uppercase disabled:opacity-50 disabled:cursor-not-allowed"
-               disabled={tableState.bettingRound === 'SHOWDOWN' || (tableState.currentTurn !== null && !allPlayersAllInOrCapped)}
+               disabled={tableState.bettingRound === 'SHOWDOWN' || (isWaitingForPlayerAction && !allPlayersAllInOrCapped)}
              >
                🃏 {getNextRoundLabel(tableState.bettingRound)}
              </button>
-             {tableState.currentTurn !== null && !allPlayersAllInOrCapped && (
+             {isWaitingForPlayerAction && !allPlayersAllInOrCapped && (
                <div className="text-center text-xs text-purple-400/60 font-black uppercase tracking-wide -mt-3">
                  Aguardando ações dos jogadores
                </div>
