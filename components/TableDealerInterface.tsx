@@ -13,6 +13,12 @@ interface TableDealerInterfaceProps {
 const TableDealerInterface: React.FC<TableDealerInterfaceProps> = ({ state, onDispatch, onExit }) => {
   const [selectedTableId, setSelectedTableId] = useState<number | null>(null);
 
+  // Pot label constants
+  const POT_LABELS = {
+    MAIN: 'Pote Principal',
+    SIDE: 'Pote Lateral',
+  };
+
   if (!selectedTableId) {
     return (
       <div className="h-screen flex flex-col items-center justify-center p-6 poker-felt">
@@ -167,7 +173,10 @@ const TableDealerInterface: React.FC<TableDealerInterfaceProps> = ({ state, onDi
               {/* Active Pot Distribution UI */}
               <div className="bg-gradient-to-br from-green-900/40 to-yellow-900/40 p-6 rounded-[32px] border-2 border-green-500/50 space-y-4 animate-pulse-slow">
                 <div className="text-[10px] font-black text-green-400 uppercase tracking-widest">
-                  {tableState.potDistribution.currentPotIndex === 0 ? 'Pote Principal' : `Side Pot ${tableState.potDistribution.currentPotIndex}`}
+                  {tableState.potDistribution.currentPotIndex === 0 
+                    ? POT_LABELS.MAIN 
+                    : `${POT_LABELS.SIDE} ${tableState.potDistribution.currentPotIndex}`
+                  }
                 </div>
                 <div className="flex justify-between items-center">
                   <div>

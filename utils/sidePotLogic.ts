@@ -50,7 +50,7 @@ export function calculateSidePots(
   }
 
   const pots: Pot[] = [];
-  let remainingAmount = currentPotAmount;
+  let remainingPotAmount = currentPotAmount;
   let previousLevel = 0;
 
   // Get all players who can participate (including those who bet 0 but are still eligible)
@@ -66,7 +66,7 @@ export function calculateSidePots(
       const contributingPlayers = allPlayers.filter(pb => pb.totalBet >= currentLevel);
       const potAmount = (currentLevel - previousLevel) * contributingPlayers.length;
 
-      if (potAmount > 0 && potAmount <= remainingAmount) {
+      if (potAmount > 0 && potAmount <= remainingPotAmount) {
         // Players eligible for this pot are those who:
         // 1. Are still in the hand (isEligible)
         // 2. Have bet at least up to this level
@@ -79,7 +79,7 @@ export function calculateSidePots(
           eligiblePlayerIds: eligibleForThisPot
         });
 
-        remainingAmount -= potAmount;
+        remainingPotAmount -= potAmount;
       }
 
       previousLevel = currentLevel;
@@ -88,13 +88,13 @@ export function calculateSidePots(
 
   // If there's remaining amount (should rarely happen due to rounding or edge cases),
   // add it to the last pot or create a new one
-  if (remainingAmount > 0) {
+  if (remainingPotAmount > 0) {
     if (pots.length > 0) {
-      pots[pots.length - 1].amount += remainingAmount;
+      pots[pots.length - 1].amount += remainingPotAmount;
     } else {
       // Fallback: create a pot with all eligible players
       pots.push({
-        amount: remainingAmount,
+        amount: remainingPotAmount,
         eligiblePlayerIds: allPlayers.map(pb => pb.playerId)
       });
     }

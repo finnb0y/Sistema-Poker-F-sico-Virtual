@@ -101,6 +101,15 @@ const App: React.FC = () => {
   };
 
   /**
+   * Check and update player's all-in status based on their remaining balance
+   */
+  const checkAndSetAllInStatus = (player: Player): void => {
+    if (player.balance === 0 && player.status !== PlayerStatus.ALL_IN) {
+      player.status = PlayerStatus.ALL_IN;
+    }
+  };
+
+  /**
    * Checks if the current betting round is complete.
    * A round is complete when:
    * 1. All active players have acted at least once, AND
@@ -334,10 +343,8 @@ const App: React.FC = () => {
               bP.currentBet = payload.amount;
               tState.pot += betDiff;
               
-              // Mark as all-in if player has no chips left
-              if (bP.balance === 0 && bP.status !== PlayerStatus.ALL_IN) {
-                bP.status = PlayerStatus.ALL_IN;
-              }
+              // Check and set all-in status if no chips left
+              checkAndSetAllInStatus(bP);
               
               // Track that this player acted
               if (!tState.playersActedInRound.includes(senderId)) {
@@ -690,10 +697,8 @@ const App: React.FC = () => {
               tableForRaise.lastRaiseAmount = raiseAmount;
               tableForRaise.lastAggressorId = senderId; // Mark this player as the aggressor
               
-              // Mark as all-in if player has no chips left
-              if (raisePlayer.balance === 0 && raisePlayer.status !== PlayerStatus.ALL_IN) {
-                raisePlayer.status = PlayerStatus.ALL_IN;
-              }
+              // Check and set all-in status if no chips left
+              checkAndSetAllInStatus(raisePlayer);
               
               // When someone raises, reset the acted tracking so everyone must act again
               // Only the raiser is marked as having acted
