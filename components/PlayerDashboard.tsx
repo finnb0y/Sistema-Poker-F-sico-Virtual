@@ -180,7 +180,7 @@ const PlayerDashboard: React.FC<PlayerDashboardProps> = ({ state, playerId, onDi
            onClick={() => handleAction('BET', betAmount)}
            className={`py-6 rounded-[24px] font-black text-[10px] uppercase transition-all border-2 ${isMyTurn && betAmount >= (callAmount || 1) ? 'bg-yellow-600 border-yellow-400 text-black active:scale-95 shadow-[0_0_20px_rgba(202,138,4,0.3)]' : 'bg-white/5 border-transparent text-white/10 pointer-events-none'}`}
          >
-           {betAmount > maxOnTable ? 'RAISE' : 'BET'}
+           {maxOnTable > 0 ? 'RAISE' : 'BET'}
          </button>
       </div>
     </div>

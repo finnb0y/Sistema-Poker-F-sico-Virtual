@@ -100,6 +100,8 @@ export interface TableState {
   currentBet: number; // current bet amount in this round
   lastRaiseAmount: number; // amount of the last raise
   handInProgress: boolean; // whether a hand is currently being played
+  lastAggressorId: string | null; // player who last bet/raised, used to determine when betting round completes
+  playersActedInRound: string[]; // track which players have acted in current betting round
 }
 
 export interface GameState {
