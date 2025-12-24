@@ -6,6 +6,7 @@ import PlayerDashboard from './components/PlayerDashboard';
 import DealerControls from './components/DealerControls';
 import TableDealerInterface from './components/TableDealerInterface';
 import { calculateDealerPositions, getPostFlopFirstToAct, moveButtonToNextPlayer, getActivePlayers } from './utils/dealerLogic';
+import { calculateSidePots, areAllPlayersAllInOrCapped, preparePlayerBetsForPotCalculation } from './utils/sidePotLogic';
 
 const INITIAL_STATE: GameState = {
   roomTables: Array.from({ length: 10 }, (_, i) => ({ id: i + 1, name: `Mesa ${i + 1}` })),
@@ -100,11 +101,22 @@ const App: React.FC = () => {
   };
 
   /**
+   * Check if player should be marked as all-in and update status
+   * Mutates player object directly as part of state update pattern
+   */
+  const updateAllInStatus = (player: Player): void => {
+    if (player.balance === 0 && player.status !== PlayerStatus.ALL_IN) {
+      player.status = PlayerStatus.ALL_IN;
+    }
+  };
+
+  /**
    * Checks if the current betting round is complete.
    * A round is complete when:
    * 1. All active players have acted at least once, AND
    * 2. All active players have either matched the highest bet or gone all-in, AND
    * 3. If there's an aggressor, action has returned to them (they've acted after becoming aggressor)
+   * 4. OR all remaining players are all-in (no more actions possible)
    * 
    * Special case for pre-flop: Big blind is initially the aggressor and must get a chance to act.
    * 
@@ -121,6 +133,11 @@ const App: React.FC = () => {
     );
     
     if (activePlayers.length <= 1) return true;
+    
+    // Check if all players are all-in or only one can act - betting round must end
+    if (areAllPlayersAllInOrCapped(players, tableId)) {
+      return true;
+    }
     
     const maxBet = getMaxBetAtTable(players, tableId);
     
@@ -327,6 +344,9 @@ const App: React.FC = () => {
               bP.currentBet = payload.amount;
               tState.pot += betDiff;
               
+              // Check and set all-in status if no chips left
+              updateAllInStatus(bP);
+              
               // Track that this player acted
               if (!tState.playersActedInRound.includes(senderId)) {
                 tState.playersActedInRound.push(senderId);
@@ -443,19 +463,17 @@ const App: React.FC = () => {
         case 'START_POT_DISTRIBUTION':
           const tableForDistribution = newState.tableStates.find(t => t.id === payload.tableId);
           if (tableForDistribution) {
-            // Get all players at the table who are not folded/out
-            const eligiblePlayers = newState.players.filter(p => 
-              p.tableId === payload.tableId && 
-              p.status !== PlayerStatus.FOLDED && 
-              p.status !== PlayerStatus.OUT
-            ).map(p => p.id);
+            // Prepare player bet information for side pot calculation
+            const playerBets = preparePlayerBetsForPotCalculation(
+              newState.players,
+              payload.tableId
+            );
             
-            // For now, create a single main pot. Side pot logic can be added later
+            // Calculate side pots based on player bets
+            const pots = calculateSidePots(playerBets, tableForDistribution.pot);
+            
             tableForDistribution.potDistribution = {
-              pots: [{
-                amount: tableForDistribution.pot,
-                eligiblePlayerIds: eligiblePlayers
-              }],
+              pots: pots,
               currentPotIndex: 0,
               selectedWinnerIds: []
             };
@@ -679,6 +697,9 @@ const App: React.FC = () => {
               tableForRaise.currentBet = raisePlayer.currentBet;
               tableForRaise.lastRaiseAmount = raiseAmount;
               tableForRaise.lastAggressorId = senderId; // Mark this player as the aggressor
+              
+              // Check and set all-in status if no chips left
+              updateAllInStatus(raisePlayer);
               
               // When someone raises, reset the acted tracking so everyone must act again
               // Only the raiser is marked as having acted
