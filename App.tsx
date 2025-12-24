@@ -34,6 +34,17 @@ const App: React.FC = () => {
           jogadores: loadedState.players.length,
           registro: loadedState.registry.length
         });
+        // Migrate old table states to include new fields
+        loadedState.tableStates = loadedState.tableStates.map(ts => {
+          const migratedState = ts as TableState;
+          if (!('lastAggressorId' in migratedState)) {
+            migratedState.lastAggressorId = null;
+          }
+          if (!('playersActedInRound' in migratedState)) {
+            migratedState.playersActedInRound = [];
+          }
+          return migratedState;
+        });
         return loadedState;
       }
       console.log('Nenhum estado salvo encontrado, iniciando com estado inicial');
@@ -87,9 +98,12 @@ const App: React.FC = () => {
 
   /**
    * Checks if the current betting round is complete.
-   * A round is complete when all active players have either:
-   * 1. Matched the highest bet at the table, or
-   * 2. Gone all-in with their remaining chips
+   * A round is complete when:
+   * 1. All active players have acted at least once, AND
+   * 2. All active players have either matched the highest bet or gone all-in, AND
+   * 3. If there's an aggressor, action has returned to them (they've acted after becoming aggressor)
+   * 
+   * Special case for pre-flop: Big blind is initially the aggressor and must get a chance to act.
    * 
    * @param players - Array of all players in the game
    * @param tableId - The table ID to check
@@ -107,14 +121,28 @@ const App: React.FC = () => {
     
     const maxBet = getMaxBetAtTable(players, tableId);
     
-    // Check if all active players have either:
-    // 1. Matched the max bet, or
-    // 2. Are all-in (balance is zero after betting)
+    // Check if all active players have matched the max bet or are all-in
     const allPlayersMatched = activePlayers.every(p => 
       p.currentBet === maxBet || p.status === PlayerStatus.ALL_IN
     );
     
-    return allPlayersMatched;
+    if (!allPlayersMatched) return false;
+    
+    // Check if all active players have acted at least once
+    const allPlayersActed = activePlayers.every(p => 
+      tableState.playersActedInRound.includes(p.id)
+    );
+    
+    if (!allPlayersActed) return false;
+    
+    // If there's a last aggressor (someone who bet/raised, or big blind in pre-flop),
+    // they must have acted for the round to complete
+    if (tableState.lastAggressorId) {
+      return tableState.playersActedInRound.includes(tableState.lastAggressorId);
+    }
+    
+    // If no aggressor and all players acted and matched, round is complete
+    return true;
   };
 
   const processAction = useCallback((msg: ActionMessage) => {
@@ -166,7 +194,9 @@ const App: React.FC = () => {
                 bettingRound: null,
                 currentBet: 0,
                 lastRaiseAmount: 0,
-                handInProgress: false
+                handInProgress: false,
+                lastAggressorId: null,
+                playersActedInRound: []
               });
             }
           });
@@ -189,7 +219,9 @@ const App: React.FC = () => {
                   bettingRound: null,
                   currentBet: 0,
                   lastRaiseAmount: 0,
-                  handInProgress: false
+                  handInProgress: false,
+                  lastAggressorId: null,
+                  playersActedInRound: []
                 });
               }
             });
@@ -289,7 +321,21 @@ const App: React.FC = () => {
               bP.balance -= betDiff;
               bP.currentBet = payload.amount;
               tState.pot += betDiff;
-              tState.currentBet = Math.max(tState.currentBet, payload.amount);
+              
+              // Track that this player acted
+              if (!tState.playersActedInRound.includes(senderId)) {
+                tState.playersActedInRound.push(senderId);
+              }
+              
+              // If this bet is higher than the current bet, update aggressor
+              // This handles both initial bets and raises
+              if (payload.amount > tState.currentBet) {
+                tState.currentBet = payload.amount;
+                tState.lastAggressorId = senderId;
+                // Reset players acted when there's a new bet/raise
+                // Only keep the current player in the acted list
+                tState.playersActedInRound = [senderId];
+              }
               
               const nextTurn = getNextTurnId(newState.players, tState.id, senderId);
               // Check if betting round is complete after setting next turn
@@ -309,6 +355,11 @@ const App: React.FC = () => {
             // Only allow action if it's player's turn
             if (tState && tState.currentTurn === senderId) {
               foldPlayer.status = PlayerStatus.FOLDED;
+              
+              // Track that this player acted
+              if (!tState.playersActedInRound.includes(senderId)) {
+                tState.playersActedInRound.push(senderId);
+              }
               
               const nextTurn = getNextTurnId(newState.players, tState.id, senderId);
               // Check if betting round is complete after setting next turn
@@ -330,6 +381,11 @@ const App: React.FC = () => {
               const maxBet = getMaxBetAtTable(newState.players, checkPlayer.tableId);
               // Can only check if current bet matches the max bet
               if (checkPlayer.currentBet === maxBet) {
+                // Track that this player acted
+                if (!tState.playersActedInRound.includes(senderId)) {
+                  tState.playersActedInRound.push(senderId);
+                }
+                
                 const nextTurn = getNextTurnId(newState.players, tState.id, senderId);
                 // Check if betting round is complete after setting next turn
                 if (checkBettingRoundComplete(newState.players, tState.id, tState)) {
@@ -361,6 +417,11 @@ const App: React.FC = () => {
                 if (callPlayer.balance === 0) {
                   callPlayer.status = PlayerStatus.ALL_IN;
                 }
+              }
+              
+              // Track that this player acted
+              if (!tState.playersActedInRound.includes(senderId)) {
+                tState.playersActedInRound.push(senderId);
               }
               
               const nextTurn = getNextTurnId(newState.players, tState.id, senderId);
@@ -488,6 +549,12 @@ const App: React.FC = () => {
             tableForHand.lastRaiseAmount = currentBlindLevel.bigBlind;
             tableForHand.bettingRound = 'PRE_FLOP' as any;
             tableForHand.handInProgress = true;
+            tableForHand.playersActedInRound = []; // Reset action tracking
+            // In pre-flop, big blind is the initial aggressor (they posted the big blind)
+            // Note: BB is NOT added to playersActedInRound yet - posting blind is not an action
+            // BB must still get a chance to check or raise when action returns to them
+            tableForHand.lastAggressorId = tablePlayers[positions.bigBlindIdx].id;
+            
             tablePlayers.forEach(p => {
               p.currentBet = 0;
               p.status = PlayerStatus.ACTIVE;
@@ -524,6 +591,11 @@ const App: React.FC = () => {
               tableForRaise.pot += totalToPay;
               tableForRaise.currentBet = raisePlayer.currentBet;
               tableForRaise.lastRaiseAmount = raiseAmount;
+              tableForRaise.lastAggressorId = senderId; // Mark this player as the aggressor
+              
+              // When someone raises, reset the acted tracking so everyone must act again
+              // Only the raiser is marked as having acted
+              tableForRaise.playersActedInRound = [senderId];
               
               const nextTurn = getNextTurnId(newState.players, tableForRaise.id, senderId);
               // Check if betting round is complete after setting next turn
@@ -546,6 +618,8 @@ const App: React.FC = () => {
               tableForAdvance.bettingRound = roundOrder[currentRoundIdx + 1] as any;
               tableForAdvance.currentBet = 0;
               tableForAdvance.lastRaiseAmount = 0;
+              tableForAdvance.lastAggressorId = null; // Reset aggressor for new round
+              tableForAdvance.playersActedInRound = []; // Reset action tracking for new round
               
               // Reset player bets for new round
               // Post-flop: only players who are ACTIVE (not folded) participate
