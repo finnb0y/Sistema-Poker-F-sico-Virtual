@@ -92,6 +92,34 @@ vercel --prod
 - ✅ Interface intuitiva e responsiva
 - ✅ Sincronização em tempo real
 - ✅ Suporte para múltiplos jogadores e torneios
+- ✅ **Ambiente de testes modular para validação de cenários**
+
+## 🧪 Testes
+
+### Ambiente de Testes Modular
+
+Este projeto inclui um ambiente completo de testes para cenários de poker:
+
+```bash
+# Executar todos os testes do ambiente modular
+npx tsx utils/pokerTestEnvironment.test.ts
+
+# Executar exemplos de uso
+npx tsx utils/testExamples.ts
+
+# Executar testes específicos
+npx tsx utils/sidePotLogic.test.ts
+npx tsx utils/multipleAllInRounds.test.ts
+```
+
+**Recursos do ambiente de testes:**
+- 🎯 Criação rápida de cenários personalizados
+- 📝 Logging automático de todas as ações
+- ✅ Validação automática de comportamentos
+- 🐛 Detecção e reporte de bugs
+- 📊 Relatórios detalhados
+
+Para mais informações, consulte a [documentação completa do ambiente de testes](docs/TESTING_ENVIRONMENT.md).
 
 ## 🤝 Contribuindo
 
