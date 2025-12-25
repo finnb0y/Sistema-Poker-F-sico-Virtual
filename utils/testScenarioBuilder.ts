@@ -52,6 +52,8 @@ export interface TournamentSetup {
  * Create a player with default or custom configuration
  */
 export function createTestPlayer(config: PlayerConfig): Player {
+  const DEFAULT_REBUY_COST = 10000;
+  
   return {
     id: config.id,
     personId: `person-${config.id}`,
@@ -66,7 +68,7 @@ export function createTestPlayer(config: PlayerConfig): Player {
     accessCode: `code-${config.id}`,
     rebuysCount: config.rebuysCount ?? 0,
     hasAddon: false,
-    totalInvested: (config.rebuysCount ?? 0) * 10000
+    totalInvested: (config.rebuysCount ?? 0) * DEFAULT_REBUY_COST
   };
 }
 

@@ -61,7 +61,18 @@ export class TestLogger {
    */
   validate(description: string, expected: any, actual: any): boolean {
     this.validationCount++;
-    const passed = JSON.stringify(expected) === JSON.stringify(actual);
+    
+    // Simple deep equality check for primitive types, arrays, and objects
+    let passed = false;
+    if (expected === actual) {
+      passed = true;
+    } else if (Array.isArray(expected) && Array.isArray(actual)) {
+      passed = expected.length === actual.length && 
+               expected.every((val, index) => val === actual[index]);
+    } else if (typeof expected === 'object' && typeof actual === 'object' && expected !== null && actual !== null) {
+      // Use JSON.stringify as fallback for complex objects in test context
+      passed = JSON.stringify(expected) === JSON.stringify(actual);
+    }
     
     if (passed) {
       this.passedValidations++;
@@ -264,7 +275,7 @@ export function validatePotAmount(
   logger: TestLogger,
   actualPot: number,
   expectedPot: number,
-  tolerance: number = 0
+  tolerance: number = 0.01  // Small epsilon for floating point precision
 ): boolean {
   const description = 'Pot amount is correct';
   const isValid = Math.abs(actualPot - expectedPot) <= tolerance;
