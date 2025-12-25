@@ -77,6 +77,24 @@ Suite de testes completa com 6 cenários.
 5. **Multiple All-Ins Across Rounds** - All-ins em diferentes rodadas
 6. **Side Pot Distribution** - Distribuição correta de potes
 
+### 4. `showdownBettingBlock.test.ts`
+Teste específico para validar bloqueio de ações durante SHOWDOWN.
+
+**Importante:** No poker, existem apenas 4 rodadas de apostas (streets):
+- **PRE_FLOP** - Antes das cartas comunitárias
+- **FLOP** - Após as 3 primeiras cartas comunitárias
+- **TURN** - Após a 4ª carta comunitária
+- **RIVER** - Após a 5ª carta comunitária
+
+**SHOWDOWN não é uma rodada de apostas!** É uma fase especial onde:
+- ❌ **Nenhuma ação de aposta é permitida** (sem check, bet, call, fold, raise)
+- ✅ **Apenas revelação física das cartas** pelos jogadores
+- ✅ **Dealer escolhe vencedor(es)** e distribui os potes
+- ✅ **Potes são entregues manualmente** pelo dealer
+
+O ambiente de testes implementa esta regra corretamente: a função `getAvailableActions()` 
+retorna array vazio quando `bettingRound === BettingRound.SHOWDOWN`.
+
 ## 🎯 Casos de Uso
 
 ### Criar um Novo Cenário de Teste

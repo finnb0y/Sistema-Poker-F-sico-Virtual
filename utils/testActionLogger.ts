@@ -234,6 +234,12 @@ export function getAvailableActions(
     return [];
   }
 
+  // During SHOWDOWN, no betting actions are allowed
+  // SHOWDOWN is for revealing cards and pot distribution only
+  if (tableState.bettingRound === BettingRound.SHOWDOWN) {
+    return [];
+  }
+
   const actions: string[] = [];
   const needsToCall = player.currentBet < tableState.currentBet;
   const callAmount = tableState.currentBet - player.currentBet;
