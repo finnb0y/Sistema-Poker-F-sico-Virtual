@@ -65,10 +65,16 @@ export function calculateSidePots(
   // Iterate while there are still bets to allocate
   while (remainingBets.size > 0) {
     // Find the minimum bet amount (the "layer" for this pot)
-    const layerAmount = Math.min(...Array.from(remainingBets.values()));
+    // Use a loop instead of spread operator for better performance with many players
+    let layerAmount = Infinity;
+    for (const bet of remainingBets.values()) {
+      if (bet < layerAmount) {
+        layerAmount = bet;
+      }
+    }
     
-    if (layerAmount === 0) {
-      // Safety check: all remaining bets are 0
+    if (layerAmount === 0 || layerAmount === Infinity) {
+      // Safety check: all remaining bets are 0 or no valid bets
       break;
     }
 
@@ -109,10 +115,13 @@ export function calculateSidePots(
   }
 
   // Validate that we allocated all the money correctly
+  // Use epsilon tolerance for floating point comparison
   const totalAllocated = pots.reduce((sum, pot) => sum + pot.amount, 0);
-  if (totalAllocated !== currentPotAmount) {
+  const difference = currentPotAmount - totalAllocated;
+  const EPSILON = 0.01; // Tolerance for floating point precision issues
+  
+  if (Math.abs(difference) > EPSILON) {
     // This should rarely happen, but handle rounding/edge cases
-    const difference = currentPotAmount - totalAllocated;
     if (pots.length > 0) {
       pots[pots.length - 1].amount += difference;
     } else {
