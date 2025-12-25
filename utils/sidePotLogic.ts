@@ -21,11 +21,17 @@ export interface PlayerBetInfo {
 /**
  * Calculate all pots (main pot + side pots) based on player bets
  * 
- * Algorithm:
- * 1. Sort players by their total bet amount
- * 2. For each unique bet level, create a pot
- * 3. Each pot includes contributions from all players up to that level
- * 4. Track which players are eligible for each pot
+ * Algorithm (adapted from Poker-Fichas "layer peeling" approach):
+ * 1. Create a mutable copy of all player bets (the "pool" of money to distribute)
+ * 2. While there are still bets remaining:
+ *    a. Find the minimum bet amount (the "layer")
+ *    b. Create a pot from all players at this layer
+ *    c. Subtract the layer from all remaining bets
+ *    d. Remove players who have no more bets remaining
+ * 3. Track eligible players for each pot (those who contributed and didn't fold)
+ * 
+ * This approach is more intuitive and easier to reason about than the previous
+ * implementation, as it directly models the "peeling away" of bet layers.
  * 
  * @param playerBets - Array of player bet information
  * @param currentPotAmount - Current pot amount on the table
@@ -35,67 +41,94 @@ export function calculateSidePots(
   playerBets: PlayerBetInfo[],
   currentPotAmount: number
 ): Pot[] {
-  // Filter only eligible players who have bet something
-  const eligibleBets = playerBets
-    .filter(pb => pb.isEligible && pb.totalBet > 0)
-    .sort((a, b) => a.totalBet - b.totalBet);
-
-  if (eligibleBets.length === 0) {
-    // No eligible players with bets, return single pot with all money
-    const allEligiblePlayers = playerBets.filter(pb => pb.isEligible).map(pb => pb.playerId);
+  // Handle edge case: no eligible players with bets
+  const eligiblePlayers = playerBets.filter(pb => pb.isEligible);
+  const playersWithBets = eligiblePlayers.filter(pb => pb.totalBet > 0);
+  
+  if (playersWithBets.length === 0) {
+    // No one bet anything, return single pot with all money to all eligible players
     return [{
       amount: currentPotAmount,
-      eligiblePlayerIds: allEligiblePlayers
+      eligiblePlayerIds: eligiblePlayers.map(pb => pb.playerId)
     }];
   }
 
   const pots: Pot[] = [];
-  let remainingPotAmount = currentPotAmount;
-  let previousBetLevel = 0;
+  
+  // Create a mutable copy of bets remaining to be allocated
+  // Map of playerId -> remaining bet amount
+  const remainingBets = new Map<string, number>();
+  playersWithBets.forEach(pb => {
+    remainingBets.set(pb.playerId, pb.totalBet);
+  });
 
-  // Get all players who can participate (including those who bet 0 but are still eligible)
-  const allPlayers = playerBets.filter(pb => pb.isEligible);
-
-  // Process each bet level to create pots
-  for (let i = 0; i < eligibleBets.length; i++) {
-    const currentBetLevel = eligibleBets[i].totalBet;
-    
-    if (currentBetLevel > previousBetLevel) {
-      // Calculate pot amount for this level
-      // Count how many players contributed to this level
-      const contributingPlayers = allPlayers.filter(pb => pb.totalBet >= currentBetLevel);
-      const potAmount = (currentBetLevel - previousBetLevel) * contributingPlayers.length;
-
-      if (potAmount > 0 && potAmount <= remainingPotAmount) {
-        // Players eligible for this pot are those who:
-        // 1. Are still in the hand (isEligible)
-        // 2. Have bet at least up to this level
-        const eligibleForThisPot = allPlayers
-          .filter(pb => pb.totalBet >= currentBetLevel)
-          .map(pb => pb.playerId);
-
-        pots.push({
-          amount: potAmount,
-          eligiblePlayerIds: eligibleForThisPot
-        });
-
-        remainingPotAmount -= potAmount;
+  // Iterate while there are still bets to allocate
+  while (remainingBets.size > 0) {
+    // Find the minimum bet amount (the "layer" for this pot)
+    // Use a loop instead of spread operator for better performance with many players
+    let layerAmount = Infinity;
+    for (const bet of remainingBets.values()) {
+      if (bet < layerAmount) {
+        layerAmount = bet;
       }
+    }
+    
+    if (layerAmount === 0 || layerAmount === Infinity) {
+      // Safety check: all remaining bets are 0 or no valid bets
+      break;
+    }
 
-      previousBetLevel = currentBetLevel;
+    // Calculate pot value: layer amount × number of contributing players
+    let potValue = 0;
+    const eligibleForThisPot: string[] = [];
+
+    // Process all players still in the betting pool
+    const playerIds = Array.from(remainingBets.keys());
+    for (const playerId of playerIds) {
+      const playerBet = remainingBets.get(playerId)!;
+      
+      // Add this player's contribution to the pot
+      potValue += layerAmount;
+      
+      // This player is eligible for this pot
+      eligibleForThisPot.push(playerId);
+      
+      // Subtract the layer from this player's remaining bet
+      const newRemainingBet = playerBet - layerAmount;
+      
+      if (newRemainingBet === 0) {
+        // Player has no more chips to contribute, remove from pool
+        remainingBets.delete(playerId);
+      } else {
+        // Player still has chips, update their remaining bet
+        remainingBets.set(playerId, newRemainingBet);
+      }
+    }
+
+    // Create the pot if it has value
+    if (potValue > 0) {
+      pots.push({
+        amount: potValue,
+        eligiblePlayerIds: eligibleForThisPot
+      });
     }
   }
 
-  // If there's remaining amount (should rarely happen due to rounding or edge cases),
-  // add it to the last pot or create a new one
-  if (remainingPotAmount > 0) {
+  // Validate that we allocated all the money correctly
+  // Use epsilon tolerance for floating point comparison
+  const totalAllocated = pots.reduce((sum, pot) => sum + pot.amount, 0);
+  const difference = currentPotAmount - totalAllocated;
+  const EPSILON = 0.01; // Tolerance for floating point precision issues
+  
+  if (Math.abs(difference) > EPSILON) {
+    // This should rarely happen, but handle rounding/edge cases
     if (pots.length > 0) {
-      pots[pots.length - 1].amount += remainingPotAmount;
+      pots[pots.length - 1].amount += difference;
     } else {
       // Fallback: create a pot with all eligible players
       pots.push({
-        amount: remainingPotAmount,
-        eligiblePlayerIds: allPlayers.map(pb => pb.playerId)
+        amount: currentPotAmount,
+        eligiblePlayerIds: eligiblePlayers.map(pb => pb.playerId)
       });
     }
   }
