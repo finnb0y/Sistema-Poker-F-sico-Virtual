@@ -7,9 +7,28 @@ import { Player, PlayerStatus, Pot } from '../types';
  * which occur when one or more players go all-in with different stack sizes.
  * 
  * Key Concepts:
- * - Main Pot: All players (who haven't folded) can win this pot
+ * - Main Pot: All eligible players (who haven't folded) can win this pot
  * - Side Pots: Created when players go all-in with different amounts
  * - Each pot has a specific set of eligible players who can win it
+ * - Folded players' contributions stay in the pot but they cannot win
+ * 
+ * Mathematical Approach:
+ * The algorithm uses a "layer peeling" approach to calculate pots:
+ * 1. All players who made bets are included in calculations (even folded players)
+ * 2. Find the minimum bet amount (the "layer")
+ * 3. Create a pot from all contributing players at this layer
+ * 4. Only eligible (non-folded) players can win each pot
+ * 5. Subtract the layer from all bets and repeat
+ * 
+ * Example with folded player:
+ * - P1: all-in 10k (eligible)
+ * - P2: calls 10k then folds (NOT eligible)
+ * - P3: raises to 30k (eligible)
+ * - P4: calls 30k (eligible)
+ * 
+ * Result:
+ * - Main pot: 10k × 4 = 40k (P1, P3, P4 eligible - P2's money included but cannot win)
+ * - Side pot: 20k × 2 = 40k (P3, P4 eligible)
  */
 
 export interface PlayerBetInfo {
@@ -22,18 +41,22 @@ export interface PlayerBetInfo {
  * Calculate all pots (main pot + side pots) based on player bets
  * 
  * Algorithm (adapted from Poker-Fichas "layer peeling" approach):
- * 1. Create a mutable copy of all player bets (the "pool" of money to distribute)
+ * 1. Include ALL player bets in calculations (even folded players)
  * 2. While there are still bets remaining:
  *    a. Find the minimum bet amount (the "layer")
- *    b. Create a pot from all players at this layer
- *    c. Subtract the layer from all remaining bets
- *    d. Remove players who have no more bets remaining
- * 3. Track eligible players for each pot (those who contributed and didn't fold)
+ *    b. Create a pot: layer × number of all contributing players
+ *    c. Track only eligible (non-folded) players for winning
+ *    d. Subtract the layer from all remaining bets
+ *    e. Remove players who have no more bets remaining
+ * 3. Each pot includes money from all contributors, but only eligible players can win
  * 
- * This approach is more intuitive and easier to reason about than the previous
- * implementation, as it directly models the "peeling away" of bet layers.
+ * This approach ensures that:
+ * - Folded players' contributions remain in the pot (correct poker rules)
+ * - Folded players cannot win any pot (correct poker rules)
+ * - Players compete only in pots they contributed to
+ * - All money is properly allocated
  * 
- * @param playerBets - Array of player bet information
+ * @param playerBets - Array of player bet information (includes folded players)
  * @param currentPotAmount - Current pot amount on the table
  * @returns Array of pots with amounts and eligible players
  */
@@ -41,12 +64,13 @@ export function calculateSidePots(
   playerBets: PlayerBetInfo[],
   currentPotAmount: number
 ): Pot[] {
-  // Handle edge case: no eligible players with bets
-  const eligiblePlayers = playerBets.filter(pb => pb.isEligible);
-  const playersWithBets = eligiblePlayers.filter(pb => pb.totalBet > 0);
+  // Get all players who made bets (including folded players)
+  // Folded players' chips stay in the pot, they just can't win
+  const playersWithBets = playerBets.filter(pb => pb.totalBet > 0);
   
   if (playersWithBets.length === 0) {
-    // No one bet anything, return single pot with all money to all eligible players
+    // No one bet anything, return single pot with all eligible (non-folded) players
+    const eligiblePlayers = playerBets.filter(pb => pb.isEligible);
     return [{
       amount: currentPotAmount,
       eligiblePlayerIds: eligiblePlayers.map(pb => pb.playerId)
@@ -57,9 +81,16 @@ export function calculateSidePots(
   
   // Create a mutable copy of bets remaining to be allocated
   // Map of playerId -> remaining bet amount
+  // This includes ALL players who bet, even if they folded
   const remainingBets = new Map<string, number>();
   playersWithBets.forEach(pb => {
     remainingBets.set(pb.playerId, pb.totalBet);
+  });
+  
+  // Create a map for quick eligibility lookup
+  const eligibilityMap = new Map<string, boolean>();
+  playerBets.forEach(pb => {
+    eligibilityMap.set(pb.playerId, pb.isEligible);
   });
 
   // Iterate while there are still bets to allocate
@@ -78,7 +109,7 @@ export function calculateSidePots(
       break;
     }
 
-    // Calculate pot value: layer amount × number of contributing players
+    // Calculate pot value: layer amount × number of contributing players (ALL players, including folded)
     let potValue = 0;
     const eligibleForThisPot: string[] = [];
 
@@ -87,11 +118,13 @@ export function calculateSidePots(
     for (const playerId of playerIds) {
       const playerBet = remainingBets.get(playerId)!;
       
-      // Add this player's contribution to the pot
+      // Add this player's contribution to the pot (even if they folded)
       potValue += layerAmount;
       
-      // This player is eligible for this pot
-      eligibleForThisPot.push(playerId);
+      // Only add to eligible list if player hasn't folded
+      if (eligibilityMap.get(playerId)) {
+        eligibleForThisPot.push(playerId);
+      }
       
       // Subtract the layer from this player's remaining bet
       const newRemainingBet = playerBet - layerAmount;
