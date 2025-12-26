@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Role, GameState, Player, PlayerStatus, ActionMessage, Tournament, RoomTable, RegisteredPerson, TournamentConfig, TableState, BettingRound } from './types';
+import { Role, GameState, Player, PlayerStatus, ActionMessage, Tournament, RoomTable, RegisteredPerson, TournamentConfig, TableState, BettingRound, BetActionType } from './types';
 import { syncService } from './services/syncService';
 import PlayerDashboard from './components/PlayerDashboard';
 import DealerControls from './components/DealerControls';
@@ -122,7 +122,7 @@ const App: React.FC = () => {
    * @param action - The action type
    * @param amount - The amount bet/raised
    */
-  const logBetAction = (tableState: TableState, player: Player, action: 'BET' | 'CALL' | 'RAISE' | 'CHECK' | 'FOLD' | 'ALL_IN', amount: number): void => {
+  const logBetAction = (tableState: TableState, player: Player, action: BetActionType, amount: number): void => {
     tableState.betActions.push({
       playerId: player.id,
       playerName: player.name,
@@ -607,12 +607,13 @@ const App: React.FC = () => {
               let totalAwarded = 0;
               
               // Deliver all pots where this player is eligible
-              // This is useful when a player has won all contested pots
+              // NOTE: This implementation awards full pot amounts to a single winner.
+              // In real poker with split pots (multiple winners with equal hands), 
+              // the pot would be divided equally among winners. 
+              // Current limitation: Does not support automatic split pot calculation.
+              // For split pots, use manual distribution (TOGGLE_POT_WINNER + DELIVER_CURRENT_POT).
               pots.forEach((pot) => {
                 if (pot.eligiblePlayerIds.includes(winnerId)) {
-                  // Award the full pot to the winner
-                  // In real poker, this would be split among multiple winners if needed,
-                  // but for single winner selection, award full amount
                   winner.balance += pot.amount;
                   totalAwarded += pot.amount;
                 }

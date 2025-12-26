@@ -13,11 +13,12 @@ interface TableDealerInterfaceProps {
 const TableDealerInterface: React.FC<TableDealerInterfaceProps> = ({ state, onDispatch, onExit }) => {
   const [selectedTableId, setSelectedTableId] = useState<number | null>(null);
 
-  // Pot label constants
+  // Constants
   const POT_LABELS = {
     MAIN: 'Pote Principal',
     SIDE: 'Pote Lateral',
   };
+  const MAX_DISPLAYED_BET_ACTIONS = 10; // Maximum number of bet actions to display in history
 
   if (!selectedTableId) {
     return (
@@ -124,7 +125,7 @@ const TableDealerInterface: React.FC<TableDealerInterfaceProps> = ({ state, onDi
                📊 Histórico de Apostas
              </div>
              <div className="space-y-2">
-               {tableState.betActions.slice(-10).reverse().map((action, idx) => {
+               {tableState.betActions.slice(-MAX_DISPLAYED_BET_ACTIONS).reverse().map((action) => {
                  const actionColor = {
                    'BET': 'text-yellow-400',
                    'CALL': 'text-green-400',
@@ -143,7 +144,7 @@ const TableDealerInterface: React.FC<TableDealerInterfaceProps> = ({ state, onDi
                  }[action.bettingRound] || action.bettingRound;
                  
                  return (
-                   <div key={`${action.timestamp}-${idx}`} className="bg-white/5 p-3 rounded-xl border border-white/5 text-xs">
+                   <div key={action.timestamp} className="bg-white/5 p-3 rounded-xl border border-white/5 text-xs">
                      <div className="flex justify-between items-center">
                        <span className="font-bold text-white">{action.playerName}</span>
                        <span className={`font-black uppercase ${actionColor}`}>{action.action}</span>

@@ -5,7 +5,7 @@
  * Run with: npx tsx utils/betActionLogging.test.ts
  */
 
-import { BettingRound, PlayerStatus, TableState, BetAction } from '../types';
+import { BettingRound, BetAction } from '../types';
 
 function assert(condition: boolean, message: string) {
   if (!condition) {
@@ -39,9 +39,10 @@ function testBetActionStructure() {
 function testNegativePotPrevention() {
   console.log('\n--- Test 2: Negative Pot Prevention ---');
   
-  // Simulate pot distribution where rounding could cause issues
+  // Simulate pot distribution where pot might be insufficient
+  // This can happen due to calculation errors or edge cases in pot accounting
   let pot = 10000;
-  const potsToDistribute = [6000, 4001]; // Total 10001 - more than pot (rounding error)
+  const potsToDistribute = [6000, 4001]; // Total 10001 - exceeds available pot by 1
   
   // Old way (could go negative):
   // pot -= 6000; // pot = 4000

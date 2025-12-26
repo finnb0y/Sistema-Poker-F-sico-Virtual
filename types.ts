@@ -103,6 +103,8 @@ export interface BetAction {
   bettingRound: BettingRound;
 }
 
+export type BetActionType = BetAction['action'];
+
 export interface PotDistributionState {
   pots: Pot[]; // Array of pots (main pot + side pots)
   currentPotIndex: number; // Which pot is being distributed
