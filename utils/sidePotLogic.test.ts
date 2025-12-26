@@ -80,7 +80,7 @@ function testMultipleAllIns() {
 
 function testWithFoldedPlayer() {
   console.log('\n--- Test 3: With Folded Player ---');
-  // P1: 1000 chips (folded)
+  // P1: 500 chips (folded after betting)
   // P2: 2000 chips (all-in)
   // P3: 2000 chips (calls)
   
@@ -95,10 +95,20 @@ function testWithFoldedPlayer() {
   
   console.log('Pots:', JSON.stringify(pots, null, 2));
   
-  assert(pots.length === 1, 'Should have 1 pot (only eligible players)');
-  assert(pots[0].amount === 4500, 'Pot should contain all money');
-  assert(pots[0].eligiblePlayerIds.length === 2, 'Only 2 eligible players');
-  assert(!pots[0].eligiblePlayerIds.includes('p1'), 'Folded player should not be eligible');
+  // Expected behavior: P1's 500 stays in the pot but creates a layer
+  // Pot 1: 500 × 3 players = 1500 (only P2 and P3 eligible)
+  // Pot 2: 1500 × 2 players = 3000 (only P2 and P3 eligible)
+  // Total: 4500
+  assert(pots.length === 2, `Should have 2 pots (P1 folded creates a layer), got ${pots.length}`);
+  assert(pots[0].amount === 1500, `First pot should be 1500, got ${pots[0].amount}`);
+  assert(pots[0].eligiblePlayerIds.length === 2, 'First pot should have 2 eligible players');
+  assert(!pots[0].eligiblePlayerIds.includes('p1'), 'P1 should not be eligible');
+  assert(pots[1].amount === 3000, `Second pot should be 3000, got ${pots[1].amount}`);
+  assert(pots[1].eligiblePlayerIds.length === 2, 'Second pot should have 2 eligible players');
+  
+  // Verify total amount is correct
+  const total = pots.reduce((sum, pot) => sum + pot.amount, 0);
+  assert(total === currentPot, `Total should be ${currentPot}, got ${total}`);
 }
 
 function testHeadsUpAllIn() {
