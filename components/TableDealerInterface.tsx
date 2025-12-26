@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { GameState, ActionMessage, PlayerStatus } from '../types';
+import { GameState, ActionMessage, PlayerStatus, BettingRound } from '../types';
 import TableView from './TableView';
 import { areAllPlayersAllInOrCapped } from '../utils/sidePotLogic';
 
@@ -13,11 +13,12 @@ interface TableDealerInterfaceProps {
 const TableDealerInterface: React.FC<TableDealerInterfaceProps> = ({ state, onDispatch, onExit }) => {
   const [selectedTableId, setSelectedTableId] = useState<number | null>(null);
 
-  // Pot label constants
+  // Constants
   const POT_LABELS = {
     MAIN: 'Pote Principal',
     SIDE: 'Pote Lateral',
   };
+  const MAX_DISPLAYED_BET_ACTIONS = 10; // Maximum number of bet actions to display in history
 
   if (!selectedTableId) {
     return (
@@ -117,6 +118,52 @@ const TableDealerInterface: React.FC<TableDealerInterfaceProps> = ({ state, onDi
             <div className="text-[10px] font-black text-white/40 uppercase">Nível {(tableState?.currentBlindLevel || 0) + 1}</div>
          </div>
          
+         {/* Bet Action Log */}
+         {tableState?.handInProgress && tableState.betActions && tableState.betActions.length > 0 && (
+           <div className="bg-black/60 p-4 rounded-[24px] border border-blue-500/20 space-y-2 max-h-[300px] overflow-y-auto">
+             <div className="text-[10px] font-black text-blue-400 uppercase tracking-widest sticky top-0 bg-black/80 pb-2">
+               📊 Histórico de Apostas
+             </div>
+             <div className="space-y-2">
+               {tableState.betActions.slice(-MAX_DISPLAYED_BET_ACTIONS).reverse().map((action) => {
+                 const actionColor = {
+                   'BET': 'text-yellow-400',
+                   'CALL': 'text-green-400',
+                   'RAISE': 'text-orange-400',
+                   'CHECK': 'text-blue-400',
+                   'FOLD': 'text-red-400',
+                   'ALL_IN': 'text-purple-400'
+                 }[action.action] || 'text-white';
+                 
+                 const roundLabel = {
+                   [BettingRound.PRE_FLOP]: 'Pré-Flop',
+                   [BettingRound.FLOP]: 'Flop',
+                   [BettingRound.TURN]: 'Turn',
+                   [BettingRound.RIVER]: 'River',
+                   [BettingRound.SHOWDOWN]: 'Showdown'
+                 }[action.bettingRound] || action.bettingRound;
+                 
+                 return (
+                   <div key={action.timestamp} className="bg-white/5 p-3 rounded-xl border border-white/5 text-xs">
+                     <div className="flex justify-between items-center">
+                       <span className="font-bold text-white">{action.playerName}</span>
+                       <span className={`font-black uppercase ${actionColor}`}>{action.action}</span>
+                     </div>
+                     {action.amount > 0 && (
+                       <div className="text-green-400 font-bold mt-1">
+                         +${action.amount} → Pote
+                       </div>
+                     )}
+                     <div className="text-white/40 text-[9px] mt-1">
+                       {roundLabel}
+                     </div>
+                   </div>
+                 );
+               })}
+             </div>
+           </div>
+         )}
+         
          {/* Game Controls */}
          {!tableState?.handInProgress ? (
            <>
@@ -191,6 +238,93 @@ const TableDealerInterface: React.FC<TableDealerInterfaceProps> = ({ state, onDi
                   <div className="w-16 h-16 rounded-full bg-green-500/20 border-4 border-green-500 flex items-center justify-center animate-pulse">
                     <span className="text-2xl">💰</span>
                   </div>
+                </div>
+              </div>
+
+              {/* All Pots Summary */}
+              <div className="bg-black/40 p-4 rounded-[24px] border border-white/10 space-y-2">
+                <div className="text-[10px] font-black text-white/40 uppercase tracking-widest">
+                  📋 Resumo de Todos os Potes
+                </div>
+                {tableState.potDistribution.pots.map((pot, idx) => {
+                  const isCurrent = idx === tableState.potDistribution!.currentPotIndex;
+                  const eligiblePlayerNames = tablePlayers
+                    .filter(p => pot.eligiblePlayerIds.includes(p.id))
+                    .map(p => p.name)
+                    .join(', ');
+                  
+                  return (
+                    <div 
+                      key={idx} 
+                      className={`p-3 rounded-xl border text-xs ${
+                        isCurrent 
+                          ? 'bg-green-500/20 border-green-500' 
+                          : 'bg-white/5 border-white/10'
+                      }`}
+                    >
+                      <div className="flex justify-between items-center">
+                        <span className="font-bold text-white">
+                          {idx === 0 ? 'Principal' : `Lateral ${idx}`}
+                        </span>
+                        <span className="font-black text-green-400">${pot.amount}</span>
+                      </div>
+                      <div className="text-white/60 text-[10px] mt-1">
+                        {pot.eligiblePlayerIds.length} elegível(is): {eligiblePlayerNames}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Quick Winner Selection - Auto Deliver All Eligible Pots */}
+              <div className="bg-blue-900/20 p-4 rounded-[24px] border border-blue-500/20 space-y-2">
+                <div className="text-[10px] font-black text-blue-400 uppercase tracking-widest">
+                  ⚡ Entregar Todos os Potes (Vencedor Único)
+                </div>
+                <div className="text-[9px] text-white/50 mb-2">
+                  Selecione o vencedor para entregar automaticamente todos os potes que ele é elegível
+                </div>
+                <div className="grid grid-cols-1 gap-2">
+                  {tablePlayers
+                    .filter(p => {
+                      // Only show players who are eligible for at least one pot
+                      return tableState.potDistribution!.pots.some(pot => 
+                        pot.eligiblePlayerIds.includes(p.id)
+                      );
+                    })
+                    .map(p => {
+                      // Count how many pots this player is eligible for
+                      const eligiblePotCount = tableState.potDistribution!.pots.filter(pot =>
+                        pot.eligiblePlayerIds.includes(p.id)
+                      ).length;
+                      
+                      // Calculate total amount they would receive
+                      const totalAmount = tableState.potDistribution!.pots
+                        .filter(pot => pot.eligiblePlayerIds.includes(p.id))
+                        .reduce((sum, pot) => sum + pot.amount, 0);
+                      
+                      return (
+                        <button
+                          key={p.id}
+                          onClick={() => onDispatch({ 
+                            type: 'DELIVER_ALL_ELIGIBLE_POTS', 
+                            payload: { tableId: selectedTableId, winnerId: p.id }, 
+                            senderId: 'DEALER' 
+                          })}
+                          className="bg-blue-600/20 hover:bg-blue-600 text-white p-3 rounded-xl border border-blue-500/30 hover:border-blue-500 transition-all text-left"
+                        >
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <div className="font-bold text-sm">{p.name}</div>
+                              <div className="text-[10px] text-blue-400">
+                                {eligiblePotCount} pote(s) • ${totalAmount}
+                              </div>
+                            </div>
+                            <div className="text-xl">🏆</div>
+                          </div>
+                        </button>
+                      );
+                    })}
                 </div>
               </div>
 

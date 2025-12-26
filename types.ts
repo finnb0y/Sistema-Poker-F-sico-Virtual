@@ -94,6 +94,17 @@ export interface Pot {
   eligiblePlayerIds: string[]; // Players eligible to win this pot
 }
 
+export interface BetAction {
+  playerId: string;
+  playerName: string;
+  action: 'BET' | 'CALL' | 'RAISE' | 'CHECK' | 'FOLD' | 'ALL_IN';
+  amount: number;
+  timestamp: number;
+  bettingRound: BettingRound;
+}
+
+export type BetActionType = BetAction['action'];
+
 export interface PotDistributionState {
   pots: Pot[]; // Array of pots (main pot + side pots)
   currentPotIndex: number; // Which pot is being distributed
@@ -115,6 +126,7 @@ export interface TableState {
   lastAggressorId: string | null; // player who last bet/raised, used to determine when betting round completes
   playersActedInRound: string[]; // track which players have acted in current betting round
   potDistribution: PotDistributionState | null; // Active pot distribution state during showdown
+  betActions: BetAction[]; // Log of all betting actions in current hand
 }
 
 export interface GameState {
@@ -151,6 +163,7 @@ export type ActionType =
   | 'START_POT_DISTRIBUTION' // Initiate manual pot distribution during showdown
   | 'TOGGLE_POT_WINNER' // Mark/unmark a player as winner for current pot
   | 'DELIVER_CURRENT_POT' // Finalize delivery of current pot to marked winners
+  | 'DELIVER_ALL_ELIGIBLE_POTS' // NEW: Deliver all pots eligible to selected winner at once
   | 'AWARD_POT' // Legacy: direct award pot to a winner
   | 'RESET_HAND' 
   | 'UPDATE_BLINDS'

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Role, GameState, Player, PlayerStatus, ActionMessage, Tournament, RoomTable, RegisteredPerson, TournamentConfig, TableState, BettingRound } from './types';
+import { Role, GameState, Player, PlayerStatus, ActionMessage, Tournament, RoomTable, RegisteredPerson, TournamentConfig, TableState, BettingRound, BetActionType } from './types';
 import { syncService } from './services/syncService';
 import PlayerDashboard from './components/PlayerDashboard';
 import DealerControls from './components/DealerControls';
@@ -47,6 +47,9 @@ const App: React.FC = () => {
           }
           if (!('potDistribution' in migratedState)) {
             migratedState.potDistribution = null;
+          }
+          if (!('betActions' in migratedState)) {
+            migratedState.betActions = [];
           }
           return migratedState;
         });
@@ -110,6 +113,24 @@ const App: React.FC = () => {
     if (player.balance === 0 && player.status !== PlayerStatus.ALL_IN) {
       player.status = PlayerStatus.ALL_IN;
     }
+  };
+
+  /**
+   * Log a betting action to the table's bet action history
+   * @param tableState - The table state to log to
+   * @param player - The player making the action
+   * @param action - The action type
+   * @param amount - The amount bet/raised
+   */
+  const logBetAction = (tableState: TableState, player: Player, action: BetActionType, amount: number): void => {
+    tableState.betActions.push({
+      playerId: player.id,
+      playerName: player.name,
+      action,
+      amount,
+      timestamp: Date.now(),
+      bettingRound: tableState.bettingRound || BettingRound.PRE_FLOP
+    });
   };
 
   /**
@@ -225,7 +246,8 @@ const App: React.FC = () => {
                 handInProgress: false,
                 lastAggressorId: null,
                 playersActedInRound: [],
-                potDistribution: null
+                potDistribution: null,
+                betActions: []
               });
             }
           });
@@ -251,7 +273,8 @@ const App: React.FC = () => {
                   handInProgress: false,
                   lastAggressorId: null,
                   playersActedInRound: [],
-                  potDistribution: null
+                  potDistribution: null,
+                  betActions: []
                 });
               }
             });
@@ -357,7 +380,11 @@ const App: React.FC = () => {
               tState.pot += actualBetDiff;
               
               // Check and set all-in status if no chips left
+              const wasAllIn = bP.balance === 0;
               updateAllInStatus(bP);
+              
+              // Log the action
+              logBetAction(tState, bP, wasAllIn ? 'ALL_IN' : 'BET', actualBetDiff);
               
               // Track that this player acted
               if (!tState.playersActedInRound.includes(senderId)) {
@@ -393,6 +420,9 @@ const App: React.FC = () => {
             if (tState && tState.currentTurn === senderId && canPlayerAct(foldPlayer)) {
               foldPlayer.status = PlayerStatus.FOLDED;
               
+              // Log the action
+              logBetAction(tState, foldPlayer, 'FOLD', 0);
+              
               // Track that this player acted
               if (!tState.playersActedInRound.includes(senderId)) {
                 tState.playersActedInRound.push(senderId);
@@ -418,6 +448,9 @@ const App: React.FC = () => {
               const maxBet = getMaxBetAtTable(newState.players, checkPlayer.tableId);
               // Can only check if current bet matches the max bet
               if (checkPlayer.currentBet === maxBet) {
+                // Log the action
+                logBetAction(tState, checkPlayer, 'CHECK', 0);
+                
                 // Track that this player acted
                 if (!tState.playersActedInRound.includes(senderId)) {
                   tState.playersActedInRound.push(senderId);
@@ -452,9 +485,13 @@ const App: React.FC = () => {
                 tState.pot += amountToCall;
                 
                 // If player is all-in, mark status
-                if (callPlayer.balance === 0) {
+                const wasAllIn = callPlayer.balance === 0;
+                if (wasAllIn) {
                   callPlayer.status = PlayerStatus.ALL_IN;
                 }
+                
+                // Log the action
+                logBetAction(tState, callPlayer, wasAllIn ? 'ALL_IN' : 'CALL', amountToCall);
               }
               
               // Track that this player acted
@@ -527,7 +564,8 @@ const App: React.FC = () => {
               });
               
               // Subtract distributed amount from main pot
-              tableForDelivery.pot -= currentPot.amount;
+              // Ensure we don't go negative due to rounding errors
+              tableForDelivery.pot = Math.max(0, tableForDelivery.pot - currentPot.amount);
               
               // Move to next pot or clear distribution state
               if (currentPotIndex + 1 < pots.length) {
@@ -542,6 +580,7 @@ const App: React.FC = () => {
                 tableForDelivery.currentTurn = null;
                 tableForDelivery.lastAggressorId = null;
                 tableForDelivery.playersActedInRound = [];
+                tableForDelivery.betActions = []; // Clear bet actions
                 newState.players.filter(p => p.tableId === tableForDelivery.id).forEach(p => {
                   p.currentBet = 0;
                   p.totalContributedThisHand = 0;
@@ -553,6 +592,53 @@ const App: React.FC = () => {
                   }
                 });
               }
+            }
+          }
+          break;
+
+        case 'DELIVER_ALL_ELIGIBLE_POTS':
+          const tableForAutoDelivery = newState.tableStates.find(t => t.id === payload.tableId);
+          if (tableForAutoDelivery?.potDistribution && payload.winnerId) {
+            const { pots } = tableForAutoDelivery.potDistribution;
+            const winnerId = payload.winnerId;
+            const winner = newState.players.find(p => p.id === winnerId);
+            
+            if (winner) {
+              let totalAwarded = 0;
+              
+              // Deliver all pots where this player is eligible
+              // NOTE: This implementation awards full pot amounts to a single winner.
+              // In real poker with split pots (multiple winners with equal hands), 
+              // the pot would be divided equally among winners. 
+              // Current limitation: Does not support automatic split pot calculation.
+              // For split pots, use manual distribution (TOGGLE_POT_WINNER + DELIVER_CURRENT_POT).
+              pots.forEach((pot) => {
+                if (pot.eligiblePlayerIds.includes(winnerId)) {
+                  winner.balance += pot.amount;
+                  totalAwarded += pot.amount;
+                }
+              });
+              
+              // Clear pot and end hand
+              tableForAutoDelivery.pot = Math.max(0, tableForAutoDelivery.pot - totalAwarded);
+              tableForAutoDelivery.potDistribution = null;
+              tableForAutoDelivery.handInProgress = false;
+              tableForAutoDelivery.bettingRound = null;
+              tableForAutoDelivery.currentBet = 0;
+              tableForAutoDelivery.currentTurn = null;
+              tableForAutoDelivery.lastAggressorId = null;
+              tableForAutoDelivery.playersActedInRound = [];
+              tableForAutoDelivery.betActions = []; // Clear bet actions
+              newState.players.filter(p => p.tableId === tableForAutoDelivery.id).forEach(p => {
+                p.currentBet = 0;
+                p.totalContributedThisHand = 0;
+                // Mark players with zero balance as OUT
+                if (p.balance <= 0) {
+                  p.status = PlayerStatus.OUT;
+                } else if (p.status !== PlayerStatus.OUT) {
+                  p.status = PlayerStatus.SITTING;
+                }
+              });
             }
           }
           break;
@@ -685,6 +771,7 @@ const App: React.FC = () => {
             tableForHand.bettingRound = 'PRE_FLOP' as any;
             tableForHand.handInProgress = true;
             tableForHand.playersActedInRound = []; // Reset action tracking
+            tableForHand.betActions = []; // Clear bet action log for new hand
             // In pre-flop, big blind is the initial aggressor (they posted the big blind)
             // Note: BB is NOT added to playersActedInRound yet - posting blind is not an action
             // BB must still get a chance to check or raise when action returns to them
@@ -741,6 +828,14 @@ const App: React.FC = () => {
               raisePlayer.currentBet += actualToPay;
               raisePlayer.totalContributedThisHand += actualToPay;
               tableForRaise.pot += actualToPay;
+              
+              // Check and set all-in status if no chips left
+              const wasAllIn = raisePlayer.balance === 0;
+              updateAllInStatus(raisePlayer);
+              
+              // Log the action
+              logBetAction(tableForRaise, raisePlayer, wasAllIn ? 'ALL_IN' : 'RAISE', actualToPay);
+              
               // Only update table's current bet if player's bet is higher (actual raise)
               if (raisePlayer.currentBet > tableForRaise.currentBet) {
                 tableForRaise.currentBet = raisePlayer.currentBet;
@@ -751,11 +846,7 @@ const App: React.FC = () => {
                   tableForRaise.lastRaiseAmount = actualRaiseAmount;
                   tableForRaise.lastAggressorId = senderId; // Mark this player as the aggressor
                 }
-              }
-              
-              // Check and set all-in status if no chips left
-              updateAllInStatus(raisePlayer);
-              
+              }              
               // When someone raises, reset the acted tracking so everyone must act again
               // Only the raiser is marked as having acted
               tableForRaise.playersActedInRound = [senderId];
