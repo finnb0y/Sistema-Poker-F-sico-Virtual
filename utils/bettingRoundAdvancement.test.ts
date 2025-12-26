@@ -28,8 +28,14 @@ function simulateAdvanceRound(
   tableState: TableState,
   players: Player[]
 ): { table: TableState; players: Player[] } {
-  const roundOrder = ['PRE_FLOP', 'FLOP', 'TURN', 'RIVER', 'SHOWDOWN'];
-  const currentRoundIdx = roundOrder.indexOf(tableState.bettingRound || 'PRE_FLOP');
+  const roundOrder: BettingRound[] = [
+    BettingRound.PRE_FLOP,
+    BettingRound.FLOP,
+    BettingRound.TURN,
+    BettingRound.RIVER,
+    BettingRound.SHOWDOWN
+  ];
+  const currentRoundIdx = roundOrder.indexOf(tableState.bettingRound || BettingRound.PRE_FLOP);
   
   if (currentRoundIdx < roundOrder.length - 1) {
     const nextRound = roundOrder[currentRoundIdx + 1] as BettingRound;

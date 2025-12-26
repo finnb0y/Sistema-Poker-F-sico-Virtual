@@ -101,7 +101,7 @@ function testIncorrectScenario() {
       balance: 5000,
       status: PlayerStatus.ACTIVE,
       seatNumber: 1,
-      currentBet: 10000, // BUG: Should be 0 but is still 10000 from previous round
+      currentBet: 10000, // Bug: Should be 0 but is still 10000 from previous round
       totalContributedThisHand: 10000
     },
     {
@@ -110,17 +110,17 @@ function testIncorrectScenario() {
       balance: 5000,
       status: PlayerStatus.ACTIVE,
       seatNumber: 2,
-      currentBet: 10000, // BUG: Should be 0 but is still 10000 from previous round  
+      currentBet: 10000, // Bug: Should be 0 but is still 10000 from previous round
       totalContributedThisHand: 10000
     }
   ]);
   
-  // BUG: Table currentBet is 10000 when it should be 0
+  // Bug: Table currentBet is 10000 when it should be 0
   const tableState = createTestTableState({
     id: 1,
     tournamentId: 'test',
     pot: 20000,
-    currentBet: 10000, // BUG: Should be 0 at start of new round
+    currentBet: 10000, // Bug: Should be 0 at start of new round
     bettingRound: BettingRound.RIVER,
     dealerButtonPosition: 1,
     handInProgress: true
@@ -165,7 +165,7 @@ function testMismatchedBetsAtRiverStart() {
       balance: 5000,
       status: PlayerStatus.ACTIVE,
       seatNumber: 1,
-      currentBet: 10000, // BUG: Not reset
+      currentBet: 10000, // Bug: Not reset
       totalContributedThisHand: 10000
     },
     {
@@ -174,7 +174,7 @@ function testMismatchedBetsAtRiverStart() {
       balance: 5000,
       status: PlayerStatus.ACTIVE,
       seatNumber: 2,
-      currentBet: 10000, // BUG: Not reset
+      currentBet: 10000, // Bug: Not reset
       totalContributedThisHand: 10000
     }
   ]);
@@ -240,12 +240,12 @@ function testTableBetNotResetPlayerBetReset() {
     }
   ]);
   
-  // BUG: Table currentBet NOT reset
+  // Bug: Table currentBet NOT reset
   const tableState = createTestTableState({
     id: 1,
     tournamentId: 'test',
     pot: 20000,
-    currentBet: 10000, // BUG: Should be 0
+    currentBet: 10000, // Bug: Should be 0
     bettingRound: BettingRound.RIVER,
     dealerButtonPosition: 1,
     handInProgress: true

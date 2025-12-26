@@ -797,6 +797,7 @@ const App: React.FC = () => {
               allTablePlayers.forEach(p => p.currentBet = 0);
               
               // Determine who can act in this new round (exclude FOLDED, OUT, ALL_IN)
+              // Derived from allTablePlayers to avoid redundant filtering
               const playersWhoCanAct = allTablePlayers.filter(p => canPlayerAct(p));
               
               // Set first player to act for post-flop rounds
