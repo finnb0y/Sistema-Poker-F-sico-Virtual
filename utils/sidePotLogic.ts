@@ -44,7 +44,8 @@ export interface PlayerBetInfo {
  * 1. Include ALL player bets in calculations (even folded players)
  * 2. While there are still bets remaining:
  *    a. Find the minimum bet amount (the "layer")
- *    b. Create a pot: layer × number of all contributing players
+ *    b. Create pot value by multiplying layer amount by the number of all contributing 
+ *       players (including folded players who contributed to this layer)
  *    c. Track only eligible (non-folded) players for winning
  *    d. Subtract the layer from all remaining bets
  *    e. Remove players who have no more bets remaining
@@ -109,11 +110,10 @@ export function calculateSidePots(
       break;
     }
 
-    // Calculate pot value: layer amount × number of contributing players (ALL players, including folded)
+    // Process all players still in the betting pool to calculate pot value and eligibility
     let potValue = 0;
     const eligibleForThisPot: string[] = [];
 
-    // Process all players still in the betting pool
     const playerIds = Array.from(remainingBets.keys());
     for (const playerId of playerIds) {
       const playerBet = remainingBets.get(playerId)!;
