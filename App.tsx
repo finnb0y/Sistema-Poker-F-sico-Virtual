@@ -349,7 +349,7 @@ const App: React.FC = () => {
             // Only allow action if it's player's turn and player can act
             if (tState && tState.currentTurn === senderId && canPlayerAct(bP)) {
               const betDiff = payload.amount - bP.currentBet;
-              // Validate that bet doesn't exceed player's balance and is positive
+              // Validate that bet doesn't exceed player's balance and is non-negative
               const actualBetDiff = Math.max(0, Math.min(betDiff, bP.balance));
               bP.balance -= actualBetDiff;
               bP.currentBet += actualBetDiff;
@@ -745,7 +745,7 @@ const App: React.FC = () => {
               if (raisePlayer.currentBet > tableForRaise.currentBet) {
                 tableForRaise.currentBet = raisePlayer.currentBet;
                 // Calculate actual raise amount: only consider it a raise if player raised above call amount
-                const actualRaiseAmount = actualToPay - callAmount;
+                const actualRaiseAmount = Math.max(0, actualToPay - callAmount);
                 // Only set raise amount if player actually raised (not just called or partial call)
                 if (actualRaiseAmount > 0) {
                   tableForRaise.lastRaiseAmount = actualRaiseAmount;
