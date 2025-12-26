@@ -12,6 +12,7 @@ Este projeto permite jogar poker usando cartas físicas reais enquanto gerencia 
 - **TypeScript** - Tipagem estática para JavaScript
 - **Vite** - Build tool e dev server ultra-rápido
 - **Vercel** - Hospedagem e deploy contínuo
+- **Supabase** - Banco de dados e sincronização em tempo real
 
 ## 💻 Rodando Localmente
 
@@ -90,9 +91,31 @@ vercel --prod
 - ✅ Lógica completa do dealer (botão, blinds, ordem de ação)
 - ✅ Suporte para heads-up (2 jogadores) e multi-jogador (3+)
 - ✅ Interface intuitiva e responsiva
-- ✅ Sincronização em tempo real
+- ✅ **Sincronização em tempo real entre múltiplos dispositivos**
 - ✅ Suporte para múltiplos jogadores e torneios
 - ✅ **Ambiente de testes modular para validação de cenários**
+
+## 🌐 Sistema Multi-Usuário Online
+
+O sistema agora suporta **múltiplos usuários em dispositivos diferentes** com atualização em tempo real usando Supabase!
+
+### Configuração Rápida
+
+1. **Crie uma conta gratuita no [Supabase](https://supabase.com)**
+2. **Execute o script SQL**: `supabase-setup.sql`
+3. **Configure as variáveis de ambiente**: Copie `.env.example` para `.env`
+4. **Adicione suas credenciais do Supabase no arquivo `.env`**
+
+📖 **[Guia Completo de Configuração](SETUP_MULTI_USUARIO.md)**
+
+### Modos de Funcionamento
+
+| Modo | Descrição | Sincronização |
+|------|-----------|---------------|
+| **Online** | Com Supabase configurado | ✅ Entre todos os dispositivos |
+| **Local** | Sem Supabase | ✅ Entre abas do mesmo dispositivo |
+
+**Sem configurar Supabase**, o sistema continua funcionando normalmente em modo local!
 
 ## 🧪 Testes
 
