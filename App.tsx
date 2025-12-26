@@ -349,8 +349,8 @@ const App: React.FC = () => {
             // Only allow action if it's player's turn and player can act
             if (tState && tState.currentTurn === senderId && canPlayerAct(bP)) {
               const betDiff = payload.amount - bP.currentBet;
-              // Validate that bet doesn't exceed player's balance
-              const actualBetDiff = Math.min(betDiff, bP.balance);
+              // Validate that bet doesn't exceed player's balance and is positive
+              const actualBetDiff = Math.max(0, Math.min(betDiff, bP.balance));
               bP.balance -= actualBetDiff;
               bP.currentBet += actualBetDiff;
               bP.totalContributedThisHand += actualBetDiff;
@@ -741,13 +741,16 @@ const App: React.FC = () => {
               raisePlayer.currentBet += actualToPay;
               raisePlayer.totalContributedThisHand += actualToPay;
               tableForRaise.pot += actualToPay;
-              // Only update table's current bet if player's bet is higher
+              // Only update table's current bet if player's bet is higher (actual raise)
               if (raisePlayer.currentBet > tableForRaise.currentBet) {
                 tableForRaise.currentBet = raisePlayer.currentBet;
-                // Calculate actual raise amount based on what player could afford
+                // Calculate actual raise amount: only consider it a raise if player raised above call amount
                 const actualRaiseAmount = actualToPay - callAmount;
-                tableForRaise.lastRaiseAmount = Math.max(0, actualRaiseAmount);
-                tableForRaise.lastAggressorId = senderId; // Mark this player as the aggressor
+                // Only set raise amount if player actually raised (not just called or partial call)
+                if (actualRaiseAmount > 0) {
+                  tableForRaise.lastRaiseAmount = actualRaiseAmount;
+                  tableForRaise.lastAggressorId = senderId; // Mark this player as the aggressor
+                }
               }
               
               // Check and set all-in status if no chips left

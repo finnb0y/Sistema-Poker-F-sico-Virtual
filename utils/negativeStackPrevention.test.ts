@@ -24,7 +24,7 @@ interface TestPlayer {
 function simulateBetAction(player: TestPlayer, betAmount: number): TestPlayer {
   // Simulate the BET action logic with validation
   const betDiff = betAmount - player.currentBet;
-  const actualBetDiff = Math.min(betDiff, player.balance);
+  const actualBetDiff = Math.max(0, Math.min(betDiff, player.balance));
   
   return {
     ...player,
@@ -181,8 +181,33 @@ function testRaiseInsufficientFundsDoesntUpdateTableBet() {
   assert(result.currentBet < currentTableBet, 'Player did not have enough to complete the raise');
 }
 
+function testBetLowerThanCurrentBet() {
+  console.log('\n--- Test 6: Bet Lower Than Current Bet Should Not Decrease Balance ---');
+  
+  // Edge case: payload.amount < player.currentBet (should be handled gracefully)
+  const player: TestPlayer = {
+    id: 'p_edge',
+    balance: 5000,
+    currentBet: 1000,
+    totalContributedThisHand: 1000
+  };
+  
+  // Try to bet 500 when already at 1000 (invalid, but should not crash or cause negative balance)
+  const result = simulateBetAction(player, 500);
+  
+  console.log('Initial balance:', player.balance);
+  console.log('Initial currentBet:', player.currentBet);
+  console.log('Attempted bet:', 500);
+  console.log('Final balance:', result.balance);
+  console.log('Final currentBet:', result.currentBet);
+  
+  assert(result.balance === 5000, 'Balance should remain unchanged');
+  assert(result.currentBet === 1000, 'Current bet should remain unchanged');
+  assert(result.balance >= 0, 'Balance should never be negative');
+}
+
 function testScenarioFromIssue() {
-  console.log('\n--- Test 6: Scenario from Issue (Player Clicks POT with Insufficient Chips) ---');
+  console.log('\n--- Test 7: Scenario from Issue (Player Clicks POT with Insufficient Chips) ---');
   
   // Simulate: Player has 6400, pot is 40000
   const playerBalance = 6400;
@@ -220,6 +245,7 @@ testPotButtonClamp();
 testRaiseAboveBalance();
 testMultipleBetsNeverNegative();
 testRaiseInsufficientFundsDoesntUpdateTableBet();
+testBetLowerThanCurrentBet();
 testScenarioFromIssue();
 
 console.log('\n✅ All tests passed!');
