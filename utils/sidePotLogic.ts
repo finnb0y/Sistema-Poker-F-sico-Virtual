@@ -159,9 +159,10 @@ export function calculateSidePots(
       pots[pots.length - 1].amount += difference;
     } else {
       // Fallback: create a pot with all eligible players
+      const allEligiblePlayers = playerBets.filter(pb => pb.isEligible);
       pots.push({
         amount: currentPotAmount,
-        eligiblePlayerIds: eligiblePlayers.map(pb => pb.playerId)
+        eligiblePlayerIds: allEligiblePlayers.map(pb => pb.playerId)
       });
     }
   }

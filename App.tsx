@@ -27,42 +27,49 @@ const App: React.FC = () => {
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [accessCodeInput, setAccessCodeInput] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  const [gameState, setGameState] = useState<GameState>(() => {
-    try {
-      const loadedState = syncService.loadState();
-      if (loadedState) {
-        console.log('Estado carregado do localStorage:', { 
-          torneos: loadedState.tournaments.length,
-          jogadores: loadedState.players.length,
-          registro: loadedState.registry.length
-        });
-        // Migrate old table states to include new fields
-        loadedState.tableStates = loadedState.tableStates.map(ts => {
-          const migratedState = ts as TableState;
-          if (!('lastAggressorId' in migratedState)) {
-            migratedState.lastAggressorId = null;
-          }
-          if (!('playersActedInRound' in migratedState)) {
-            migratedState.playersActedInRound = [];
-          }
-          if (!('potDistribution' in migratedState)) {
-            migratedState.potDistribution = null;
-          }
-          if (!('betActions' in migratedState)) {
-            migratedState.betActions = [];
-          }
-          return migratedState;
-        });
-        return loadedState;
-      }
-      console.log('Nenhum estado salvo encontrado, iniciando com estado inicial');
-      return INITIAL_STATE;
-    } catch (error) {
-      console.error('Erro ao carregar estado inicial:', error);
-      return INITIAL_STATE;
-    }
-  });
+  const [gameState, setGameState] = useState<GameState>(INITIAL_STATE);
   
+  useEffect(() => {
+    const loadInitialState = async () => {
+      try {
+        const loadedState = await syncService.loadState();
+        if (loadedState) {
+          console.log('Estado carregado:', { 
+            torneos: loadedState.tournaments.length,
+            jogadores: loadedState.players.length,
+            registro: loadedState.registry.length
+          });
+          // Migrate old table states to include new fields
+          loadedState.tableStates = loadedState.tableStates.map(ts => {
+            const migratedState = ts as TableState;
+            if (!('lastAggressorId' in migratedState)) {
+              migratedState.lastAggressorId = null;
+            }
+            if (!('playersActedInRound' in migratedState)) {
+              migratedState.playersActedInRound = [];
+            }
+            if (!('potDistribution' in migratedState)) {
+              migratedState.potDistribution = null;
+            }
+            if (!('betActions' in migratedState)) {
+              migratedState.betActions = [];
+            }
+            return migratedState;
+          });
+          setGameState(loadedState);
+        } else {
+          console.log('Nenhum estado salvo encontrado, usando estado inicial');
+        }
+      } catch (error) {
+        console.error('Erro ao carregar estado inicial:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadInitialState();
+  }, []);
+
   useEffect(() => {
     try {
       const savedRole = localStorage.getItem('poker_current_role');
@@ -71,8 +78,6 @@ const App: React.FC = () => {
       if (savedPlayerId) setPlayerId(savedPlayerId);
     } catch (error) {
       console.error('Failed to restore session:', error);
-    } finally {
-      setIsLoading(false);
     }
   }, []);
 
