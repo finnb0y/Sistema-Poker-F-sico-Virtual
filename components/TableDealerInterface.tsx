@@ -275,6 +275,58 @@ const TableDealerInterface: React.FC<TableDealerInterfaceProps> = ({ state, onDi
                 })}
               </div>
 
+              {/* Quick Winner Selection - Auto Deliver All Eligible Pots */}
+              <div className="bg-blue-900/20 p-4 rounded-[24px] border border-blue-500/20 space-y-2">
+                <div className="text-[10px] font-black text-blue-400 uppercase tracking-widest">
+                  ⚡ Entregar Todos os Potes (Vencedor Único)
+                </div>
+                <div className="text-[9px] text-white/50 mb-2">
+                  Selecione o vencedor para entregar automaticamente todos os potes que ele é elegível
+                </div>
+                <div className="grid grid-cols-1 gap-2">
+                  {tablePlayers
+                    .filter(p => {
+                      // Only show players who are eligible for at least one pot
+                      return tableState.potDistribution!.pots.some(pot => 
+                        pot.eligiblePlayerIds.includes(p.id)
+                      );
+                    })
+                    .map(p => {
+                      // Count how many pots this player is eligible for
+                      const eligiblePotCount = tableState.potDistribution!.pots.filter(pot =>
+                        pot.eligiblePlayerIds.includes(p.id)
+                      ).length;
+                      
+                      // Calculate total amount they would receive
+                      const totalAmount = tableState.potDistribution!.pots
+                        .filter(pot => pot.eligiblePlayerIds.includes(p.id))
+                        .reduce((sum, pot) => sum + pot.amount, 0);
+                      
+                      return (
+                        <button
+                          key={p.id}
+                          onClick={() => onDispatch({ 
+                            type: 'DELIVER_ALL_ELIGIBLE_POTS', 
+                            payload: { tableId: selectedTableId, winnerId: p.id }, 
+                            senderId: 'DEALER' 
+                          })}
+                          className="bg-blue-600/20 hover:bg-blue-600 text-white p-3 rounded-xl border border-blue-500/30 hover:border-blue-500 transition-all text-left"
+                        >
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <div className="font-bold text-sm">{p.name}</div>
+                              <div className="text-[10px] text-blue-400">
+                                {eligiblePotCount} pote(s) • ${totalAmount}
+                              </div>
+                            </div>
+                            <div className="text-xl">🏆</div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                </div>
+              </div>
+
               {/* Eligible Players for Current Pot */}
               <div className="space-y-3">
                 <div className="text-[10px] font-black text-white/40 uppercase tracking-widest px-2">

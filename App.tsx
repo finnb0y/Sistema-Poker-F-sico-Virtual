@@ -606,27 +606,19 @@ const App: React.FC = () => {
             if (winner) {
               let totalAwarded = 0;
               
-              // Find all pots this player is eligible for
-              pots.forEach((pot, index) => {
+              // Deliver all pots where this player is eligible
+              // This is useful when a player has won all contested pots
+              pots.forEach((pot) => {
                 if (pot.eligiblePlayerIds.includes(winnerId)) {
-                  // Check if player is the only eligible player (automatic win)
-                  // or if they are selected as winner
-                  const eligiblePlayers = pot.eligiblePlayerIds;
-                  
-                  if (eligiblePlayers.length === 1) {
-                    // Only this player is eligible - they win the entire pot
-                    winner.balance += pot.amount;
-                    totalAwarded += pot.amount;
-                  } else if (eligiblePlayers.includes(winnerId)) {
-                    // Player is among eligible players - they win based on selection
-                    // For now, award full pot to single winner (can be extended for split pots)
-                    winner.balance += pot.amount;
-                    totalAwarded += pot.amount;
-                  }
+                  // Award the full pot to the winner
+                  // In real poker, this would be split among multiple winners if needed,
+                  // but for single winner selection, award full amount
+                  winner.balance += pot.amount;
+                  totalAwarded += pot.amount;
                 }
               });
               
-              // Clear all pot and end hand
+              // Clear pot and end hand
               tableForAutoDelivery.pot = Math.max(0, tableForAutoDelivery.pot - totalAwarded);
               tableForAutoDelivery.potDistribution = null;
               tableForAutoDelivery.handInProgress = false;
