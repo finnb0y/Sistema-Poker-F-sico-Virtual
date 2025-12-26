@@ -349,10 +349,12 @@ const App: React.FC = () => {
             // Only allow action if it's player's turn and player can act
             if (tState && tState.currentTurn === senderId && canPlayerAct(bP)) {
               const betDiff = payload.amount - bP.currentBet;
-              bP.balance -= betDiff;
-              bP.currentBet = payload.amount;
-              bP.totalContributedThisHand += betDiff;
-              tState.pot += betDiff;
+              // Validate that bet doesn't exceed player's balance and is non-negative
+              const actualBetDiff = Math.max(0, Math.min(betDiff, bP.balance));
+              bP.balance -= actualBetDiff;
+              bP.currentBet += actualBetDiff;
+              bP.totalContributedThisHand += actualBetDiff;
+              tState.pot += actualBetDiff;
               
               // Check and set all-in status if no chips left
               updateAllInStatus(bP);
@@ -364,8 +366,8 @@ const App: React.FC = () => {
               
               // If this bet is higher than the current bet, update aggressor
               // This handles both initial bets and raises
-              if (payload.amount > tState.currentBet) {
-                tState.currentBet = payload.amount;
+              if (bP.currentBet > tState.currentBet) {
+                tState.currentBet = bP.currentBet;
                 tState.lastAggressorId = senderId;
                 // Reset players acted when there's a new bet/raise
                 // Only keep the current player in the acted list
@@ -733,13 +735,23 @@ const App: React.FC = () => {
               const callAmount = tableForRaise.currentBet - raisePlayer.currentBet;
               const totalToPay = callAmount + raiseAmount;
               
-              raisePlayer.balance -= totalToPay;
-              raisePlayer.currentBet += totalToPay;
-              raisePlayer.totalContributedThisHand += totalToPay;
-              tableForRaise.pot += totalToPay;
-              tableForRaise.currentBet = raisePlayer.currentBet;
-              tableForRaise.lastRaiseAmount = raiseAmount;
-              tableForRaise.lastAggressorId = senderId; // Mark this player as the aggressor
+              // Validate that raise doesn't exceed player's balance
+              const actualToPay = Math.min(totalToPay, raisePlayer.balance);
+              raisePlayer.balance -= actualToPay;
+              raisePlayer.currentBet += actualToPay;
+              raisePlayer.totalContributedThisHand += actualToPay;
+              tableForRaise.pot += actualToPay;
+              // Only update table's current bet if player's bet is higher (actual raise)
+              if (raisePlayer.currentBet > tableForRaise.currentBet) {
+                tableForRaise.currentBet = raisePlayer.currentBet;
+                // Calculate actual raise amount: only consider it a raise if player raised above call amount
+                const actualRaiseAmount = Math.max(0, actualToPay - callAmount);
+                // Only set raise amount if player actually raised (not just called or partial call)
+                if (actualRaiseAmount > 0) {
+                  tableForRaise.lastRaiseAmount = actualRaiseAmount;
+                  tableForRaise.lastAggressorId = senderId; // Mark this player as the aggressor
+                }
+              }
               
               // Check and set all-in status if no chips left
               updateAllInStatus(raisePlayer);

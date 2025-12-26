@@ -134,7 +134,7 @@ const PlayerDashboard: React.FC<PlayerDashboardProps> = ({ state, playerId, onDi
                   ].map(p => (
                     <button 
                       key={`pot-${p.label}`}
-                      onClick={() => setBetAmount(Math.round(currentPot * p.mult))}
+                      onClick={() => setBetAmount(Math.min(Math.round(currentPot * p.mult), player.balance))}
                       className="bg-white/5 hover:bg-white/10 py-2.5 rounded-xl text-[10px] font-black text-white/60 border border-white/5 transition-all"
                     >
                       {p.label}
