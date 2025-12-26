@@ -778,27 +778,31 @@ const App: React.FC = () => {
             const currentRoundIdx = roundOrder.indexOf(tableForAdvance.bettingRound || 'PRE_FLOP');
             
             if (currentRoundIdx < roundOrder.length - 1) {
-              tableForAdvance.bettingRound = roundOrder[currentRoundIdx + 1] as any;
+              const nextRound = roundOrder[currentRoundIdx + 1] as any;
+              tableForAdvance.bettingRound = nextRound;
+              
+              // CRITICAL: Reset all betting state for new round
+              // This ensures players can CHECK at start of post-flop rounds (FLOP, TURN, RIVER)
+              // SHOWDOWN has no betting, so this also ensures clean state
               tableForAdvance.currentBet = 0;
               tableForAdvance.lastRaiseAmount = 0;
               tableForAdvance.lastAggressorId = null; // Reset aggressor for new round
               tableForAdvance.playersActedInRound = []; // Reset action tracking for new round
               
-              // Reset player bets for new round
-              // Post-flop: only players who are ACTIVE (not folded) participate
-              const activePlayers = getActivePlayers(
-                newState.players,
-                payload.tableId,
-                [PlayerStatus.OUT, PlayerStatus.FOLDED]
-              );
+              // Reset ALL players' current bets for the new round
+              // This is critical: ALL players at this table, regardless of status, 
+              // must have their currentBet reset to 0
+              // This ensures that when the new round starts, players can CHECK (not forced to CALL)
+              const allTablePlayers = newState.players.filter(p => p.tableId === payload.tableId);
+              allTablePlayers.forEach(p => p.currentBet = 0);
               
-              activePlayers.forEach(p => p.currentBet = 0);
+              // Determine who can act in this new round (exclude FOLDED, OUT, ALL_IN)
+              // Derived from allTablePlayers to avoid redundant filtering
+              const playersWhoCanAct = allTablePlayers.filter(p => canPlayerAct(p));
               
-              // Post-flop action starts with first player left of dealer button (small blind position)
-              // Filter out all-in players who cannot act in this betting round
-              const playersWhoCanAct = activePlayers.filter(p => canPlayerAct(p));
-              
-              if (tableForAdvance.dealerButtonPosition && playersWhoCanAct.length > 0) {
+              // Set first player to act for post-flop rounds
+              // During SHOWDOWN, no one acts (no betting allowed)
+              if (nextRound !== 'SHOWDOWN' && tableForAdvance.dealerButtonPosition && playersWhoCanAct.length > 0) {
                 const firstToActIdx = getPostFlopFirstToAct(
                   playersWhoCanAct,
                   tableForAdvance.dealerButtonPosition
@@ -807,6 +811,9 @@ const App: React.FC = () => {
                 if (firstToActIdx !== -1) {
                   tableForAdvance.currentTurn = playersWhoCanAct[firstToActIdx].id;
                 }
+              } else if (nextRound === 'SHOWDOWN') {
+                // At SHOWDOWN, no player has a turn (no betting allowed)
+                tableForAdvance.currentTurn = null;
               }
             }
           }
