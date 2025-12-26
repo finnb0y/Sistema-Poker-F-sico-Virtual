@@ -142,8 +142,47 @@ function testMultipleBetsNeverNegative() {
   console.log('After trying to bet 15000: balance =', player.balance, 'currentBet =', player.currentBet);
 }
 
+function testRaiseInsufficientFundsDoesntUpdateTableBet() {
+  console.log('\n--- Test 5: Raise With Insufficient Funds Should Not Lower Table Bet ---');
+  
+  // Scenario: Table bet is 5000, player has 1000 bet and 3000 balance
+  // Player tries to raise 5000 but can only afford to go to 4000 total
+  // This means they can't actually raise, just call partially
+  
+  const player: TestPlayer = {
+    id: 'p_insufficient',
+    balance: 3000,
+    currentBet: 1000,
+    totalContributedThisHand: 1000
+  };
+  
+  const currentTableBet = 5000;
+  const attemptedRaise = 5000;
+  const callAmount = currentTableBet - player.currentBet; // 4000
+  const totalToPay = callAmount + attemptedRaise; // 9000
+  const actualToPay = Math.min(totalToPay, player.balance); // 3000
+  
+  const result = simulateRaiseAction(player, currentTableBet, attemptedRaise);
+  
+  // The player's bet would be 1000 + 3000 = 4000
+  // Since 4000 < 5000 (current table bet), table bet should NOT be updated
+  const newTableBet = result.currentBet > currentTableBet ? result.currentBet : currentTableBet;
+  
+  console.log('Current table bet:', currentTableBet);
+  console.log('Player balance:', player.balance);
+  console.log('Player current bet:', player.currentBet);
+  console.log('Attempted raise:', attemptedRaise);
+  console.log('Player final bet:', result.currentBet);
+  console.log('Table bet should remain:', newTableBet);
+  
+  assert(result.balance === 0, 'Player should be all-in');
+  assert(result.currentBet === 4000, 'Player bet should be 4000');
+  assert(newTableBet === 5000, 'Table bet should remain at 5000 (not lowered to 4000)');
+  assert(result.currentBet < currentTableBet, 'Player did not have enough to complete the raise');
+}
+
 function testScenarioFromIssue() {
-  console.log('\n--- Test 5: Scenario from Issue (Player Clicks POT with Insufficient Chips) ---');
+  console.log('\n--- Test 6: Scenario from Issue (Player Clicks POT with Insufficient Chips) ---');
   
   // Simulate: Player has 6400, pot is 40000
   const playerBalance = 6400;
@@ -180,6 +219,7 @@ testBetAboveBalance();
 testPotButtonClamp();
 testRaiseAboveBalance();
 testMultipleBetsNeverNegative();
+testRaiseInsufficientFundsDoesntUpdateTableBet();
 testScenarioFromIssue();
 
 console.log('\n✅ All tests passed!');

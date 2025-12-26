@@ -741,11 +741,14 @@ const App: React.FC = () => {
               raisePlayer.currentBet += actualToPay;
               raisePlayer.totalContributedThisHand += actualToPay;
               tableForRaise.pot += actualToPay;
-              tableForRaise.currentBet = raisePlayer.currentBet;
-              // Calculate actual raise amount based on what player could afford
-              const actualRaiseAmount = actualToPay - callAmount;
-              tableForRaise.lastRaiseAmount = Math.max(0, actualRaiseAmount);
-              tableForRaise.lastAggressorId = senderId; // Mark this player as the aggressor
+              // Only update table's current bet if player's bet is higher
+              if (raisePlayer.currentBet > tableForRaise.currentBet) {
+                tableForRaise.currentBet = raisePlayer.currentBet;
+                // Calculate actual raise amount based on what player could afford
+                const actualRaiseAmount = actualToPay - callAmount;
+                tableForRaise.lastRaiseAmount = Math.max(0, actualRaiseAmount);
+                tableForRaise.lastAggressorId = senderId; // Mark this player as the aggressor
+              }
               
               // Check and set all-in status if no chips left
               updateAllInStatus(raisePlayer);
