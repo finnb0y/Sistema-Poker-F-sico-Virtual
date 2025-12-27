@@ -8,8 +8,13 @@
 const fs = require('fs');
 const path = require('path');
 
+// Constants for validation
+const MIN_URL_LENGTH = 20;
+const MIN_KEY_LENGTH = 20;
+const PLACEHOLDER_PATTERNS = ['your_supabase_project_url_here', 'your_supabase_anon_key_here'];
+
 console.log('\n🔍 Validando Configuração de Variáveis de Ambiente\n');
-console.log('=' .repeat(60));
+console.log('='.repeat(60));
 
 // Verificar se .env existe
 const envPath = path.join(__dirname, '..', '.env');
@@ -29,15 +34,16 @@ if (!envExists) {
   console.log('   2. Edite .env com suas credenciais do Supabase');
   console.log('   3. Reinicie o servidor de desenvolvimento');
   console.log('\n📖 Consulte ENVIRONMENT_SETUP.md para mais detalhes');
-  console.log('\n' + '=' .repeat(60));
+  console.log('\n' + '='.repeat(60));
   console.log('\n');
   process.exit(0);
 }
 
 // Ler .env se existir
 const envContent = fs.readFileSync(envPath, 'utf-8');
-const hasPlaceholder = envContent.includes('your_supabase_project_url_here') || 
-                       envContent.includes('your_supabase_anon_key_here');
+
+// Check for any placeholder patterns
+const hasPlaceholder = PLACEHOLDER_PATTERNS.some(pattern => envContent.includes(pattern));
 
 if (hasPlaceholder) {
   console.log('\n⚠️  Arquivo .env contém valores de placeholder');
@@ -58,7 +64,7 @@ if (hasPlaceholder) {
     const url = urlLine.split('=')[1]?.trim();
     const key = keyLine.split('=')[1]?.trim();
     
-    if (url && url.length > 20 && key && key.length > 20) {
+    if (url && url.length > MIN_URL_LENGTH && key && key.length > MIN_KEY_LENGTH) {
       console.log('   URL configurada: ' + url.substring(0, 30) + '...');
       console.log('   Chave configurada: ' + key.substring(0, 20) + '...');
     }
@@ -71,7 +77,7 @@ console.log('   • Para produção, configure as variáveis no painel da Vercel
 console.log('   • Reinicie o servidor após modificar o .env');
 console.log('   • Use ENVIRONMENT_SETUP.md como referência completa');
 
-console.log('\n' + '=' .repeat(60));
+console.log('\n' + '='.repeat(60));
 
 if (envExists && !hasPlaceholder) {
   console.log('\n🎉 Configuração parece estar correta!');
