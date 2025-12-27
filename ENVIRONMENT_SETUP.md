@@ -56,6 +56,19 @@ npm run dev
 
 > **Importante**: O Vite carrega variáveis de ambiente apenas no início. Mudanças no `.env` não são refletidas automaticamente.
 
+### Passo 5: Validar configuração
+
+Use o script de validação para verificar se tudo está correto:
+
+```bash
+npm run validate-env
+```
+
+Este script verifica:
+- ✅ Se o arquivo `.env` existe
+- ✅ Se as variáveis estão configuradas (não são placeholders)
+- ✅ Se os valores parecem válidos
+
 ## ☁️ Produção (Vercel)
 
 Para deploy em produção na Vercel, as variáveis de ambiente devem ser configuradas no painel da Vercel, **não** no arquivo `.env`.
@@ -83,6 +96,30 @@ Após configurar as variáveis, todo push para o repositório irá:
 3. Deploy automático
 
 ## 🔍 Verificação
+
+### Script de validação automática
+
+Execute o script de validação para verificar a configuração:
+
+```bash
+npm run validate-env
+```
+
+**Saída esperada (configuração correta):**
+```
+✅ Arquivo .env configurado com credenciais
+🎉 Configuração parece estar correta!
+🚀 Inicie o servidor com: npm run dev
+```
+
+**Saída quando .env não existe:**
+```
+⚠️  Arquivo .env não encontrado
+💡 Para sincronização multi-dispositivo:
+   1. Execute: cp .env.example .env
+   2. Edite .env com suas credenciais do Supabase
+   3. Reinicie o servidor de desenvolvimento
+```
 
 ### Como verificar se as variáveis estão carregadas
 

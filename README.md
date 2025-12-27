@@ -37,6 +37,9 @@ npm install
 cp .env.example .env
 # Edite o arquivo .env com suas credenciais do Supabase
 
+# Valide a configuração (opcional mas recomendado)
+npm run validate-env
+
 # Inicie o servidor de desenvolvimento
 npm run dev
 ```
