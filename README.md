@@ -33,11 +33,20 @@ cd Sistema-Poker-F-sico-Virtual
 # Instale as dependências
 npm install
 
+# Configure as variáveis de ambiente (IMPORTANTE para sincronização entre dispositivos)
+cp .env.example .env
+# Edite o arquivo .env com suas credenciais do Supabase
+
+# Valide a configuração (opcional mas recomendado)
+npm run validate-env
+
 # Inicie o servidor de desenvolvimento
 npm run dev
 ```
 
 O projeto estará rodando em `http://localhost:3000`
+
+> **⚠️ Importante**: Para sincronização entre dispositivos, você precisa configurar as variáveis de ambiente do Supabase. Consulte o [Guia de Configuração de Ambiente](ENVIRONMENT_SETUP.md) para instruções detalhadas.
 
 ## 🏗️ Build
 
@@ -99,14 +108,20 @@ vercel --prod
 
 O sistema agora suporta **múltiplos usuários em dispositivos diferentes** com atualização em tempo real usando Supabase!
 
-### Configuração Rápida
+### 🚀 Configuração Rápida
 
 1. **Crie uma conta gratuita no [Supabase](https://supabase.com)**
-2. **Execute o script SQL**: `supabase-setup.sql`
-3. **Configure as variáveis de ambiente**: Copie `.env.example` para `.env`
+2. **Execute o script SQL**: `supabase-setup.sql` no SQL Editor do Supabase
+3. **Configure as variáveis de ambiente**:
+   ```bash
+   cp .env.example .env
+   ```
 4. **Adicione suas credenciais do Supabase no arquivo `.env`**
+5. **Reinicie o servidor de desenvolvimento** (`npm run dev`)
 
-📖 **[Guia Completo de Configuração](SETUP_MULTI_USUARIO.md)**
+📖 **Guias de Configuração:**
+- **[Guia Rápido de Variáveis de Ambiente](ENVIRONMENT_SETUP.md)** - Como configurar `.env` corretamente
+- **[Guia Completo Multi-Usuário](SETUP_MULTI_USUARIO.md)** - Configuração detalhada do Supabase
 
 ### Modos de Funcionamento
 

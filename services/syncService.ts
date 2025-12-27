@@ -66,7 +66,7 @@ export const syncService = {
     
     // Subscribe to Supabase Realtime if configured
     if (isSupabaseConfigured() && supabase) {
-      console.log('Subscribing to Supabase Realtime...');
+      console.log('🔄 Inscrevendo-se no Supabase Realtime para sincronização multi-dispositivo...');
       
       realtimeChannel = supabase
         .channel(POKER_CHANNEL)
@@ -88,20 +88,29 @@ export const syncService = {
               };
               callback(msg);
             } catch (error) {
-              console.error('Failed to process Supabase message:', error);
+              console.error('❌ Falha ao processar mensagem do Supabase:', error);
             }
           }
         )
         .subscribe((status) => {
-          console.log('Supabase subscription status:', status);
+          if (status === 'SUBSCRIBED') {
+            console.log('✅ Conectado ao Supabase Realtime - sincronização ativa');
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            console.error('❌ Erro na conexão com Supabase:', status);
+          } else {
+            console.log('🔄 Status da conexão Supabase:', status);
+          }
         });
       
       cleanupFunctions.push(() => {
         if (realtimeChannel) {
+          console.log('🔌 Desconectando do Supabase Realtime...');
           supabase.removeChannel(realtimeChannel);
           realtimeChannel = null;
         }
       });
+    } else {
+      console.log('📱 Modo local ativo - sincronização apenas entre abas do mesmo navegador');
     }
     
     // Also subscribe to local BroadcastChannel for same-device sync
@@ -110,7 +119,7 @@ export const syncService = {
         try {
           callback(event.data);
         } catch (error) {
-          console.error('Failed to process BroadcastChannel message:', error);
+          console.error('❌ Falha ao processar mensagem do BroadcastChannel:', error);
         }
       };
       localChannel.addEventListener('message', handler);
@@ -118,7 +127,7 @@ export const syncService = {
     }
     
     if (cleanupFunctions.length === 0) {
-      console.warn('No sync method available');
+      console.warn('⚠️ Nenhum método de sincronização disponível');
       return () => { /* No sync available - return no-op cleanup function */ };
     }
     

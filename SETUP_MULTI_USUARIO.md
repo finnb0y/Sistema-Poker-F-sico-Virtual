@@ -60,7 +60,9 @@ Este guia explica como configurar o sistema de poker para funcionar com múltipl
    VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
    ```
 
-3. Salve o arquivo
+3. Salve o arquivo e **reinicie o servidor de desenvolvimento**
+
+> **📖 Para instruções detalhadas sobre configuração de variáveis de ambiente, consulte o [Guia de Configuração de Ambiente](ENVIRONMENT_SETUP.md)**
 
 #### Produção (Vercel)
 
@@ -214,6 +216,8 @@ USING (true);
 # Reinicie o servidor após alterar .env
 npm run dev
 ```
+
+📖 **Para mais detalhes sobre troubleshooting de variáveis de ambiente, consulte o [Guia de Configuração de Ambiente](ENVIRONMENT_SETUP.md#-troubleshooting)**
 
 ## 📚 Recursos Adicionais
 
