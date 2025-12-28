@@ -465,6 +465,7 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch }) =>
                      const tableData = state.roomTables.find(t => t.id === selectedTableId);
                      const tableTourney = state.tournaments.find(t => t.assignedTableIds.includes(selectedTableId));
                      const tablePlayers = state.players.filter(p => p.tableId === selectedTableId);
+                     const tableState = state.tableStates.find(ts => ts.id === selectedTableId);
                      
                      return (
                        <>
@@ -474,6 +475,13 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch }) =>
                              <p className="text-white/40 text-xs font-black uppercase tracking-widest mt-1">
                                {tableTourney?.name} • {tablePlayers.length} jogador{tablePlayers.length !== 1 ? 'es' : ''}
                              </p>
+                             {tableState?.dealerAccessCode && (
+                               <div className="mt-3 inline-block bg-blue-500/10 border border-blue-500/30 px-4 py-2 rounded-xl">
+                                 <span className="text-blue-400 text-xs font-black uppercase tracking-widest">
+                                   Código Dealer: <span className="text-blue-300 text-lg tracking-[6px]">{tableState.dealerAccessCode}</span>
+                                 </span>
+                               </div>
+                             )}
                            </div>
                            <div className="flex gap-3">
                              <button 
