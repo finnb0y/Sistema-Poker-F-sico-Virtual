@@ -24,13 +24,16 @@ const INITIAL_STATE: GameState = {
 };
 
 const generateAccessCode = () => Math.random().toString(36).substring(2, 6).toUpperCase();
+const generateDealerCode = () => 'D' + Math.random().toString(36).substring(2, 5).toUpperCase();
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [role, setRole] = useState<Role | null>(null);
   const [playerId, setPlayerId] = useState<string | null>(null);
+  const [tableId, setTableId] = useState<number | null>(null);
   const [accessCodeInput, setAccessCodeInput] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [gameState, setGameState] = useState<GameState>(INITIAL_STATE);
   
   // Check authentication on mount
@@ -81,6 +84,9 @@ const App: React.FC = () => {
             if (!('betActions' in migratedState)) {
               migratedState.betActions = [];
             }
+            if (!('dealerAccessCode' in migratedState) || !migratedState.dealerAccessCode) {
+              migratedState.dealerAccessCode = generateDealerCode();
+            }
             return migratedState;
           });
           setGameState(loadedState);
@@ -99,8 +105,10 @@ const App: React.FC = () => {
     try {
       const savedRole = localStorage.getItem('poker_current_role');
       const savedPlayerId = localStorage.getItem('poker_current_player_id');
+      const savedTableId = localStorage.getItem('poker_current_table_id');
       if (savedRole) setRole(savedRole as Role);
       if (savedPlayerId) setPlayerId(savedPlayerId);
+      if (savedTableId) setTableId(parseInt(savedTableId));
     } catch (error) {
       console.error('Failed to restore session:', error);
     }
@@ -277,7 +285,8 @@ const App: React.FC = () => {
                 lastAggressorId: null,
                 playersActedInRound: [],
                 potDistribution: null,
-                betActions: []
+                betActions: [],
+                dealerAccessCode: generateDealerCode()
               });
             }
           });
@@ -304,7 +313,8 @@ const App: React.FC = () => {
                   lastAggressorId: null,
                   playersActedInRound: [],
                   potDistribution: null,
-                  betActions: []
+                  betActions: [],
+                  dealerAccessCode: generateDealerCode()
                 });
               }
             });
@@ -969,16 +979,23 @@ const App: React.FC = () => {
     syncService.sendMessage(msg);
   };
 
-  const selectRole = (r: Role) => {
+  const selectRole = (r: Role, tId?: number) => {
     setRole(r);
+    if (tId !== undefined) {
+      setTableId(tId);
+      localStorage.setItem('poker_current_table_id', tId.toString());
+    }
     localStorage.setItem('poker_current_role', r);
   };
 
   const exitRole = () => {
     setRole(null);
     setPlayerId(null);
+    setTableId(null);
+    setShowAdminLogin(false);
     localStorage.removeItem('poker_current_role');
     localStorage.removeItem('poker_current_player_id');
+    localStorage.removeItem('poker_current_table_id');
   };
 
   const handleLogout = async () => {
@@ -986,6 +1003,8 @@ const App: React.FC = () => {
     setCurrentUser(null);
     setRole(null);
     setPlayerId(null);
+    setTableId(null);
+    setShowAdminLogin(false);
     setGameState(INITIAL_STATE);
     syncService.setUserId(null);
   };
@@ -1009,48 +1028,129 @@ const App: React.FC = () => {
     );
   }
 
-  // Show Supabase not configured message
-  if (!isSupabaseConfigured()) {
+  // Show login screen for admin mode only
+  if (showAdminLogin) {
+    // Check if Supabase is configured when trying to use admin mode
+    if (!isSupabaseConfigured()) {
+      return (
+        <div className="min-h-screen flex items-center justify-center poker-felt p-6">
+          <div className="max-w-2xl glass p-10 rounded-[40px] shadow-2xl border-white/20 border">
+            <button 
+              onClick={() => setShowAdminLogin(false)}
+              className="mb-6 px-6 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-[10px] font-black uppercase transition-all tracking-widest"
+            >
+              ← VOLTAR
+            </button>
+            <div className="text-center">
+              <div className="text-6xl font-outfit font-black text-white mb-4 italic tracking-tighter">
+                POKER<span className="text-yellow-500"> 2</span>
+              </div>
+              <div className="text-white/40 mb-6 text-[10px] font-bold tracking-[6px] uppercase">
+                Gerenciador de Fichas & Suite Profissional
+              </div>
+              <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-2xl p-6 text-left">
+                <h2 className="text-yellow-400 font-black text-xl mb-4">⚠️ Configuração Necessária para Modo Administrativo</h2>
+                <p className="text-white/80 mb-4">
+                  O modo administrativo requer autenticação de usuários e sincronização via Supabase.
+                </p>
+                <p className="text-white/60 text-sm mb-4">
+                  Para usar o modo administrativo, você precisa:
+                </p>
+                <ol className="text-white/60 text-sm space-y-2 list-decimal list-inside mb-4">
+                  <li>Criar uma conta gratuita em <a href="https://supabase.com" target="_blank" rel="noopener noreferrer" className="text-yellow-400 hover:underline">supabase.com</a></li>
+                  <li>Executar o script SQL: <code className="bg-black/40 px-2 py-1 rounded">supabase-auth-migration.sql</code></li>
+                  <li>Configurar as variáveis de ambiente no arquivo <code className="bg-black/40 px-2 py-1 rounded">.env</code></li>
+                  <li>Reiniciar o servidor de desenvolvimento</li>
+                </ol>
+                <p className="text-white/60 text-sm">
+                  📖 Consulte <code className="bg-black/40 px-2 py-1 rounded">ENVIRONMENT_SETUP.md</code> para instruções detalhadas.
+                </p>
+                <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl">
+                  <p className="text-blue-300 text-sm">
+                    💡 <strong>Nota:</strong> Você ainda pode usar códigos de jogador/dealer para entrar em mesas existentes sem configurar o Supabase.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
+    // Supabase is configured, show login if not authenticated
+    if (!currentUser) {
+      return (
+        <div>
+          <button 
+            onClick={() => setShowAdminLogin(false)}
+            className="absolute top-6 left-6 px-6 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-[10px] font-black uppercase transition-all tracking-widest"
+          >
+            ← VOLTAR
+          </button>
+          <Login onLoginSuccess={handleLoginSuccess} />
+        </div>
+      );
+    }
+  }
+
+  // Main interface - no authentication required for code entry
+  if (!role) {
+    const handleCodeSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
+      const code = accessCodeInput.toUpperCase();
+      
+      // Check if it's a player code
+      const foundPlayer = gameState.players.find(p => p.accessCode === code);
+      if (foundPlayer) {
+        setPlayerId(foundPlayer.id);
+        localStorage.setItem('poker_current_player_id', foundPlayer.id);
+        selectRole(Role.PLAYER);
+        return;
+      }
+      
+      // Check if it's a dealer code
+      const foundTable = gameState.tableStates.find(ts => ts.dealerAccessCode === code);
+      if (foundTable) {
+        selectRole(Role.DEALER, foundTable.id);
+        return;
+      }
+      
+      // Code not found
+      alert('Código não encontrado. Verifique o código e tente novamente.');
+    };
+
     return (
-      <div className="min-h-screen flex items-center justify-center poker-felt p-6">
-        <div className="max-w-2xl glass p-10 rounded-[40px] shadow-2xl border-white/20 border">
-          <div className="text-center">
-            <div className="text-6xl font-outfit font-black text-white mb-4 italic tracking-tighter">
-              POKER<span className="text-yellow-500"> 2</span>
-            </div>
-            <div className="text-white/40 mb-6 text-[10px] font-bold tracking-[6px] uppercase">
-              Gerenciador de Fichas & Suite Profissional
-            </div>
-            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-2xl p-6 text-left">
-              <h2 className="text-yellow-400 font-black text-xl mb-4">⚠️ Configuração Necessária</h2>
-              <p className="text-white/80 mb-4">
-                Este sistema requer autenticação de usuários e sincronização entre dispositivos via Supabase.
-              </p>
-              <p className="text-white/60 text-sm mb-4">
-                Para usar o sistema, você precisa:
-              </p>
-              <ol className="text-white/60 text-sm space-y-2 list-decimal list-inside mb-4">
-                <li>Criar uma conta gratuita em <a href="https://supabase.com" target="_blank" rel="noopener noreferrer" className="text-yellow-400 hover:underline">supabase.com</a></li>
-                <li>Executar o script SQL: <code className="bg-black/40 px-2 py-1 rounded">supabase-auth-migration.sql</code></li>
-                <li>Configurar as variáveis de ambiente no arquivo <code className="bg-black/40 px-2 py-1 rounded">.env</code></li>
-                <li>Reiniciar o servidor de desenvolvimento</li>
-              </ol>
-              <p className="text-white/60 text-sm">
-                📖 Consulte <code className="bg-black/40 px-2 py-1 rounded">ENVIRONMENT_SETUP.md</code> para instruções detalhadas.
-              </p>
-            </div>
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 poker-felt">
+        <div className="w-full max-w-md glass p-10 rounded-[40px] shadow-2xl text-center border-white/20 border">
+          <h1 className="text-6xl font-outfit font-black text-white mb-2 italic tracking-tighter">POKER<span className="text-yellow-500"> 2</span></h1>
+          <p className="text-white/40 mb-2 text-[10px] font-bold tracking-[6px] uppercase">Gerenciador de Fichas & Suite Profissional</p>
+          <p className="text-white/60 text-sm mb-8">Entre com o código da mesa</p>
+          <div className="space-y-4">
+            <form onSubmit={handleCodeSubmit} className="space-y-4">
+              <input 
+                type="text" 
+                maxLength={4} 
+                value={accessCodeInput} 
+                onChange={e => setAccessCodeInput(e.target.value.toUpperCase())} 
+                placeholder="CÓDIGO" 
+                className="w-full bg-black/40 border border-white/10 rounded-3xl p-6 text-center text-4xl font-black text-yellow-500 outline-none transition-all tracking-[12px] focus:border-yellow-500/50" 
+              />
+              <button type="submit" className="w-full bg-yellow-600 hover:bg-yellow-500 text-white font-black py-5 rounded-3xl text-xl shadow-xl transition-all">ENTRAR</button>
+            </form>
+            <button 
+              onClick={() => setShowAdminLogin(true)} 
+              className="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-white/60 hover:text-white font-black py-3 rounded-2xl transition-all uppercase text-[10px] tracking-widest mt-6"
+            >
+              Modo Administrativo
+            </button>
           </div>
         </div>
       </div>
     );
   }
 
-  // Show login screen if not authenticated
-  if (!currentUser) {
-    return <Login onLoginSuccess={handleLoginSuccess} />;
-  }
-
-  if (!role) {
+  // Admin authenticated - show director role selection
+  if (currentUser && !role) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-6 poker-felt">
         <div className="w-full max-w-md glass p-10 rounded-[40px] shadow-2xl text-center border-white/20 border">
@@ -1058,19 +1158,8 @@ const App: React.FC = () => {
           <p className="text-white/40 mb-2 text-[10px] font-bold tracking-[6px] uppercase">Gerenciador de Fichas & Suite Profissional</p>
           <p className="text-white/60 text-sm mb-8">Bem-vindo, <span className="text-yellow-400 font-bold">{currentUser.username}</span></p>
           <div className="space-y-4">
-            <form onSubmit={(e) => {
-              e.preventDefault();
-              const found = gameState.players.find(p => p.accessCode === accessCodeInput.toUpperCase());
-              if (found) { setPlayerId(found.id); selectRole(Role.PLAYER); }
-            }} className="space-y-4">
-              <input type="text" maxLength={4} value={accessCodeInput} onChange={e => setAccessCodeInput(e.target.value.toUpperCase())} placeholder="CÓDIGO" className="w-full bg-black/40 border border-white/10 rounded-3xl p-6 text-center text-4xl font-black text-yellow-500 outline-none transition-all tracking-[12px]" />
-              <button type="submit" className="w-full bg-yellow-600 hover:bg-yellow-500 text-white font-black py-5 rounded-3xl text-xl shadow-xl transition-all">SENTAR NA MESA</button>
-            </form>
-            <div className="grid grid-cols-2 gap-3 pt-4">
-              <button onClick={() => selectRole(Role.DEALER)} className="bg-white/5 hover:bg-white/10 border border-white/10 text-white font-black py-4 rounded-2xl transition-all uppercase text-[10px] tracking-widest">DEALER</button>
-              <button onClick={() => selectRole(Role.DIRECTOR)} className="bg-white/5 hover:bg-white/10 border border-white/10 text-white font-black py-4 rounded-2xl transition-all uppercase text-[10px] tracking-widest">DIRETOR</button>
-            </div>
-            <button onClick={handleLogout} className="w-full bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 text-red-400 font-black py-3 rounded-2xl transition-all uppercase text-[10px] tracking-widest mt-4">SAIR</button>
+            <button onClick={() => selectRole(Role.DIRECTOR)} className="w-full bg-yellow-600 hover:bg-yellow-500 text-white font-black py-5 rounded-3xl text-xl shadow-xl transition-all">GERENCIAMENTO</button>
+            <button onClick={handleLogout} className="w-full bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 text-red-400 font-black py-3 rounded-2xl transition-all uppercase text-[10px] tracking-widest">SAIR</button>
           </div>
         </div>
       </div>
@@ -1080,8 +1169,8 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#050505]">
       {role === Role.PLAYER && playerId && <PlayerDashboard state={gameState} playerId={playerId} onDispatch={dispatch} />}
-      {role === Role.DEALER && <TableDealerInterface state={gameState} onDispatch={dispatch} onExit={exitRole} />}
-      {role === Role.DIRECTOR && (
+      {role === Role.DEALER && tableId && <TableDealerInterface state={gameState} tableId={tableId} onDispatch={dispatch} onExit={exitRole} />}
+      {role === Role.DIRECTOR && currentUser && (
         <div className="h-screen flex flex-col">
           <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 bg-black">
             <div className="flex items-center gap-4">

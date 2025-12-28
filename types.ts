@@ -127,6 +127,7 @@ export interface TableState {
   playersActedInRound: string[]; // track which players have acted in current betting round
   potDistribution: PotDistributionState | null; // Active pot distribution state during showdown
   betActions: BetAction[]; // Log of all betting actions in current hand
+  dealerAccessCode?: string; // Code for dealer to access this table with special permissions
 }
 
 export interface GameState {

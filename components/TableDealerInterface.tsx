@@ -6,12 +6,13 @@ import { areAllPlayersAllInOrCapped } from '../utils/sidePotLogic';
 
 interface TableDealerInterfaceProps {
   state: GameState;
+  tableId?: number; // Optional: if provided, directly open this table
   onDispatch: (action: ActionMessage) => void;
   onExit: () => void;
 }
 
-const TableDealerInterface: React.FC<TableDealerInterfaceProps> = ({ state, onDispatch, onExit }) => {
-  const [selectedTableId, setSelectedTableId] = useState<number | null>(null);
+const TableDealerInterface: React.FC<TableDealerInterfaceProps> = ({ state, tableId, onDispatch, onExit }) => {
+  const [selectedTableId, setSelectedTableId] = useState<number | null>(tableId || null);
 
   // Constants
   const POT_LABELS = {
