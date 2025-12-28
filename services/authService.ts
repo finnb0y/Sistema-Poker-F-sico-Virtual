@@ -76,7 +76,13 @@ export const authService = {
         .from('poker_users')
         .select('id')
         .eq('username', username.toLowerCase())
-        .single();
+        .maybeSingle(); // Use maybeSingle to handle no rows without error
+
+      // Handle database errors
+      if (checkError) {
+        console.error('Error checking username:', checkError);
+        return { success: false, error: 'Erro ao verificar nome de usuário' };
+      }
 
       if (existingUser) {
         return { success: false, error: 'Nome de usuário já existe' };
