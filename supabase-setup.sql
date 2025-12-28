@@ -1,6 +1,9 @@
 -- =====================================================
--- SQL para configuração do Supabase
+-- SQL para configuração inicial do Supabase
 -- Execute este script no SQL Editor do seu projeto Supabase
+-- =====================================================
+-- IMPORTANTE: Após executar este script, execute também:
+-- supabase-auth-migration.sql (para autenticação de usuários)
 -- =====================================================
 
 -- Tabela para armazenar o estado do jogo
