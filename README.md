@@ -4,16 +4,26 @@ Sistema de fichas de poker virtual para unificação de jogos de poker com carta
 
 ## 📋 Sobre o Projeto
 
-Este projeto permite jogar poker usando cartas físicas reais enquanto gerencia fichas, apostas e o pot de forma virtual através de uma interface web moderna. **Cada usuário possui seus próprios torneios e mesas, sincronizados em tempo real entre múltiplos dispositivos.**
+Este projeto permite jogar poker usando cartas físicas reais enquanto gerencia fichas, apostas e o pot de forma virtual através de uma interface web moderna. **Jogadores e dealers podem entrar nas mesas usando códigos simples, sem necessidade de criar conta.**
 
-## ⚠️ Requisitos Importantes
+## 🎮 Acesso Rápido
 
-**ATENÇÃO:** Este sistema requer:
-1. **Supabase configurado** - O sistema agora opera exclusivamente via Supabase para sincronização multi-dispositivo
-2. **Autenticação de usuário** - Cada usuário cria uma conta e gerencia seus próprios torneios
+### Para Jogadores e Dealers
+
+**Não precisa criar conta!** Basta:
+1. Receber seu código (4 caracteres para jogador, ou Dxxx para dealer)
+2. Abrir o aplicativo
+3. Digitar o código
+4. Jogar!
+
+📖 **[Veja o guia completo de códigos de acesso](./CODIGO_ACESSO.md)**
+
+### Para Administradores
+
+**Criar e gerenciar torneios requer:**
+1. **Supabase configurado** - Para sincronização multi-dispositivo
+2. **Conta administrativa** - Criada no primeiro acesso
 3. **Banco de dados PostgreSQL** - Fornecido automaticamente pelo Supabase
-
-**Não é mais possível usar o sistema sem Supabase configurado.** O localStorage foi completamente removido para dados de jogo.
 
 ## 🚀 Tecnologias
 
@@ -21,7 +31,7 @@ Este projeto permite jogar poker usando cartas físicas reais enquanto gerencia 
 - **TypeScript** - Tipagem estática para JavaScript
 - **Vite** - Build tool e dev server ultra-rápido
 - **Vercel** - Hospedagem e deploy contínuo
-- **Supabase** - Banco de dados e sincronização em tempo real
+- **Supabase** - Banco de dados e sincronização em tempo real (opcional para jogadores, obrigatório para admins)
 
 ## 💻 Rodando Localmente
 
@@ -29,7 +39,7 @@ Este projeto permite jogar poker usando cartas físicas reais enquanto gerencia 
 
 - Node.js 16+ instalado
 - npm ou yarn
-- **Conta no Supabase (gratuita)** - [Criar conta](https://supabase.com)
+- **Conta no Supabase (gratuita)** - [Criar conta](https://supabase.com) - **Opcional para testes, obrigatório para uso administrativo**
 
 ### Instalação
 
@@ -43,7 +53,19 @@ cd Sistema-Poker-F-sico-Virtual
 # Instale as dependências
 npm install
 
-# Configure o Supabase (OBRIGATÓRIO)
+# Inicie o servidor de desenvolvimento
+npm run dev
+```
+
+O projeto estará rodando em `http://localhost:3000`
+
+### Configuração do Supabase (Opcional)
+
+⚠️ **Necessário apenas para usar funcionalidades administrativas**
+
+Se você deseja criar torneios e gerenciar mesas, configure o Supabase:
+
+```bash
 # 1. Crie um projeto no Supabase (https://app.supabase.com)
 # 2. Execute o script SQL no SQL Editor do Supabase:
 #    - Primeiro: supabase-setup.sql (tabelas base)
@@ -57,14 +79,7 @@ cp .env.example .env
 
 # Valide a configuração (opcional mas recomendado)
 npm run validate-env
-
-# Inicie o servidor de desenvolvimento
-npm run dev
 ```
-
-O projeto estará rodando em `http://localhost:3000`
-
-> **⚠️ Importante**: Sem as variáveis de ambiente do Supabase configuradas, o sistema não funcionará. A aplicação mostrará uma tela de aviso solicitando a configuração.
 
 ## 🏗️ Build
 
@@ -113,20 +128,47 @@ vercel --prod
 
 ## 🎮 Funcionalidades
 
-- ✅ **Autenticação de usuários** - Cada usuário possui login único
-- ✅ **Gerenciamento isolado de torneios** - Seus torneios são privados e sincronizados entre dispositivos
+### Para Todos os Usuários (sem necessidade de conta)
+- ✅ **Acesso por código** - Entre na mesa com código de 4 caracteres (jogador) ou Dxxx (dealer)
 - ✅ Gerenciamento de fichas virtuais
 - ✅ Controle de apostas e pot
-- ✅ Lógica completa do dealer (botão, blinds, ordem de ação)
-- ✅ Suporte para heads-up (2 jogadores) e multi-jogador (3+)
 - ✅ Interface intuitiva e responsiva
-- ✅ **Sincronização em tempo real entre múltiplos dispositivos do mesmo usuário**
-- ✅ Suporte para múltiplos jogadores e torneios
+- ✅ Suporte para heads-up (2 jogadores) e multi-jogador (3+)
+
+### Para Dealers (com código Dxxx)
+- ✅ Iniciar e controlar mãos
+- ✅ Lógica completa do dealer (botão, blinds, ordem de ação)
+- ✅ Distribuir potes
+- ✅ Gerenciar rodadas de apostas
+
+### Para Administradores (com conta e Supabase)
+- ✅ **Autenticação de usuários** - Cada administrador possui login único
+- ✅ **Gerenciamento isolado de torneios** - Seus torneios são privados e sincronizados entre dispositivos
+- ✅ Criar e editar torneios
+- ✅ Registrar jogadores e gerar códigos
+- ✅ **Sincronização em tempo real entre múltiplos dispositivos**
+- ✅ Modo TV para transmissão
 - ✅ **Ambiente de testes modular para validação de cenários**
 
-## 🌐 Sistema Multi-Usuário Online
+## 🔐 Sistema de Acesso
 
-O sistema opera exclusivamente com **autenticação de usuários e sincronização multi-dispositivo via Supabase**.
+### Acesso Simples (Jogadores e Dealers)
+
+Não precisa criar conta! Veja [CODIGO_ACESSO.md](./CODIGO_ACESSO.md) para detalhes completos.
+
+**Jogadores:**
+1. Receba seu código de 4 caracteres (ex: `AB12`)
+2. Digite o código na tela inicial
+3. Entre na mesa como jogador
+
+**Dealers:**
+1. Receba o código de dealer da mesa (ex: `DABC`)
+2. Digite o código na tela inicial
+3. Entre na mesa como dealer
+
+### Modo Administrativo
+
+Para criar e gerenciar torneios, o sistema usa **autenticação de usuários e sincronização multi-dispositivo via Supabase**.
 
 ### 🔐 Como Funciona
 
