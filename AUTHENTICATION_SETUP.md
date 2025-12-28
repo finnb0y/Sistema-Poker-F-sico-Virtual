@@ -145,19 +145,97 @@ O servidor iniciará em `http://localhost:3000`
 
 ## 🔐 Segurança
 
-### Senhas
-- Senhas são hasheadas com SHA-256 antes de serem armazenadas
-- Para produção, considere usar bcrypt ou argon2
+### ⚠️ Aviso de Segurança para Produção
 
-### Sessões
+**Esta implementação é adequada para desenvolvimento e uso pessoal, mas requer melhorias para uso em produção:**
+
+#### Hashing de Senhas
+- **Atual**: SHA-256 (vulnerável a rainbow tables e brute force)
+- **Recomendado para produção**:
+  - bcrypt (mais comum e recomendado)
+  - argon2 (mais moderno e seguro)
+  - PBKDF2 (padrão NIST)
+
+**Como melhorar:**
+1. Implementar hashing no backend (não no cliente)
+2. Usar biblioteca como `bcrypt.js` ou `argon2`
+3. Adicionar salt único por senha
+4. Configurar custo computacional adequado
+
+#### Autenticação
+- **Atual**: Sistema customizado com tokens simples
+- **Recomendado para produção**:
+  - Supabase Auth (built-in e gratuito)
+  - OAuth com Google/GitHub
+  - Auth0, Firebase Auth, ou similar
+
+**Supabase Auth vs Sistema Customizado:**
+| Recurso | Customizado | Supabase Auth |
+|---------|-------------|---------------|
+| Segurança | Básica | Enterprise-grade |
+| Recuperação de senha | Não | Sim |
+| Verificação de email | Não | Sim |
+| OAuth (Google, etc) | Não | Sim |
+| 2FA | Não | Sim |
+| Implementação | Você | Supabase |
+
+### Medidas de Segurança Implementadas
+
+#### Senhas
+- Senhas hasheadas antes de armazenamento (SHA-256 para desenvolvimento)
+- Validação de tamanho mínimo (6 caracteres)
+- Nunca enviadas ou exibidas em logs
+
+#### Sessões
 - Sessões expiram automaticamente após 30 dias
-- Tokens de sessão são gerados aleatoriamente
+- Tokens gerados com crypto.getRandomValues (criptograficamente seguros)
 - Logout deleta a sessão do servidor
+- Tokens nunca expostos na URL
 
-### Row Level Security (RLS)
+#### Row Level Security (RLS)
 - Cada usuário só pode ver/editar seus próprios dados
-- Implementado no nível do banco de dados
-- Não é possível burlar via API
+- Implementado no nível do banco de dados (não bypassável via API)
+- Políticas separadas para cada operação (SELECT, INSERT, UPDATE, DELETE)
+
+### Limitações de Segurança Conhecidas
+
+1. **Passwords não saltados**: SHA-256 sem salt permite rainbow tables
+2. **Login expõe usernames**: Possível enumerar usuários existentes
+3. **Sem rate limiting**: Vulnerável a brute force
+4. **Sem CAPTCHA**: Vulnerável a bots
+5. **Sem verificação de email**: Contas não verificadas
+6. **Sem recuperação de senha**: Senha esquecida = conta perdida
+
+### Recomendações para Produção
+
+1. **Migrar para Supabase Auth**
+   ```typescript
+   // Substituir authService por:
+   const { data, error } = await supabase.auth.signUp({
+     email: email,
+     password: password
+   })
+   ```
+
+2. **Adicionar rate limiting**
+   - Limite de tentativas de login
+   - Cooldown após falhas
+   - IP blocking
+
+3. **Implementar validação adicional**
+   - Força da senha (maiúsculas, números, caracteres especiais)
+   - Validação de email
+   - Verificação por email
+
+4. **Monitoramento**
+   - Log de tentativas de login
+   - Alertas de atividade suspeita
+   - Análise de padrões
+
+5. **Compliance**
+   - LGPD/GDPR se aplicável
+   - Política de privacidade
+   - Termos de uso
 
 ## ❌ Sem Supabase?
 

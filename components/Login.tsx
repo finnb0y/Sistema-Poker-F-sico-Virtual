@@ -135,7 +135,8 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 
         <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-2xl">
           <p className="text-blue-300 text-xs text-center">
-            ℹ️ Autenticação requer Supabase configurado
+            <span className="inline-block mr-2" role="img" aria-label="Informação">ℹ️</span>
+            <span>Autenticação requer Supabase configurado</span>
           </p>
         </div>
       </div>

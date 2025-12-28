@@ -16,8 +16,21 @@ const SESSION_USER_KEY = 'poker_session_user';
 
 /**
  * Hash a password using Web Crypto API (SHA-256)
- * This is a simple hash for demo purposes. 
- * In production, use a proper password hashing library like bcrypt
+ * 
+ * ⚠️ SECURITY WARNING: This implementation uses SHA-256 which is NOT secure for production.
+ * SHA-256 is vulnerable to rainbow table and brute force attacks.
+ * 
+ * For production use, implement server-side password hashing with:
+ * - bcrypt (recommended)
+ * - argon2
+ * - PBKDF2
+ * 
+ * These algorithms include:
+ * - Automatic salt generation
+ * - Computational cost factors
+ * - Protection against rainbow tables
+ * 
+ * Current implementation is for demo/development purposes only.
  */
 async function hashPassword(password: string): Promise<string> {
   const encoder = new TextEncoder();

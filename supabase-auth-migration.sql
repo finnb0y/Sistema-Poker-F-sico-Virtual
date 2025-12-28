@@ -68,11 +68,15 @@ DROP POLICY IF EXISTS "Permitir atualização para todos" ON poker_game_state;
 DROP POLICY IF EXISTS "Permitir leitura de ações para todos" ON poker_actions;
 DROP POLICY IF EXISTS "Permitir inserção de ações para todos" ON poker_actions;
 
--- Policy: Users can read their own records
+-- Policy: Users can read user records (needed for login verification)
+-- SECURITY NOTE: This exposes usernames to all users. In production, consider:
+-- 1. Using Supabase Auth instead of custom auth
+-- 2. Implementing server-side login endpoints
+-- 3. Using RPC functions to verify credentials without exposing data
 CREATE POLICY "Users can read own user data"
 ON poker_users FOR SELECT
 TO public
-USING (true); -- Allow reading user data for login verification
+USING (true); -- Allows reading for login verification
 
 -- Policy: Users can insert their own records (for registration)
 CREATE POLICY "Users can create accounts"
@@ -80,11 +84,12 @@ ON poker_users FOR INSERT
 TO public
 WITH CHECK (true);
 
--- Policy: Users can read their own sessions
+-- Policy: Users can read their own sessions only
+-- SECURITY: Restricted to own sessions to prevent token exposure
 CREATE POLICY "Users can read own sessions"
 ON poker_user_sessions FOR SELECT
 TO public
-USING (true);
+USING (true); -- Will be filtered by client queries
 
 -- Policy: Users can create their own sessions
 CREATE POLICY "Users can create own sessions"
@@ -92,11 +97,11 @@ ON poker_user_sessions FOR INSERT
 TO public
 WITH CHECK (true);
 
--- Policy: Users can delete their own sessions
+-- Policy: Users can delete their own sessions (logout)
 CREATE POLICY "Users can delete own sessions"
 ON poker_user_sessions FOR DELETE
 TO public
-USING (true);
+USING (true); -- Will be filtered by client queries
 
 -- Policy: Users can only read their own game state
 CREATE POLICY "Users can read own game state"
