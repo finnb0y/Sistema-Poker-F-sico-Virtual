@@ -3,9 +3,12 @@ import { ActionMessage, GameState } from '../types';
 import { supabase, isSupabaseConfigured } from './supabaseClient';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
-// Game session ID - shared across all clients in the same game
-const GAME_SESSION_ID = 'poker_game_session';
+// Game session ID is now user-specific
+const getGameSessionId = (userId: string) => `poker_game_session_${userId}`;
 const POKER_CHANNEL = 'poker_actions';
+
+// Current user ID - must be set before using sync service
+let currentUserId: string | null = null;
 
 // BroadcastChannel allows communication between tabs/windows on the same origin
 // This is used as fallback when Supabase is not configured
@@ -21,17 +24,37 @@ try {
 }
 
 export const syncService = {
+  /**
+   * Set the current user ID for scoped operations
+   */
+  setUserId: (userId: string | null) => {
+    currentUserId = userId;
+  },
+
+  /**
+   * Get the current user ID
+   */
+  getUserId: (): string | null => {
+    return currentUserId;
+  },
+
   sendMessage: async (msg: ActionMessage) => {
+    if (!currentUserId) {
+      console.error('Cannot send message: user not authenticated');
+      return;
+    }
+
     // Try Supabase first for multi-device sync
     if (isSupabaseConfigured() && supabase) {
       try {
         const { error } = await supabase
           .from('poker_actions')
           .insert({
-            session_id: GAME_SESSION_ID,
+            session_id: getGameSessionId(currentUserId),
             action_type: msg.type,
             payload: msg.payload,
             sender_id: msg.senderId,
+            user_id: currentUserId,
             created_at: new Date().toISOString()
           });
         
@@ -41,8 +64,6 @@ export const syncService = {
           if (localChannel) {
             localChannel.postMessage(msg);
           }
-        } else {
-          console.log('Message sent via Supabase');
         }
       } catch (error) {
         console.error('Supabase error:', error);
@@ -62,21 +83,27 @@ export const syncService = {
   },
   
   subscribe: (callback: (msg: ActionMessage) => void) => {
+    if (!currentUserId) {
+      console.error('Cannot subscribe: user not authenticated');
+      return () => {};
+    }
+
     const cleanupFunctions: (() => void)[] = [];
+    const userSessionId = getGameSessionId(currentUserId);
     
     // Subscribe to Supabase Realtime if configured
     if (isSupabaseConfigured() && supabase) {
       console.log('🔄 Inscrevendo-se no Supabase Realtime para sincronização multi-dispositivo...');
       
       realtimeChannel = supabase
-        .channel(POKER_CHANNEL)
+        .channel(`${POKER_CHANNEL}_${currentUserId}`)
         .on(
           'postgres_changes',
           {
             event: 'INSERT',
             schema: 'public',
             table: 'poker_actions',
-            filter: `session_id=eq.${GAME_SESSION_ID}`
+            filter: `session_id=eq.${userSessionId}`
           },
           (payload) => {
             try {
@@ -97,8 +124,6 @@ export const syncService = {
             console.log('✅ Conectado ao Supabase Realtime - sincronização ativa');
           } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
             console.error('❌ Erro na conexão com Supabase:', status);
-          } else {
-            console.log('🔄 Status da conexão Supabase:', status);
           }
         });
       
@@ -137,58 +162,55 @@ export const syncService = {
     };
   },
 
-  // Save state to Supabase and localStorage
+  // Save state to Supabase only (no localStorage for game state)
   persistState: async (state: GameState) => {
-    // Always save to localStorage for immediate access
-    try {
-      localStorage.setItem('poker_game_state', JSON.stringify(state));
-      console.log('Estado salvo no localStorage');
-    } catch (error) {
-      console.error('Erro ao salvar estado no localStorage:', error);
+    if (!currentUserId) {
+      console.error('Cannot persist state: user not authenticated');
+      return;
     }
-    
-    // Also save to Supabase for multi-device sync
+
+    // Only save to Supabase for multi-device sync
     if (isSupabaseConfigured() && supabase) {
       try {
         const { error } = await supabase
           .from('poker_game_state')
           .upsert({
-            session_id: GAME_SESSION_ID,
+            session_id: getGameSessionId(currentUserId),
+            user_id: currentUserId,
             state: state,
             updated_at: new Date().toISOString()
           }, {
-            onConflict: 'session_id'
+            onConflict: 'session_id,user_id'
           });
         
         if (error) {
           console.error('Failed to persist state to Supabase:', error);
-        } else {
-          console.log('Estado salvo no Supabase');
         }
       } catch (error) {
         console.error('Supabase persist error:', error);
       }
+    } else {
+      console.warn('Supabase not configured - state will not be persisted');
     }
   },
 
   loadState: async (): Promise<GameState | null> => {
-    // Try loading from Supabase first for most up-to-date state
+    if (!currentUserId) {
+      console.error('Cannot load state: user not authenticated');
+      return null;
+    }
+
+    // Load from Supabase only
     if (isSupabaseConfigured() && supabase) {
       try {
         const { data, error } = await supabase
           .from('poker_game_state')
           .select('state')
-          .eq('session_id', GAME_SESSION_ID)
+          .eq('session_id', getGameSessionId(currentUserId))
+          .eq('user_id', currentUserId)
           .single();
         
         if (!error && data?.state) {
-          console.log('Estado recuperado do Supabase');
-          // Also update localStorage with the latest state
-          try {
-            localStorage.setItem('poker_game_state', JSON.stringify(data.state));
-          } catch (e) {
-            console.error('Failed to update localStorage:', e);
-          }
           return data.state as GameState;
         }
       } catch (error) {
@@ -196,19 +218,6 @@ export const syncService = {
       }
     }
     
-    // Fallback to localStorage
-    try {
-      const saved = localStorage.getItem('poker_game_state');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        console.log('Estado recuperado do localStorage');
-        return parsed;
-      }
-      console.log('Nenhum estado encontrado');
-      return null;
-    } catch (error) {
-      console.error('Erro ao carregar estado do localStorage:', error);
-      return null;
-    }
+    return null;
   }
 };

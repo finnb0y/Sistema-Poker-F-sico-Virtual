@@ -4,7 +4,16 @@ Sistema de fichas de poker virtual para unificação de jogos de poker com carta
 
 ## 📋 Sobre o Projeto
 
-Este projeto permite jogar poker usando cartas físicas reais enquanto gerencia fichas, apostas e o pot de forma virtual através de uma interface web moderna.
+Este projeto permite jogar poker usando cartas físicas reais enquanto gerencia fichas, apostas e o pot de forma virtual através de uma interface web moderna. **Cada usuário possui seus próprios torneios e mesas, sincronizados em tempo real entre múltiplos dispositivos.**
+
+## ⚠️ Requisitos Importantes
+
+**ATENÇÃO:** Este sistema requer:
+1. **Supabase configurado** - O sistema agora opera exclusivamente via Supabase para sincronização multi-dispositivo
+2. **Autenticação de usuário** - Cada usuário cria uma conta e gerencia seus próprios torneios
+3. **Banco de dados PostgreSQL** - Fornecido automaticamente pelo Supabase
+
+**Não é mais possível usar o sistema sem Supabase configurado.** O localStorage foi completamente removido para dados de jogo.
 
 ## 🚀 Tecnologias
 
@@ -20,6 +29,7 @@ Este projeto permite jogar poker usando cartas físicas reais enquanto gerencia 
 
 - Node.js 16+ instalado
 - npm ou yarn
+- **Conta no Supabase (gratuita)** - [Criar conta](https://supabase.com)
 
 ### Instalação
 
@@ -33,9 +43,17 @@ cd Sistema-Poker-F-sico-Virtual
 # Instale as dependências
 npm install
 
-# Configure as variáveis de ambiente (IMPORTANTE para sincronização entre dispositivos)
+# Configure o Supabase (OBRIGATÓRIO)
+# 1. Crie um projeto no Supabase (https://app.supabase.com)
+# 2. Execute o script SQL no SQL Editor do Supabase:
+#    - Primeiro: supabase-setup.sql (tabelas base)
+#    - Depois: supabase-auth-migration.sql (autenticação e user scope)
+
+# Configure as variáveis de ambiente
 cp .env.example .env
 # Edite o arquivo .env com suas credenciais do Supabase
+# VITE_SUPABASE_URL=https://seu-projeto.supabase.co
+# VITE_SUPABASE_ANON_KEY=sua-chave-publica
 
 # Valide a configuração (opcional mas recomendado)
 npm run validate-env
@@ -46,7 +64,7 @@ npm run dev
 
 O projeto estará rodando em `http://localhost:3000`
 
-> **⚠️ Importante**: Para sincronização entre dispositivos, você precisa configurar as variáveis de ambiente do Supabase. Consulte o [Guia de Configuração de Ambiente](ENVIRONMENT_SETUP.md) para instruções detalhadas.
+> **⚠️ Importante**: Sem as variáveis de ambiente do Supabase configuradas, o sistema não funcionará. A aplicação mostrará uma tela de aviso solicitando a configuração.
 
 ## 🏗️ Build
 
@@ -95,42 +113,54 @@ vercel --prod
 
 ## 🎮 Funcionalidades
 
+- ✅ **Autenticação de usuários** - Cada usuário possui login único
+- ✅ **Gerenciamento isolado de torneios** - Seus torneios são privados e sincronizados entre dispositivos
 - ✅ Gerenciamento de fichas virtuais
 - ✅ Controle de apostas e pot
 - ✅ Lógica completa do dealer (botão, blinds, ordem de ação)
 - ✅ Suporte para heads-up (2 jogadores) e multi-jogador (3+)
 - ✅ Interface intuitiva e responsiva
-- ✅ **Sincronização em tempo real entre múltiplos dispositivos**
+- ✅ **Sincronização em tempo real entre múltiplos dispositivos do mesmo usuário**
 - ✅ Suporte para múltiplos jogadores e torneios
 - ✅ **Ambiente de testes modular para validação de cenários**
 
 ## 🌐 Sistema Multi-Usuário Online
 
-O sistema agora suporta **múltiplos usuários em dispositivos diferentes** com atualização em tempo real usando Supabase!
+O sistema opera exclusivamente com **autenticação de usuários e sincronização multi-dispositivo via Supabase**.
+
+### 🔐 Como Funciona
+
+1. **Crie uma conta** - Registre-se na primeira vez que acessar
+2. **Faça login** - Use suas credenciais em qualquer dispositivo
+3. **Crie torneios** - Seus torneios ficam salvos no servidor
+4. **Sincronização automática** - Mudanças aparecem instantaneamente em todos os seus dispositivos
 
 ### 🚀 Configuração Rápida
 
 1. **Crie uma conta gratuita no [Supabase](https://supabase.com)**
-2. **Execute o script SQL**: `supabase-setup.sql` no SQL Editor do Supabase
-3. **Configure as variáveis de ambiente**:
+2. **Crie um novo projeto** no dashboard do Supabase
+3. **Execute os scripts SQL** no SQL Editor:
+   - Primeiro: `supabase-setup.sql` (estrutura base)
+   - Depois: `supabase-auth-migration.sql` (autenticação e isolamento de usuários)
+4. **Configure as variáveis de ambiente**:
    ```bash
    cp .env.example .env
    ```
-4. **Adicione suas credenciais do Supabase no arquivo `.env`**
-5. **Reinicie o servidor de desenvolvimento** (`npm run dev`)
+5. **Adicione suas credenciais** do Supabase no arquivo `.env`:
+   - `VITE_SUPABASE_URL` - URL do projeto (ex: https://xxxxx.supabase.co)
+   - `VITE_SUPABASE_ANON_KEY` - Chave pública/anon do projeto
+6. **Reinicie o servidor de desenvolvimento** (`npm run dev`)
 
 📖 **Guias de Configuração:**
 - **[Guia Rápido de Variáveis de Ambiente](ENVIRONMENT_SETUP.md)** - Como configurar `.env` corretamente
 - **[Guia Completo Multi-Usuário](SETUP_MULTI_USUARIO.md)** - Configuração detalhada do Supabase
 
-### Modos de Funcionamento
+### 🔒 Privacidade e Isolamento
 
-| Modo | Descrição | Sincronização |
-|------|-----------|---------------|
-| **Online** | Com Supabase configurado | ✅ Entre todos os dispositivos |
-| **Local** | Sem Supabase | ✅ Entre abas do mesmo dispositivo |
-
-**Sem configurar Supabase**, o sistema continua funcionando normalmente em modo local!
+- Cada usuário vê **apenas seus próprios torneios e mesas**
+- Dados são isolados no nível do banco de dados via Row Level Security (RLS)
+- Sessões expiram automaticamente após 30 dias
+- Senhas são hasheadas antes de serem armazenadas
 
 ## 🧪 Testes
 
