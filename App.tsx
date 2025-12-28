@@ -1028,55 +1028,69 @@ const App: React.FC = () => {
     );
   }
 
-  // Show Supabase not configured message
-  if (!isSupabaseConfigured()) {
-    return (
-      <div className="min-h-screen flex items-center justify-center poker-felt p-6">
-        <div className="max-w-2xl glass p-10 rounded-[40px] shadow-2xl border-white/20 border">
-          <div className="text-center">
-            <div className="text-6xl font-outfit font-black text-white mb-4 italic tracking-tighter">
-              POKER<span className="text-yellow-500"> 2</span>
-            </div>
-            <div className="text-white/40 mb-6 text-[10px] font-bold tracking-[6px] uppercase">
-              Gerenciador de Fichas & Suite Profissional
-            </div>
-            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-2xl p-6 text-left">
-              <h2 className="text-yellow-400 font-black text-xl mb-4">⚠️ Configuração Necessária</h2>
-              <p className="text-white/80 mb-4">
-                Este sistema requer autenticação de usuários e sincronização entre dispositivos via Supabase.
-              </p>
-              <p className="text-white/60 text-sm mb-4">
-                Para usar o sistema, você precisa:
-              </p>
-              <ol className="text-white/60 text-sm space-y-2 list-decimal list-inside mb-4">
-                <li>Criar uma conta gratuita em <a href="https://supabase.com" target="_blank" rel="noopener noreferrer" className="text-yellow-400 hover:underline">supabase.com</a></li>
-                <li>Executar o script SQL: <code className="bg-black/40 px-2 py-1 rounded">supabase-auth-migration.sql</code></li>
-                <li>Configurar as variáveis de ambiente no arquivo <code className="bg-black/40 px-2 py-1 rounded">.env</code></li>
-                <li>Reiniciar o servidor de desenvolvimento</li>
-              </ol>
-              <p className="text-white/60 text-sm">
-                📖 Consulte <code className="bg-black/40 px-2 py-1 rounded">ENVIRONMENT_SETUP.md</code> para instruções detalhadas.
-              </p>
+  // Show login screen for admin mode only
+  if (showAdminLogin) {
+    // Check if Supabase is configured when trying to use admin mode
+    if (!isSupabaseConfigured()) {
+      return (
+        <div className="min-h-screen flex items-center justify-center poker-felt p-6">
+          <div className="max-w-2xl glass p-10 rounded-[40px] shadow-2xl border-white/20 border">
+            <button 
+              onClick={() => setShowAdminLogin(false)}
+              className="mb-6 px-6 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-[10px] font-black uppercase transition-all tracking-widest"
+            >
+              ← VOLTAR
+            </button>
+            <div className="text-center">
+              <div className="text-6xl font-outfit font-black text-white mb-4 italic tracking-tighter">
+                POKER<span className="text-yellow-500"> 2</span>
+              </div>
+              <div className="text-white/40 mb-6 text-[10px] font-bold tracking-[6px] uppercase">
+                Gerenciador de Fichas & Suite Profissional
+              </div>
+              <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-2xl p-6 text-left">
+                <h2 className="text-yellow-400 font-black text-xl mb-4">⚠️ Configuração Necessária para Modo Administrativo</h2>
+                <p className="text-white/80 mb-4">
+                  O modo administrativo requer autenticação de usuários e sincronização via Supabase.
+                </p>
+                <p className="text-white/60 text-sm mb-4">
+                  Para usar o modo administrativo, você precisa:
+                </p>
+                <ol className="text-white/60 text-sm space-y-2 list-decimal list-inside mb-4">
+                  <li>Criar uma conta gratuita em <a href="https://supabase.com" target="_blank" rel="noopener noreferrer" className="text-yellow-400 hover:underline">supabase.com</a></li>
+                  <li>Executar o script SQL: <code className="bg-black/40 px-2 py-1 rounded">supabase-auth-migration.sql</code></li>
+                  <li>Configurar as variáveis de ambiente no arquivo <code className="bg-black/40 px-2 py-1 rounded">.env</code></li>
+                  <li>Reiniciar o servidor de desenvolvimento</li>
+                </ol>
+                <p className="text-white/60 text-sm">
+                  📖 Consulte <code className="bg-black/40 px-2 py-1 rounded">ENVIRONMENT_SETUP.md</code> para instruções detalhadas.
+                </p>
+                <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl">
+                  <p className="text-blue-300 text-sm">
+                    💡 <strong>Nota:</strong> Você ainda pode usar códigos de jogador/dealer para entrar em mesas existentes sem configurar o Supabase.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    );
-  }
-
-  // Show login screen for admin mode only
-  if (showAdminLogin && !currentUser) {
-    return (
-      <div>
-        <button 
-          onClick={() => setShowAdminLogin(false)}
-          className="absolute top-6 left-6 px-6 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-[10px] font-black uppercase transition-all tracking-widest"
-        >
-          ← VOLTAR
-        </button>
-        <Login onLoginSuccess={handleLoginSuccess} />
-      </div>
-    );
+      );
+    }
+    
+    // Supabase is configured, show login if not authenticated
+    if (!currentUser) {
+      return (
+        <div>
+          <button 
+            onClick={() => setShowAdminLogin(false)}
+            className="absolute top-6 left-6 px-6 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-[10px] font-black uppercase transition-all tracking-widest"
+          >
+            ← VOLTAR
+          </button>
+          <Login onLoginSuccess={handleLoginSuccess} />
+        </div>
+      );
+    }
   }
 
   // Main interface - no authentication required for code entry
