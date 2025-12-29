@@ -63,6 +63,11 @@ const App: React.FC = () => {
           localStorage.removeItem('poker_current_player_id');
           localStorage.removeItem('poker_current_table_id');
           
+          // Clear state variables to prevent black screen
+          setRole(null);
+          setPlayerId(null);
+          setTableId(null);
+          
           // Show message if user had a previous admin session
           if (hadPreviousRole === 'DIRECTOR') {
             setSessionExpiredMessage(true);
@@ -74,6 +79,11 @@ const App: React.FC = () => {
         localStorage.removeItem('poker_current_role');
         localStorage.removeItem('poker_current_player_id');
         localStorage.removeItem('poker_current_table_id');
+        
+        // Clear state variables to prevent black screen
+        setRole(null);
+        setPlayerId(null);
+        setTableId(null);
       } finally {
         setIsLoading(false);
       }
@@ -122,6 +132,10 @@ const App: React.FC = () => {
   }, [currentUser]);
 
   useEffect(() => {
+    // Only restore from localStorage after authentication check completes
+    // This prevents race conditions where we restore a role but don't have valid auth
+    if (isLoading) return;
+    
     try {
       const savedRole = localStorage.getItem('poker_current_role');
       const savedPlayerId = localStorage.getItem('poker_current_player_id');
@@ -132,7 +146,7 @@ const App: React.FC = () => {
     } catch (error) {
       console.error('Failed to restore session:', error);
     }
-  }, []);
+  }, [isLoading]);
 
   const getNextTurnId = (players: Player[], tableId: number, currentId: string | null): string | null => {
     // Only consider players who can still act (not folded, not out, not all-in)
