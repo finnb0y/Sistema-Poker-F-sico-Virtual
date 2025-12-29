@@ -2,8 +2,21 @@ import { createClient } from '@supabase/supabase-js';
 
 // Supabase configuration
 // These values MUST be set in environment variables for the system to work
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+// Handle both Vite (import.meta.env) and Node.js (process.env) environments
+const getEnvVar = (key: string): string => {
+  // Check if running in browser with Vite
+  if (typeof import.meta !== 'undefined' && import.meta.env) {
+    return import.meta.env[key] || '';
+  }
+  // Fallback to process.env for Node.js (testing)
+  if (typeof process !== 'undefined' && process.env) {
+    return process.env[key] || '';
+  }
+  return '';
+};
+
+const supabaseUrl = getEnvVar('VITE_SUPABASE_URL');
+const supabaseAnonKey = getEnvVar('VITE_SUPABASE_ANON_KEY');
 
 // Validate environment variables and provide helpful feedback
 if (!supabaseUrl || !supabaseAnonKey) {
