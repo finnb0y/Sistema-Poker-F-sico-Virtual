@@ -68,6 +68,18 @@ Este guia contém:
 - Deploy e build
 - Testes e validação
 
+### Deploy em Produção
+
+Para mantenedores que precisam fazer deploy do sistema:
+
+📖 **[Guia de Deploy em Produção](./PRODUCTION_DEPLOYMENT.md)**
+
+Este guia contém:
+- Setup do Supabase para produção
+- Configuração na Vercel
+- Variáveis de ambiente em produção
+- Monitoramento e manutenção
+
 ## 📁 Estrutura do Projeto
 
 ```
@@ -198,10 +210,14 @@ Este projeto é de código aberto e está disponível sob a licença MIT.
 
 ## 📚 Documentação Adicional
 
+### Para Usuários
 - **[USER_GUIDE.md](./USER_GUIDE.md)** - Guia completo para usuários finais
-- **[DEVELOPER_SETUP.md](./DEVELOPER_SETUP.md)** - Setup e configuração para desenvolvedores
 - **[CODIGO_ACESSO.md](./CODIGO_ACESSO.md)** - Sistema de códigos de acesso
-- **[ENVIRONMENT_SETUP.md](./ENVIRONMENT_SETUP.md)** - Configuração de variáveis de ambiente (desenvolvedores)
+
+### Para Desenvolvedores e Mantenedores
+- **[DEVELOPER_SETUP.md](./DEVELOPER_SETUP.md)** - Setup e configuração para desenvolvedores
+- **[PRODUCTION_DEPLOYMENT.md](./PRODUCTION_DEPLOYMENT.md)** - Guia de deploy em produção
+- **[ENVIRONMENT_SETUP.md](./ENVIRONMENT_SETUP.md)** - Configuração de variáveis de ambiente
 
 ---
 
