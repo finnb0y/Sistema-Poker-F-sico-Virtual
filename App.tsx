@@ -37,6 +37,17 @@ const App: React.FC = () => {
   const [sessionExpiredMessage, setSessionExpiredMessage] = useState(false);
   const [gameState, setGameState] = useState<GameState>(INITIAL_STATE);
   
+  // Helper function to clear session data (localStorage + state)
+  // This prevents black screen when session is invalid
+  const clearSessionData = useCallback(() => {
+    localStorage.removeItem('poker_current_role');
+    localStorage.removeItem('poker_current_player_id');
+    localStorage.removeItem('poker_current_table_id');
+    setRole(null);
+    setPlayerId(null);
+    setTableId(null);
+  }, []);
+  
   // Check authentication on mount
   useEffect(() => {
     const checkAuth = async () => {
@@ -59,9 +70,7 @@ const App: React.FC = () => {
           // Session is invalid or expired - clear any stale role/player data
           // This prevents the "Cannot subscribe: user not authenticated" error
           console.log('🔄 Sessão inválida ou expirada - limpando dados locais');
-          localStorage.removeItem('poker_current_role');
-          localStorage.removeItem('poker_current_player_id');
-          localStorage.removeItem('poker_current_table_id');
+          clearSessionData();
           
           // Show message if user had a previous admin session
           if (hadPreviousRole === 'DIRECTOR') {
@@ -71,15 +80,15 @@ const App: React.FC = () => {
       } catch (error) {
         console.error('Failed to check authentication:', error);
         // On error, also clear stale data to prevent black screen
-        localStorage.removeItem('poker_current_role');
-        localStorage.removeItem('poker_current_player_id');
-        localStorage.removeItem('poker_current_table_id');
+        clearSessionData();
       } finally {
         setIsLoading(false);
       }
     };
 
     checkAuth();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // clearSessionData is stable (useCallback with empty deps), safe to omit
   }, []);
 
   useEffect(() => {
@@ -122,6 +131,10 @@ const App: React.FC = () => {
   }, [currentUser]);
 
   useEffect(() => {
+    // Only restore from localStorage after authentication check completes
+    // This prevents race conditions where we restore a role but don't have valid auth
+    if (isLoading) return;
+    
     try {
       const savedRole = localStorage.getItem('poker_current_role');
       const savedPlayerId = localStorage.getItem('poker_current_player_id');
@@ -132,7 +145,7 @@ const App: React.FC = () => {
     } catch (error) {
       console.error('Failed to restore session:', error);
     }
-  }, []);
+  }, [isLoading]);
 
   const getNextTurnId = (players: Player[], tableId: number, currentId: string | null): string | null => {
     // Only consider players who can still act (not folded, not out, not all-in)
