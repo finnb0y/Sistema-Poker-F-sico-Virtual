@@ -1053,6 +1053,7 @@ const App: React.FC = () => {
   const handleLoginSuccess = (session: AuthSession) => {
     setCurrentUser(session.user);
     syncService.setUserId(session.user.id);
+    setShowAdminLogin(false); // Exit admin login mode after successful login
   };
 
   // Show loading screen
@@ -1135,7 +1136,8 @@ const App: React.FC = () => {
   }
 
   // Main interface - no authentication required for code entry
-  if (!role) {
+  // Show code entry only for unauthenticated users
+  if (!role && !currentUser) {
     const handleCodeSubmit = (e: React.FormEvent) => {
       e.preventDefault();
       const code = accessCodeInput.toUpperCase();
