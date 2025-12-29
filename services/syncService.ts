@@ -82,7 +82,7 @@ export const syncService = {
   
   subscribe: (callback: (msg: ActionMessage) => void) => {
     if (!currentUserId) {
-      console.warn('⚠️ Subscrevendo sem usuário autenticado - modo local apenas');
+      console.log('📱 Modo local ativo - sincronização apenas entre abas do mesmo navegador');
       // In local mode (without authentication), we can still use BroadcastChannel
       // This allows players/dealers with access codes to work
       // Only admin features require authentication
@@ -134,8 +134,6 @@ export const syncService = {
           realtimeChannel = null;
         }
       });
-    } else {
-      console.log('📱 Modo local ativo - sincronização apenas entre abas do mesmo navegador');
     }
     
     // Also subscribe to local BroadcastChannel for same-device sync

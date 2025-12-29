@@ -225,17 +225,23 @@ export const authService = {
           .delete()
           .eq('session_token', token);
       } catch (error) {
-        console.error('Failed to delete session:', error);
+        console.error('⚠️ Falha ao deletar sessão no banco de dados:', error);
+        // Continue with local cleanup even if database delete fails
       }
     }
 
-    // Clear localStorage
-    localStorage.removeItem(SESSION_TOKEN_KEY);
-    localStorage.removeItem(SESSION_USER_KEY);
-    // Also clear role/player session data
-    localStorage.removeItem('poker_current_role');
-    localStorage.removeItem('poker_current_player_id');
-    localStorage.removeItem('poker_current_table_id');
+    // Always clear localStorage regardless of database operation result
+    // This ensures the user can access the app even if there are network issues
+    try {
+      localStorage.removeItem(SESSION_TOKEN_KEY);
+      localStorage.removeItem(SESSION_USER_KEY);
+      // Also clear role/player session data
+      localStorage.removeItem('poker_current_role');
+      localStorage.removeItem('poker_current_player_id');
+      localStorage.removeItem('poker_current_table_id');
+    } catch (error) {
+      console.error('⚠️ Falha ao limpar localStorage:', error);
+    }
   },
 
   /**
@@ -250,6 +256,10 @@ export const authService = {
     }
 
     if (!isSupabaseConfigured() || !supabase) {
+      // Clear stale session data if Supabase is not configured
+      // This prevents black screen when Supabase config is removed
+      localStorage.removeItem(SESSION_TOKEN_KEY);
+      localStorage.removeItem(SESSION_USER_KEY);
       return null;
     }
 
@@ -262,10 +272,18 @@ export const authService = {
         .select('expires_at')
         .eq('session_token', token)
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle(); // Use maybeSingle to handle no rows gracefully
 
-      if (error || !session) {
-        // Session not found or invalid
+      if (error) {
+        console.error('❌ Erro ao validar sessão:', error);
+        // Clear invalid session
+        await authService.logout();
+        return null;
+      }
+
+      if (!session) {
+        // Session not found in database - token is invalid
+        console.log('🔄 Token de sessão inválido - limpando dados locais');
         await authService.logout();
         return null;
       }
@@ -273,6 +291,7 @@ export const authService = {
       const expiresAt = new Date(session.expires_at);
       if (expiresAt <= new Date()) {
         // Session expired
+        console.log('⏱️ Sessão expirada - solicitando novo login');
         await authService.logout();
         return null;
       }
@@ -283,7 +302,8 @@ export const authService = {
         expiresAt
       };
     } catch (error) {
-      console.error('Failed to validate session:', error);
+      console.error('❌ Falha ao validar sessão:', error);
+      // Clear invalid session to prevent black screen
       await authService.logout();
       return null;
     }

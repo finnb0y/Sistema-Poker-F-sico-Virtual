@@ -66,19 +66,23 @@ const App: React.FC = () => {
         } else {
           // Check if there was a previous session that expired
           const hadPreviousRole = localStorage.getItem('poker_current_role');
+          const hadPreviousToken = localStorage.getItem('poker_session_token');
           
-          // Session is invalid or expired - clear any stale role/player data
-          // This prevents the "Cannot subscribe: user not authenticated" error
-          console.log('🔄 Sessão inválida ou expirada - limpando dados locais');
-          clearSessionData();
-          
-          // Show message if user had a previous admin session
-          if (hadPreviousRole === 'DIRECTOR') {
-            setSessionExpiredMessage(true);
+          // Only clear and log if user had previous session data
+          if (hadPreviousRole || hadPreviousToken) {
+            // Session is invalid or expired - clear any stale role/player data
+            // This prevents the "Cannot subscribe: user not authenticated" error
+            console.log('🔄 Sessão inválida ou expirada - limpando dados locais');
+            clearSessionData();
+            
+            // Show message if user had a previous admin session
+            if (hadPreviousRole === 'DIRECTOR') {
+              setSessionExpiredMessage(true);
+            }
           }
         }
       } catch (error) {
-        console.error('Failed to check authentication:', error);
+        console.error('❌ Erro ao verificar autenticação:', error);
         // On error, also clear stale data to prevent black screen
         clearSessionData();
       } finally {
@@ -1003,9 +1007,13 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    // Only subscribe after authentication check is complete
+    // This prevents subscribing with invalid/expired session data
+    if (isLoading) return;
+    
     const unsubscribe = syncService.subscribe(processAction);
     return unsubscribe;
-  }, [processAction]);
+  }, [processAction, isLoading]);
 
   const dispatch = (msg: ActionMessage) => {
     processAction(msg);
