@@ -36,6 +36,7 @@ const App: React.FC = () => {
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [sessionExpiredMessage, setSessionExpiredMessage] = useState(false);
   const [gameState, setGameState] = useState<GameState>(INITIAL_STATE);
+  const [syncUserId, setSyncUserId] = useState<string | null>(null); // Track userId for sync subscription
   
   // Helper function to clear session data (localStorage + state)
   // This prevents black screen when session is invalid
@@ -63,6 +64,7 @@ const App: React.FC = () => {
           setCurrentUser(session.user);
           // Set user ID in sync service
           syncService.setUserId(session.user.id);
+          setSyncUserId(session.user.id);
         } else {
           // Check if there was a previous session that expired
           const hadPreviousRole = localStorage.getItem('poker_current_role');
@@ -1007,13 +1009,19 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    // Only subscribe after authentication check is complete
-    // This prevents subscribing with invalid/expired session data
+    // Only subscribe after authentication check is complete and we have a user ID
+    // This subscribes when admin logs in OR when code-based access sets a userId
     if (isLoading) return;
+    if (!syncUserId) return;
     
+    console.log('🔄 Iniciando assinatura de sincronização para userId:', syncUserId);
     const unsubscribe = syncService.subscribe(processAction);
-    return unsubscribe;
-  }, [processAction, isLoading]);
+    
+    return () => {
+      console.log('🔌 Encerrando assinatura de sincronização');
+      unsubscribe();
+    };
+  }, [processAction, isLoading, syncUserId]);
 
   const dispatch = (msg: ActionMessage) => {
     processAction(msg);
@@ -1202,12 +1210,55 @@ const App: React.FC = () => {
 
   // Show code entry only for unauthenticated users (requires Supabase to be configured)
   if (!role && !currentUser) {
-    const handleCodeSubmit = (e: React.FormEvent) => {
+    const handleCodeSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
       const code = accessCodeInput.toUpperCase();
       
+      // First, try to find the code in local state
+      let foundPlayer = gameState.players.find(p => p.accessCode === code);
+      let foundTable = gameState.tableStates.find(ts => ts.dealerAccessCode === code);
+      
+      // If not found locally and Supabase is configured, search in backend
+      if (!foundPlayer && !foundTable && isSupabaseConfigured()) {
+        console.log('🔍 Código não encontrado localmente, buscando no backend...');
+        
+        try {
+          // Find which user owns this code
+          const ownerUserId = await syncService.findUserByAccessCode(code);
+          
+          if (ownerUserId) {
+            console.log('✅ Código encontrado! Carregando estado do torneio...');
+            
+            // Load that user's game state
+            const ownerState = await syncService.loadStateForUser(ownerUserId);
+            
+            if (ownerState) {
+              // Update local game state with the owner's state
+              setGameState(ownerState);
+              
+              // Set this user ID for synchronization (guest access to owner's session)
+              syncService.setUserId(ownerUserId);
+              setSyncUserId(ownerUserId); // Trigger subscription effect
+              
+              // Now find the player/table in the loaded state
+              foundPlayer = ownerState.players.find(p => p.accessCode === code);
+              foundTable = ownerState.tableStates.find(ts => ts.dealerAccessCode === code);
+              
+              console.log('✅ Estado do torneio carregado com sucesso');
+            } else {
+              console.error('❌ Falha ao carregar estado do torneio');
+              alert('Erro ao carregar dados do torneio. Tente novamente.');
+              return;
+            }
+          }
+        } catch (error) {
+          console.error('❌ Erro ao buscar código no backend:', error);
+          alert('Erro ao buscar código. Verifique sua conexão e tente novamente.');
+          return;
+        }
+      }
+      
       // Check if it's a player code
-      const foundPlayer = gameState.players.find(p => p.accessCode === code);
       if (foundPlayer) {
         setPlayerId(foundPlayer.id);
         localStorage.setItem('poker_current_player_id', foundPlayer.id);
@@ -1216,7 +1267,6 @@ const App: React.FC = () => {
       }
       
       // Check if it's a dealer code
-      const foundTable = gameState.tableStates.find(ts => ts.dealerAccessCode === code);
       if (foundTable) {
         selectRole(Role.DEALER, foundTable.id);
         return;

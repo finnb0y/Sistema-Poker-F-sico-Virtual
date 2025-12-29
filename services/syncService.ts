@@ -187,5 +187,90 @@ export const syncService = {
     }
     
     return null;
+  },
+
+  /**
+   * Find the user ID that owns a specific access code (player or dealer)
+   * This allows code-based access to find the correct user's game state
+   */
+  findUserByAccessCode: async (accessCode: string): Promise<string | null> => {
+    if (!isSupabaseConfigured() || !supabase) {
+      console.error('❌ Supabase não configurado - busca de código indisponível');
+      return null;
+    }
+
+    try {
+      // Search all game states for this access code
+      const { data, error } = await supabase
+        .from('poker_game_state')
+        .select('user_id, state');
+      
+      if (error) {
+        console.error('❌ Erro ao buscar código de acesso:', error);
+        return null;
+      }
+
+      if (!data || data.length === 0) {
+        return null;
+      }
+
+      // Search through all states to find matching code
+      for (const record of data) {
+        const state = record.state as GameState;
+        
+        // Check player codes
+        const foundPlayer = state.players?.find((p: any) => p.accessCode === accessCode);
+        if (foundPlayer) {
+          console.log('✅ Código de jogador encontrado para usuário:', record.user_id);
+          return record.user_id;
+        }
+
+        // Check dealer codes
+        const foundTable = state.tableStates?.find((ts: any) => ts.dealerAccessCode === accessCode);
+        if (foundTable) {
+          console.log('✅ Código de dealer encontrado para usuário:', record.user_id);
+          return record.user_id;
+        }
+      }
+
+      console.log('⚠️ Código não encontrado em nenhum estado de jogo');
+      return null;
+    } catch (error) {
+      console.error('❌ Falha ao buscar código de acesso:', error);
+      return null;
+    }
+  },
+
+  /**
+   * Load game state for a specific user (for guest access via code)
+   * This allows players/dealers to access the tournament creator's game state
+   */
+  loadStateForUser: async (userId: string): Promise<GameState | null> => {
+    if (!isSupabaseConfigured() || !supabase) {
+      console.error('❌ Supabase não configurado - carregamento de estado indisponível');
+      return null;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('poker_game_state')
+        .select('state')
+        .eq('session_id', getGameSessionId(userId))
+        .eq('user_id', userId)
+        .single();
+      
+      if (!error && data?.state) {
+        console.log('✅ Estado carregado para usuário:', userId);
+        return data.state as GameState;
+      }
+      
+      if (error) {
+        console.error('❌ Erro ao carregar estado do usuário:', error);
+      }
+    } catch (error) {
+      console.error('❌ Falha ao carregar estado do usuário:', error);
+    }
+    
+    return null;
   }
 };
