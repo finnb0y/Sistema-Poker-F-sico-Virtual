@@ -87,7 +87,7 @@ const App: React.FC = () => {
     };
 
     checkAuth();
-  }, [clearSessionData]);
+  }, []);
 
   useEffect(() => {
     const loadInitialState = async () => {
