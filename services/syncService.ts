@@ -39,13 +39,8 @@ export const syncService = {
   },
 
   sendMessage: async (msg: ActionMessage) => {
-    if (!currentUserId) {
-      console.error('Cannot send message: user not authenticated');
-      return;
-    }
-
-    // Try Supabase first for multi-device sync
-    if (isSupabaseConfigured() && supabase) {
+    // Try Supabase first for multi-device sync (requires authentication)
+    if (currentUserId && isSupabaseConfigured() && supabase) {
       try {
         const { error } = await supabase
           .from('poker_actions')
@@ -73,12 +68,15 @@ export const syncService = {
         }
       }
     } else if (localChannel) {
-      // Use local BroadcastChannel when Supabase is not configured
+      // Use local BroadcastChannel when Supabase is not configured or user not authenticated
+      // This allows players/dealers with access codes to work in local mode
       try {
         localChannel.postMessage(msg);
       } catch (error) {
         console.error('Failed to send message via BroadcastChannel:', error);
       }
+    } else {
+      console.warn('⚠️ Nenhum método de sincronização disponível - mensagem não enviada');
     }
   },
   
@@ -166,12 +164,12 @@ export const syncService = {
 
   // Save state to Supabase only (no localStorage for game state)
   persistState: async (state: GameState) => {
+    // Only save to Supabase if user is authenticated and Supabase is configured
     if (!currentUserId) {
-      console.error('Cannot persist state: user not authenticated');
+      // Silent - players/dealers using access codes don't need to persist to Supabase
       return;
     }
 
-    // Only save to Supabase for multi-device sync
     if (isSupabaseConfigured() && supabase) {
       try {
         const { error } = await supabase
@@ -191,18 +189,16 @@ export const syncService = {
       } catch (error) {
         console.error('Supabase persist error:', error);
       }
-    } else {
-      console.warn('Supabase not configured - state will not be persisted');
     }
   },
 
   loadState: async (): Promise<GameState | null> => {
+    // Only load from Supabase if user is authenticated
     if (!currentUserId) {
-      console.error('Cannot load state: user not authenticated');
+      // Silent - players/dealers using access codes don't load from Supabase
       return null;
     }
 
-    // Load from Supabase only
     if (isSupabaseConfigured() && supabase) {
       try {
         const { data, error } = await supabase
