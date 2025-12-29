@@ -44,9 +44,12 @@ const App: React.FC = () => {
     localStorage.removeItem('poker_current_role');
     localStorage.removeItem('poker_current_player_id');
     localStorage.removeItem('poker_current_table_id');
+    localStorage.removeItem('poker_sync_user_id');
     setRole(null);
     setPlayerId(null);
     setTableId(null);
+    setSyncUserId(null);
+    syncService.setUserId(null);
   }, []);
   
   // Check authentication on mount
@@ -145,9 +148,29 @@ const App: React.FC = () => {
       const savedRole = localStorage.getItem('poker_current_role');
       const savedPlayerId = localStorage.getItem('poker_current_player_id');
       const savedTableId = localStorage.getItem('poker_current_table_id');
+      const savedSyncUserId = localStorage.getItem('poker_sync_user_id');
+      
       if (savedRole) setRole(savedRole as Role);
       if (savedPlayerId) setPlayerId(savedPlayerId);
       if (savedTableId) setTableId(parseInt(savedTableId));
+      
+      // Restore syncUserId for code-based access persistence
+      if (savedSyncUserId && !currentUser) {
+        // Only restore syncUserId if not logged in as admin
+        // This handles page refresh for players/dealers
+        syncService.setUserId(savedSyncUserId);
+        setSyncUserId(savedSyncUserId);
+        
+        // Load the tournament state for this user
+        syncService.loadStateForUser(savedSyncUserId).then(state => {
+          if (state) {
+            setGameState(state);
+            console.log('✅ Estado do torneio restaurado após refresh');
+          }
+        }).catch(err => {
+          console.error('❌ Erro ao restaurar estado:', err);
+        });
+      }
     } catch (error) {
       console.error('Failed to restore session:', error);
     }
@@ -1239,6 +1262,9 @@ const App: React.FC = () => {
               // Set this user ID for synchronization (guest access to owner's session)
               syncService.setUserId(ownerUserId);
               setSyncUserId(ownerUserId); // Trigger subscription effect
+              
+              // Save to localStorage for persistence across page refreshes
+              localStorage.setItem('poker_sync_user_id', ownerUserId);
               
               // Now find the player/table in the loaded state
               foundPlayer = ownerState.players.find(p => p.accessCode === code);
