@@ -10,18 +10,8 @@ const POKER_CHANNEL = 'poker_actions';
 // Current user ID - must be set before using sync service
 let currentUserId: string | null = null;
 
-// BroadcastChannel allows communication between tabs/windows on the same origin
-// This is used as fallback when Supabase is not configured
-const CHANNEL_NAME = 'poker_sync_channel';
-let localChannel: BroadcastChannel | null = null;
+// Realtime channel for Supabase synchronization
 let realtimeChannel: RealtimeChannel | null = null;
-
-// Initialize local BroadcastChannel as fallback
-try {
-  localChannel = new BroadcastChannel(CHANNEL_NAME);
-} catch (error) {
-  console.warn('BroadcastChannel not supported, using fallback');
-}
 
 export const syncService = {
   /**
@@ -39,179 +29,159 @@ export const syncService = {
   },
 
   sendMessage: async (msg: ActionMessage) => {
-    // Try Supabase first for multi-device sync (requires authentication)
-    if (currentUserId && isSupabaseConfigured() && supabase) {
-      try {
-        const { error } = await supabase
-          .from('poker_actions')
-          .insert({
-            session_id: getGameSessionId(currentUserId),
-            action_type: msg.type,
-            payload: msg.payload,
-            sender_id: msg.senderId,
-            user_id: currentUserId,
-            created_at: new Date().toISOString()
-          });
-        
-        if (error) {
-          console.error('Failed to send message via Supabase:', error);
-          // Fallback to local channel
-          if (localChannel) {
-            localChannel.postMessage(msg);
-          }
-        }
-      } catch (error) {
-        console.error('Supabase error:', error);
-        // Fallback to local channel
-        if (localChannel) {
-          localChannel.postMessage(msg);
-        }
+    // Multi-device sync requires Supabase and authentication
+    if (!currentUserId) {
+      console.error('❌ Sincronização requer autenticação de usuário');
+      throw new Error('User authentication required for synchronization');
+    }
+
+    if (!isSupabaseConfigured() || !supabase) {
+      console.error('❌ Supabase não configurado - sincronização multi-dispositivo indisponível');
+      throw new Error('Supabase configuration required for synchronization');
+    }
+
+    try {
+      const { error } = await supabase
+        .from('poker_actions')
+        .insert({
+          session_id: getGameSessionId(currentUserId),
+          action_type: msg.type,
+          payload: msg.payload,
+          sender_id: msg.senderId,
+          user_id: currentUserId,
+          created_at: new Date().toISOString()
+        });
+      
+      if (error) {
+        console.error('❌ Falha ao enviar mensagem via Supabase:', error);
+        throw error;
       }
-    } else if (localChannel) {
-      // Use local BroadcastChannel when Supabase is not configured or user not authenticated
-      // This allows players/dealers with access codes to work in local mode
-      try {
-        localChannel.postMessage(msg);
-      } catch (error) {
-        console.error('Failed to send message via BroadcastChannel:', error);
-      }
-    } else {
-      console.warn('⚠️ Nenhum método de sincronização disponível - mensagem não enviada');
+    } catch (error) {
+      console.error('❌ Erro ao sincronizar via Supabase:', error);
+      throw error;
     }
   },
   
   subscribe: (callback: (msg: ActionMessage) => void) => {
+    // Multi-device mode requires authentication
     if (!currentUserId) {
-      console.log('📱 Modo local ativo - sincronização apenas entre abas do mesmo navegador');
-      // In local mode (without authentication), we can still use BroadcastChannel
-      // This allows players/dealers with access codes to work
-      // Only admin features require authentication
+      console.error('❌ Inscrição requer autenticação de usuário - modo multi-dispositivo exclusivo');
+      return () => { /* No-op cleanup */ };
     }
 
-    const cleanupFunctions: (() => void)[] = [];
+    if (!isSupabaseConfigured() || !supabase) {
+      console.error('❌ Supabase não configurado - sincronização multi-dispositivo indisponível');
+      return () => { /* No-op cleanup */ };
+    }
+
+    console.log('🔄 Inscrevendo-se no Supabase Realtime para sincronização multi-dispositivo...');
     
-    // Subscribe to Supabase Realtime if configured AND user is authenticated
-    if (isSupabaseConfigured() && supabase && currentUserId) {
-      const userSessionId = getGameSessionId(currentUserId);
-      console.log('🔄 Inscrevendo-se no Supabase Realtime para sincronização multi-dispositivo...');
-      
-      realtimeChannel = supabase
-        .channel(`${POKER_CHANNEL}_${currentUserId}`)
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'poker_actions',
-            filter: `session_id=eq.${userSessionId}`
-          },
-          (payload) => {
-            try {
-              const action = payload.new as any;
-              const msg: ActionMessage = {
-                type: action.action_type,
-                payload: action.payload,
-                senderId: action.sender_id
-              };
-              callback(msg);
-            } catch (error) {
-              console.error('❌ Falha ao processar mensagem do Supabase:', error);
-            }
+    const userSessionId = getGameSessionId(currentUserId);
+    
+    realtimeChannel = supabase
+      .channel(`${POKER_CHANNEL}_${currentUserId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'poker_actions',
+          filter: `session_id=eq.${userSessionId}`
+        },
+        (payload) => {
+          try {
+            const action = payload.new as any;
+            const msg: ActionMessage = {
+              type: action.action_type,
+              payload: action.payload,
+              senderId: action.sender_id
+            };
+            callback(msg);
+          } catch (error) {
+            console.error('❌ Falha ao processar mensagem do Supabase:', error);
           }
-        )
-        .subscribe((status) => {
-          if (status === 'SUBSCRIBED') {
-            console.log('✅ Conectado ao Supabase Realtime - sincronização ativa');
-          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-            console.error('❌ Erro na conexão com Supabase:', status);
-          }
-        });
-      
-      cleanupFunctions.push(() => {
-        if (realtimeChannel) {
-          console.log('🔌 Desconectando do Supabase Realtime...');
-          supabase.removeChannel(realtimeChannel);
-          realtimeChannel = null;
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Conectado ao Supabase Realtime - sincronização multi-dispositivo ativa');
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          console.error('❌ Erro na conexão com Supabase:', status);
         }
       });
-    }
     
-    // Also subscribe to local BroadcastChannel for same-device sync
-    if (localChannel) {
-      const handler = (event: MessageEvent) => {
-        try {
-          callback(event.data);
-        } catch (error) {
-          console.error('❌ Falha ao processar mensagem do BroadcastChannel:', error);
-        }
-      };
-      localChannel.addEventListener('message', handler);
-      cleanupFunctions.push(() => localChannel?.removeEventListener('message', handler));
-    }
-    
-    if (cleanupFunctions.length === 0) {
-      console.warn('⚠️ Nenhum método de sincronização disponível');
-      return () => { /* No sync available - return no-op cleanup function */ };
-    }
-    
-    // Return cleanup function that calls all registered cleanups
+    // Return cleanup function
     return () => {
-      cleanupFunctions.forEach(cleanup => cleanup());
+      if (realtimeChannel) {
+        console.log('🔌 Desconectando do Supabase Realtime...');
+        supabase.removeChannel(realtimeChannel);
+        realtimeChannel = null;
+      }
     };
   },
 
-  // Save state to Supabase only (no localStorage for game state)
+  // Save state to Supabase only (multi-device mode)
   persistState: async (state: GameState) => {
-    // Only save to Supabase if user is authenticated and Supabase is configured
+    // Multi-device mode requires authentication
     if (!currentUserId) {
-      // Silent - players/dealers using access codes don't need to persist to Supabase
+      console.error('❌ Persistência requer autenticação de usuário');
       return;
     }
 
-    if (isSupabaseConfigured() && supabase) {
-      try {
-        const { error } = await supabase
-          .from('poker_game_state')
-          .upsert({
-            session_id: getGameSessionId(currentUserId),
-            user_id: currentUserId,
-            state: state,
-            updated_at: new Date().toISOString()
-          }, {
-            onConflict: 'session_id,user_id'
-          });
-        
-        if (error) {
-          console.error('Failed to persist state to Supabase:', error);
-        }
-      } catch (error) {
-        console.error('Supabase persist error:', error);
+    if (!isSupabaseConfigured() || !supabase) {
+      console.error('❌ Supabase não configurado - persistência multi-dispositivo indisponível');
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('poker_game_state')
+        .upsert({
+          session_id: getGameSessionId(currentUserId),
+          user_id: currentUserId,
+          state: state,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'session_id,user_id'
+        });
+      
+      if (error) {
+        console.error('❌ Falha ao persistir estado no Supabase:', error);
       }
+    } catch (error) {
+      console.error('❌ Erro ao persistir estado:', error);
     }
   },
 
   loadState: async (): Promise<GameState | null> => {
-    // Only load from Supabase if user is authenticated
+    // Multi-device mode requires authentication
     if (!currentUserId) {
-      // Silent - players/dealers using access codes don't load from Supabase
+      console.error('❌ Carregamento de estado requer autenticação de usuário');
       return null;
     }
 
-    if (isSupabaseConfigured() && supabase) {
-      try {
-        const { data, error } = await supabase
-          .from('poker_game_state')
-          .select('state')
-          .eq('session_id', getGameSessionId(currentUserId))
-          .eq('user_id', currentUserId)
-          .single();
-        
-        if (!error && data?.state) {
-          return data.state as GameState;
-        }
-      } catch (error) {
-        console.error('Supabase load error:', error);
+    if (!isSupabaseConfigured() || !supabase) {
+      console.error('❌ Supabase não configurado - carregamento de estado multi-dispositivo indisponível');
+      return null;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('poker_game_state')
+        .select('state')
+        .eq('session_id', getGameSessionId(currentUserId))
+        .eq('user_id', currentUserId)
+        .single();
+      
+      if (!error && data?.state) {
+        return data.state as GameState;
       }
+      
+      if (error) {
+        console.error('❌ Erro ao carregar estado do Supabase:', error);
+      }
+    } catch (error) {
+      console.error('❌ Falha ao carregar estado:', error);
     }
     
     return null;

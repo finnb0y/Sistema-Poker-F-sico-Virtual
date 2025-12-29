@@ -1090,28 +1090,23 @@ const App: React.FC = () => {
               <div className="text-white/40 mb-6 text-[10px] font-bold tracking-[6px] uppercase">
                 Gerenciador de Fichas & Suite Profissional
               </div>
-              <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-2xl p-6 text-left">
-                <h2 className="text-yellow-400 font-black text-xl mb-4">⚠️ Configuração Necessária para Modo Administrativo</h2>
+              <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-6 text-left">
+                <h2 className="text-red-400 font-black text-xl mb-4">🔒 Configuração Obrigatória</h2>
                 <p className="text-white/80 mb-4">
-                  O modo administrativo requer autenticação de usuários e sincronização via Supabase.
+                  O sistema requer Supabase para sincronização multi-dispositivo em tempo real.
                 </p>
                 <p className="text-white/60 text-sm mb-4">
-                  Para usar o modo administrativo, você precisa:
+                  Para usar o sistema, você precisa:
                 </p>
                 <ol className="text-white/60 text-sm space-y-2 list-decimal list-inside mb-4">
                   <li>Criar uma conta gratuita em <a href="https://supabase.com" target="_blank" rel="noopener noreferrer" className="text-yellow-400 hover:underline">supabase.com</a></li>
-                  <li>Executar o script SQL: <code className="bg-black/40 px-2 py-1 rounded">supabase-auth-migration.sql</code></li>
+                  <li>Executar os scripts SQL: <code className="bg-black/40 px-2 py-1 rounded">supabase-setup.sql</code> e <code className="bg-black/40 px-2 py-1 rounded">supabase-auth-migration.sql</code></li>
                   <li>Configurar as variáveis de ambiente no arquivo <code className="bg-black/40 px-2 py-1 rounded">.env</code></li>
                   <li>Reiniciar o servidor de desenvolvimento</li>
                 </ol>
                 <p className="text-white/60 text-sm">
                   📖 Consulte <code className="bg-black/40 px-2 py-1 rounded">ENVIRONMENT_SETUP.md</code> para instruções detalhadas.
                 </p>
-                <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl">
-                  <p className="text-blue-300 text-sm">
-                    💡 <strong>Nota:</strong> Você ainda pode usar códigos de jogador/dealer para entrar em mesas existentes sem configurar o Supabase.
-                  </p>
-                </div>
               </div>
             </div>
           </div>
@@ -1135,8 +1130,66 @@ const App: React.FC = () => {
     }
   }
 
-  // Main interface - no authentication required for code entry
-  // Show code entry only for unauthenticated users
+  // Main interface - authentication required for all operations
+  // Show Supabase requirement if not configured
+  if (!isSupabaseConfigured()) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 poker-felt">
+        <div className="w-full max-w-2xl glass p-10 rounded-[40px] shadow-2xl border-white/20 border">
+          <div className="text-center mb-8">
+            <h1 className="text-6xl font-outfit font-black text-white mb-2 italic tracking-tighter">
+              POKER<span className="text-yellow-500"> 2</span>
+            </h1>
+            <p className="text-white/40 mb-2 text-[10px] font-bold tracking-[6px] uppercase">
+              Gerenciador de Fichas & Suite Profissional
+            </p>
+          </div>
+          
+          <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-6 mb-6">
+            <div className="flex items-start gap-4 mb-4">
+              <span className="text-4xl">🔒</span>
+              <div>
+                <h2 className="text-red-400 font-black text-xl mb-2">Configuração Obrigatória</h2>
+                <p className="text-white/80 mb-4 leading-relaxed">
+                  Este sistema opera <strong>exclusivamente em modo multi-dispositivo</strong> e requer 
+                  configuração do Supabase para sincronização em tempo real.
+                </p>
+              </div>
+            </div>
+            
+            <div className="bg-black/40 rounded-xl p-4 mb-4">
+              <h3 className="text-yellow-400 font-black text-sm mb-3 uppercase tracking-wider">
+                📋 Passos para Configuração:
+              </h3>
+              <ol className="text-white/70 text-sm space-y-2 list-decimal list-inside">
+                <li>Crie uma conta gratuita em <a href="https://supabase.com" target="_blank" rel="noopener noreferrer" className="text-yellow-400 hover:underline font-bold">supabase.com</a></li>
+                <li>No SQL Editor do Supabase, execute o script: <code className="bg-black/40 px-2 py-1 rounded text-yellow-300">supabase-setup.sql</code></li>
+                <li>Execute também: <code className="bg-black/40 px-2 py-1 rounded text-yellow-300">supabase-auth-migration.sql</code></li>
+                <li>Copie o arquivo: <code className="bg-black/40 px-2 py-1 rounded text-yellow-300">.env.example</code> para <code className="bg-black/40 px-2 py-1 rounded text-yellow-300">.env</code></li>
+                <li>Configure as variáveis VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY</li>
+                <li>Reinicie o servidor de desenvolvimento: <code className="bg-black/40 px-2 py-1 rounded text-yellow-300">npm run dev</code></li>
+              </ol>
+            </div>
+            
+            <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
+              <p className="text-blue-300 text-sm">
+                <strong>💡 Nota:</strong> A configuração leva apenas 5 minutos e garante sincronização 
+                em tempo real entre múltiplos dispositivos e usuários.
+              </p>
+            </div>
+          </div>
+          
+          <div className="text-center">
+            <p className="text-white/40 text-xs mb-4">
+              📖 Documentação completa: <code className="bg-black/40 px-2 py-1 rounded text-yellow-300">ENVIRONMENT_SETUP.md</code>
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show code entry only for unauthenticated users (requires Supabase to be configured)
   if (!role && !currentUser) {
     const handleCodeSubmit = (e: React.FormEvent) => {
       e.preventDefault();
