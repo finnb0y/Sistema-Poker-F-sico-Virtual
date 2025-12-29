@@ -4,14 +4,26 @@ import { createClient } from '@supabase/supabase-js';
 // These values MUST be set in environment variables for the system to work
 // Handle both Vite (import.meta.env) and Node.js (process.env) environments
 const getEnvVar = (key: string): string => {
-  // Check if running in browser with Vite
-  if (typeof import.meta !== 'undefined' && import.meta.env) {
-    return import.meta.env[key] || '';
+  // Check if running in browser with Vite - verify both import.meta and import.meta.env exist
+  try {
+    if (typeof import.meta !== 'undefined' && import.meta.env && typeof import.meta.env === 'object') {
+      const value = import.meta.env[key];
+      if (typeof value === 'string') {
+        return value;
+      }
+    }
+  } catch (e) {
+    // import.meta access failed, continue to process.env fallback
   }
+  
   // Fallback to process.env for Node.js (testing)
-  if (typeof process !== 'undefined' && process.env) {
-    return process.env[key] || '';
+  if (typeof process !== 'undefined' && process.env && typeof process.env === 'object') {
+    const value = process.env[key];
+    if (typeof value === 'string') {
+      return value;
+    }
   }
+  
   return '';
 };
 

@@ -10,9 +10,19 @@
  * Run with: npx tsx utils/multiDeviceRequirement.test.ts
  */
 
-// Mock import.meta.env for Node.js testing
-if (typeof globalThis.import === 'undefined') {
-  (globalThis as any).import = { meta: { env: {} } };
+// Mock import.meta.env for Node.js testing environment
+// This allows tests to run in Node.js where import.meta.env is not available
+if (typeof globalThis !== 'undefined') {
+  const g = globalThis as any;
+  if (typeof g.import === 'undefined') {
+    g.import = {};
+  }
+  if (typeof g.import.meta === 'undefined') {
+    g.import.meta = {};
+  }
+  if (typeof g.import.meta.env === 'undefined') {
+    g.import.meta.env = {};
+  }
 }
 
 import { syncService } from '../services/syncService';

@@ -31,13 +31,15 @@ export const syncService = {
   sendMessage: async (msg: ActionMessage) => {
     // Multi-device sync requires Supabase and authentication
     if (!currentUserId) {
-      console.error('❌ Sincronização requer autenticação de usuário');
-      throw new Error('User authentication required for synchronization');
+      const errorMsg = 'Sincronização requer autenticação de usuário';
+      console.error(`❌ ${errorMsg}`);
+      throw new Error(errorMsg);
     }
 
     if (!isSupabaseConfigured() || !supabase) {
-      console.error('❌ Supabase não configurado - sincronização multi-dispositivo indisponível');
-      throw new Error('Supabase configuration required for synchronization');
+      const errorMsg = 'Supabase não configurado - sincronização multi-dispositivo indisponível';
+      console.error(`❌ ${errorMsg}`);
+      throw new Error(errorMsg);
     }
 
     try {
