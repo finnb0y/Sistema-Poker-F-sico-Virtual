@@ -37,6 +37,17 @@ const App: React.FC = () => {
   const [sessionExpiredMessage, setSessionExpiredMessage] = useState(false);
   const [gameState, setGameState] = useState<GameState>(INITIAL_STATE);
   
+  // Helper function to clear session data (localStorage + state)
+  // This prevents black screen when session is invalid
+  const clearSessionData = useCallback(() => {
+    localStorage.removeItem('poker_current_role');
+    localStorage.removeItem('poker_current_player_id');
+    localStorage.removeItem('poker_current_table_id');
+    setRole(null);
+    setPlayerId(null);
+    setTableId(null);
+  }, []);
+  
   // Check authentication on mount
   useEffect(() => {
     const checkAuth = async () => {
@@ -59,14 +70,7 @@ const App: React.FC = () => {
           // Session is invalid or expired - clear any stale role/player data
           // This prevents the "Cannot subscribe: user not authenticated" error
           console.log('🔄 Sessão inválida ou expirada - limpando dados locais');
-          localStorage.removeItem('poker_current_role');
-          localStorage.removeItem('poker_current_player_id');
-          localStorage.removeItem('poker_current_table_id');
-          
-          // Clear state variables to prevent black screen
-          setRole(null);
-          setPlayerId(null);
-          setTableId(null);
+          clearSessionData();
           
           // Show message if user had a previous admin session
           if (hadPreviousRole === 'DIRECTOR') {
@@ -76,21 +80,14 @@ const App: React.FC = () => {
       } catch (error) {
         console.error('Failed to check authentication:', error);
         // On error, also clear stale data to prevent black screen
-        localStorage.removeItem('poker_current_role');
-        localStorage.removeItem('poker_current_player_id');
-        localStorage.removeItem('poker_current_table_id');
-        
-        // Clear state variables to prevent black screen
-        setRole(null);
-        setPlayerId(null);
-        setTableId(null);
+        clearSessionData();
       } finally {
         setIsLoading(false);
       }
     };
 
     checkAuth();
-  }, []);
+  }, [clearSessionData]);
 
   useEffect(() => {
     const loadInitialState = async () => {
