@@ -1,5 +1,5 @@
 
-import { ActionMessage, GameState } from '../types';
+import { ActionMessage, GameState, Player, TableState } from '../types';
 import { supabase, isSupabaseConfigured } from './supabaseClient';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
@@ -219,14 +219,14 @@ export const syncService = {
         const state = record.state as GameState;
         
         // Check player codes
-        const foundPlayer = state.players?.find((p: any) => p.accessCode === accessCode);
+        const foundPlayer = state.players?.find((p: Player) => p.accessCode === accessCode);
         if (foundPlayer) {
           console.log('✅ Código de jogador encontrado para usuário:', record.user_id);
           return record.user_id;
         }
 
         // Check dealer codes
-        const foundTable = state.tableStates?.find((ts: any) => ts.dealerAccessCode === accessCode);
+        const foundTable = state.tableStates?.find((ts: TableState) => ts.dealerAccessCode === accessCode);
         if (foundTable) {
           console.log('✅ Código de dealer encontrado para usuário:', record.user_id);
           return record.user_id;
