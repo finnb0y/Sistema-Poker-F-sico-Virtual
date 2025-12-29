@@ -245,6 +245,7 @@ export const authService = {
       localStorage.removeItem('poker_current_role');
       localStorage.removeItem('poker_current_player_id');
       localStorage.removeItem('poker_current_table_id');
+      localStorage.removeItem('poker_sync_user_id');
     } catch (error) {
       console.error('⚠️ Falha ao limpar localStorage:', error);
     }
