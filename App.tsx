@@ -87,7 +87,8 @@ const App: React.FC = () => {
     };
 
     checkAuth();
-  }, []);
+    // clearSessionData is stable (useCallback with []) but included per React Hook rules
+  }, [clearSessionData]);
 
   useEffect(() => {
     const loadInitialState = async () => {
