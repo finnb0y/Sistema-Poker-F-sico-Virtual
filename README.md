@@ -4,44 +4,60 @@ Sistema de fichas de poker virtual para unificação de jogos de poker com carta
 
 ## 📋 Sobre o Projeto
 
-Este projeto permite jogar poker usando cartas físicas reais enquanto gerencia fichas, apostas e o pot de forma virtual através de uma interface web moderna. **Jogadores e dealers podem entrar nas mesas usando códigos simples, sem necessidade de criar conta.**
+Este projeto permite jogar poker usando cartas físicas reais enquanto gerencia fichas, apostas e o pot de forma virtual através de uma interface web moderna. **O sistema opera em modo multi-dispositivo exclusivo, permitindo sincronização em tempo real entre múltiplos dispositivos.**
 
-## 🎮 Acesso Rápido
+## ⚠️ Requisito Obrigatório: Supabase
 
-### Para Jogadores e Dealers
+🔒 **Este sistema requer configuração do Supabase para funcionar.**
 
-**Não precisa criar conta!** Basta:
-1. Receber seu código (4 caracteres para jogador, ou Dxxx para dealer)
-2. Abrir o aplicativo
-3. Digitar o código
-4. Jogar!
+O sistema foi projetado para operar **exclusivamente em modo multi-dispositivo** com sincronização em tempo real via Supabase. Não há modo local ou offline disponível.
 
-📖 **[Veja o guia completo de códigos de acesso](./CODIGO_ACESSO.md)**
+### Por que Supabase é Obrigatório?
+
+- ✅ **Sincronização multi-dispositivo**: Vários dispositivos conectados em tempo real
+- ✅ **Sem tela preta**: Elimina inconsistências de autenticação
+- ✅ **Confiabilidade**: Estado sempre consistente entre dispositivos
+- ✅ **Escalabilidade**: Suporta múltiplos jogadores e mesas simultâneas
+
+📖 **[Guia de Migração](./MIGRACAO_MODO_MULTI_DISPOSITIVO.md)** - Entenda as mudanças
+
+## 🎮 Como Usar
 
 ### Para Administradores
 
-**Criar e gerenciar torneios requer:**
-1. **Supabase configurado** - Para sincronização multi-dispositivo
-2. **Conta administrativa** - Criada no primeiro acesso
-3. **Banco de dados PostgreSQL** - Fornecido automaticamente pelo Supabase
+**Criar e gerenciar torneios:**
+1. **Configure o Supabase** (veja seção abaixo)
+2. **Registre sua conta** no primeiro acesso ao modo administrativo
+3. **Crie torneios** e gerencie mesas
+4. **Gere códigos** para jogadores e dealers
+
+### Para Jogadores e Dealers
+
+**Entrar em uma mesa:**
+1. Receba seu código do administrador (4 caracteres para jogador, Dxxx para dealer)
+2. Abra o aplicativo
+3. Digite o código
+4. Jogue em tempo real!
+
+📖 **[Veja o guia completo de códigos de acesso](./CODIGO_ACESSO.md)**
 
 ## 🚀 Tecnologias
 
 - **React** - Biblioteca para construção da interface
 - **TypeScript** - Tipagem estática para JavaScript
 - **Vite** - Build tool e dev server ultra-rápido
+- **Supabase** - Banco de dados PostgreSQL e sincronização em tempo real (obrigatório)
 - **Vercel** - Hospedagem e deploy contínuo
-- **Supabase** - Banco de dados e sincronização em tempo real (opcional para jogadores, obrigatório para admins)
 
-## 💻 Rodando Localmente
+## 💻 Configuração Inicial
 
 ### Pré-requisitos
 
 - Node.js 16+ instalado
 - npm ou yarn
-- **Conta no Supabase (gratuita)** - [Criar conta](https://supabase.com) - **Opcional para testes, obrigatório para uso administrativo**
+- **Conta no Supabase (gratuita)** - [Criar conta](https://supabase.com) - **OBRIGATÓRIO**
 
-### Instalação
+### Passo 1: Instalação
 
 ```bash
 # Clone o repositório
@@ -52,34 +68,70 @@ cd Sistema-Poker-F-sico-Virtual
 
 # Instale as dependências
 npm install
+```
 
-# Inicie o servidor de desenvolvimento
+### Passo 2: Configuração do Supabase (OBRIGATÓRIO)
+
+#### 2.1. Criar Projeto Supabase
+
+1. Acesse [https://supabase.com](https://supabase.com)
+2. Crie uma conta gratuita (se ainda não tiver)
+3. Crie um novo projeto
+
+#### 2.2. Executar Scripts SQL
+
+No SQL Editor do Supabase, execute os scripts na ordem:
+
+```sql
+-- 1. Primeiro: Estrutura básica do banco
+-- Copie e cole o conteúdo de: supabase-setup.sql
+
+-- 2. Depois: Sistema de autenticação
+-- Copie e cole o conteúdo de: supabase-auth-migration.sql
+```
+
+#### 2.3. Configurar Variáveis de Ambiente
+
+```bash
+# Copie o arquivo de exemplo
+cp .env.example .env
+
+# Edite o arquivo .env com suas credenciais
+# Encontre as credenciais em: Project Settings > API
+```
+
+Arquivo `.env`:
+```bash
+VITE_SUPABASE_URL=https://seu-projeto.supabase.co
+VITE_SUPABASE_ANON_KEY=sua-chave-anonima-publica
+```
+
+#### 2.4. Validar Configuração
+
+```bash
+# Validar variáveis de ambiente (opcional mas recomendado)
+npm run validate-env
+
+# Iniciar servidor de desenvolvimento
 npm run dev
 ```
 
 O projeto estará rodando em `http://localhost:3000`
 
-### Configuração do Supabase (Opcional)
-
-⚠️ **Necessário apenas para usar funcionalidades administrativas**
-
-Se você deseja criar torneios e gerenciar mesas, configure o Supabase:
-
-```bash
-# 1. Crie um projeto no Supabase (https://app.supabase.com)
-# 2. Execute o script SQL no SQL Editor do Supabase:
-#    - Primeiro: supabase-setup.sql (tabelas base)
-#    - Depois: supabase-auth-migration.sql (autenticação e user scope)
-
-# Configure as variáveis de ambiente
-cp .env.example .env
-# Edite o arquivo .env com suas credenciais do Supabase
-# VITE_SUPABASE_URL=https://seu-projeto.supabase.co
-# VITE_SUPABASE_ANON_KEY=sua-chave-publica
-
-# Valide a configuração (opcional mas recomendado)
-npm run validate-env
+Se tudo estiver correto, você verá:
 ```
+✅ Supabase configurado - sincronização multi-dispositivo habilitada
+🔗 Conectando ao projeto: https://seu-projeto.supabase.co
+```
+
+### Passo 3: Primeiro Acesso
+
+1. Acesse `http://localhost:3000`
+2. Clique em **"Modo Administrativo"**
+3. Registre sua conta de administrador
+4. Comece a criar torneios!
+
+📖 **[Guia detalhado de configuração](./ENVIRONMENT_SETUP.md)**
 
 ## 🏗️ Build
 
