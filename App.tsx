@@ -87,8 +87,9 @@ const App: React.FC = () => {
     };
 
     checkAuth();
-    // clearSessionData is stable (useCallback with []) but included per React Hook rules
-  }, [clearSessionData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // clearSessionData is stable (useCallback with empty deps), safe to omit
+  }, []);
 
   useEffect(() => {
     const loadInitialState = async () => {
