@@ -32,21 +32,24 @@ const supabaseAnonKey = getEnvVar('VITE_SUPABASE_ANON_KEY');
 
 // Validate environment variables and provide helpful feedback
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('❌ ERRO: Supabase não configurado - sistema requer Supabase para funcionar');
-  console.error('📖 Este sistema opera EXCLUSIVAMENTE em modo multi-dispositivo via Supabase');
+  console.error('❌ ERRO: Backend não configurado');
   console.error('');
-  console.error('🔧 Para configurar o Supabase:');
+  console.error('👤 Se você é um USUÁRIO:');
+  console.error('   → Não se preocupe! Isso é um problema de configuração do servidor.');
+  console.error('   → Entre em contato com o administrador do sistema.');
+  console.error('   → O sistema deve estar configurado para funcionar sem setup do usuário.');
+  console.error('');
+  console.error('🔧 Se você é um DESENVOLVEDOR/MANTENEDOR:');
   console.error('   1. Crie uma conta gratuita em https://supabase.com');
-  console.error('   2. Execute o script SQL: supabase-setup.sql');
-  console.error('   3. Copie .env.example para .env');
-  console.error('   4. Adicione suas credenciais do Supabase no arquivo .env');
-  console.error('   5. Reinicie o servidor (npm run dev)');
+  console.error('   2. Execute os scripts SQL: supabase-setup.sql e supabase-auth-migration.sql');
+  console.error('   3. Configure as variáveis de ambiente (veja DEVELOPER_SETUP.md)');
+  console.error('   4. Para produção: Configure no painel da Vercel');
   console.error('');
-  console.error('📚 Consulte ENVIRONMENT_SETUP.md para instruções detalhadas');
+  console.error('📚 Consulte DEVELOPER_SETUP.md para instruções completas');
   console.error('');
 } else {
-  console.log('✅ Supabase configurado - sincronização multi-dispositivo habilitada');
-  console.log('🔗 Conectando ao projeto:', supabaseUrl);
+  console.log('✅ Backend configurado - sistema pronto para uso');
+  console.log('🔗 Conectado ao servidor:', supabaseUrl);
 }
 
 // Create Supabase client - required for system operation

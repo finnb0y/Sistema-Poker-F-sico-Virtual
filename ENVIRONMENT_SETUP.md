@@ -1,10 +1,12 @@
-# 🔧 Guia de Configuração de Variáveis de Ambiente
+# 🔧 Guia de Configuração de Variáveis de Ambiente (Para Desenvolvedores)
+
+> **⚠️ Nota:** Este guia é para **desenvolvedores e mantenedores** do sistema. Se você é um usuário final, não precisa configurar nada! Veja [USER_GUIDE.md](USER_GUIDE.md) para instruções de uso.
 
 Este guia explica como configurar corretamente as variáveis de ambiente para o projeto de Poker Físico-Virtual, tanto para desenvolvimento local quanto para produção.
 
 ## 📋 Visão Geral
 
-O projeto utiliza **Supabase** para sincronização em tempo real entre dispositivos. As credenciais do Supabase são armazenadas em variáveis de ambiente para manter a segurança e flexibilidade.
+O projeto utiliza **Supabase** para sincronização em tempo real entre dispositivos. As credenciais do Supabase devem ser configuradas **uma vez** pelos mantenedores do sistema, permitindo que todos os usuários finais acessem o sistema sem qualquer configuração.
 
 ### Variáveis Necessárias
 
@@ -71,9 +73,11 @@ Este script verifica:
 
 ## ☁️ Produção (Vercel)
 
-Para deploy em produção na Vercel, as variáveis de ambiente devem ser configuradas no painel da Vercel, **não** no arquivo `.env`.
+Para deploy em produção na Vercel, as variáveis de ambiente devem ser configuradas **uma única vez** pelos mantenedores no painel da Vercel, **não** no arquivo `.env`.
 
-### Configuração na Vercel
+> **Importante:** Uma vez configurado em produção, todos os usuários finais poderão acessar o sistema sem qualquer configuração adicional.
+
+### Configuração na Vercel (Apenas Mantenedores)
 
 1. Acesse o [painel da Vercel](https://vercel.com/dashboard)
 2. Selecione seu projeto
@@ -94,6 +98,7 @@ Após configurar as variáveis, todo push para o repositório irá:
 1. Carregar as variáveis de ambiente da Vercel
 2. Fazer build do projeto com essas variáveis
 3. Deploy automático
+4. **Usuários finais acessam o site sem configuração**
 
 ## 🔍 Verificação
 
@@ -242,22 +247,26 @@ VITE_SUPABASE_URL="https://xxxxx.supabase.co"    # Aspas desnecessárias
 
 ### Posso commitar o arquivo .env?
 
-**Não!** O arquivo `.env` contém credenciais sensíveis e deve ser mantido apenas localmente. O `.gitignore` já está configurado para ignorar este arquivo.
+**Não!** O arquivo `.env` contém credenciais sensíveis e deve ser mantido apenas localmente pelos desenvolvedores. O `.gitignore` já está configurado para ignorar este arquivo.
 
 ### E se eu não configurar o Supabase?
 
-O sistema funcionará normalmente usando `BroadcastChannel` para sincronização entre abas do mesmo navegador, mas não sincronizará entre dispositivos diferentes.
+**Para desenvolvedores:** O sistema não funcionará corretamente sem Supabase configurado, pois ele é necessário para autenticação e sincronização.
+
+**Para usuários finais:** Não é necessário configurar nada! O sistema já vem pré-configurado em produção.
 
 ### Preciso configurar para desenvolvimento local?
 
-Depende:
-- **Precisa de sincronização multi-dispositivo?** → Sim, configure
-- **Apenas desenvolvimento local em uma aba?** → Não é necessário
+**Sim, apenas se você for desenvolvedor.** Siga as instruções na seção "Desenvolvimento Local" deste guia ou veja [DEVELOPER_SETUP.md](DEVELOPER_SETUP.md) para instruções completas.
 
 ### Como sei se está funcionando?
 
-Abra duas abas do navegador e faça uma ação em uma delas. Se a outra aba atualizar automaticamente, está funcionando!
+**Para desenvolvedores:** Abra duas abas do navegador e faça uma ação em uma delas. Se a outra aba atualizar automaticamente, está funcionando!
+
+**Para usuários finais:** Se você consegue criar conta e fazer login, está funcionando corretamente.
 
 ---
 
-**Precisa de ajuda?** Consulte o [SETUP_MULTI_USUARIO.md](SETUP_MULTI_USUARIO.md) para mais detalhes sobre a configuração do Supabase.
+**Precisa de ajuda?** 
+- **Desenvolvedores:** Consulte o [DEVELOPER_SETUP.md](DEVELOPER_SETUP.md) para mais detalhes
+- **Usuários finais:** Consulte o [USER_GUIDE.md](USER_GUIDE.md) para instruções de uso

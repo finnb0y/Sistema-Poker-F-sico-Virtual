@@ -56,7 +56,10 @@ export const authService = {
    */
   register: async (username: string, password: string): Promise<{ success: boolean; error?: string; session?: AuthSession }> => {
     if (!isSupabaseConfigured() || !supabase) {
-      return { success: false, error: 'Supabase não configurado. Autenticação requer Supabase.' };
+      return { 
+        success: false, 
+        error: 'Sistema não está configurado. Entre em contato com o administrador.' 
+      };
     }
 
     if (!username || username.length < 3) {
@@ -148,7 +151,10 @@ export const authService = {
    */
   login: async (username: string, password: string): Promise<{ success: boolean; error?: string; session?: AuthSession }> => {
     if (!isSupabaseConfigured() || !supabase) {
-      return { success: false, error: 'Supabase não configurado. Autenticação requer Supabase.' };
+      return { 
+        success: false, 
+        error: 'Sistema não está configurado. Entre em contato com o administrador.' 
+      };
     }
 
     if (!username || !password) {
