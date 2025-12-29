@@ -235,6 +235,7 @@ export const authService = {
     // Also clear role/player session data
     localStorage.removeItem('poker_current_role');
     localStorage.removeItem('poker_current_player_id');
+    localStorage.removeItem('poker_current_table_id');
   },
 
   /**

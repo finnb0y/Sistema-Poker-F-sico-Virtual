@@ -34,6 +34,7 @@ const App: React.FC = () => {
   const [accessCodeInput, setAccessCodeInput] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [showAdminLogin, setShowAdminLogin] = useState(false);
+  const [sessionExpiredMessage, setSessionExpiredMessage] = useState(false);
   const [gameState, setGameState] = useState<GameState>(INITIAL_STATE);
   
   // Check authentication on mount
@@ -51,9 +52,28 @@ const App: React.FC = () => {
           setCurrentUser(session.user);
           // Set user ID in sync service
           syncService.setUserId(session.user.id);
+        } else {
+          // Check if there was a previous session that expired
+          const hadPreviousRole = localStorage.getItem('poker_current_role');
+          
+          // Session is invalid or expired - clear any stale role/player data
+          // This prevents the "Cannot subscribe: user not authenticated" error
+          console.log('🔄 Sessão inválida ou expirada - limpando dados locais');
+          localStorage.removeItem('poker_current_role');
+          localStorage.removeItem('poker_current_player_id');
+          localStorage.removeItem('poker_current_table_id');
+          
+          // Show message if user had a previous admin session
+          if (hadPreviousRole === 'DIRECTOR') {
+            setSessionExpiredMessage(true);
+          }
         }
       } catch (error) {
         console.error('Failed to check authentication:', error);
+        // On error, also clear stale data to prevent black screen
+        localStorage.removeItem('poker_current_role');
+        localStorage.removeItem('poker_current_player_id');
+        localStorage.removeItem('poker_current_table_id');
       } finally {
         setIsLoading(false);
       }
@@ -1125,6 +1145,27 @@ const App: React.FC = () => {
           <h1 className="text-6xl font-outfit font-black text-white mb-2 italic tracking-tighter">POKER<span className="text-yellow-500"> 2</span></h1>
           <p className="text-white/40 mb-2 text-[10px] font-bold tracking-[6px] uppercase">Gerenciador de Fichas & Suite Profissional</p>
           <p className="text-white/60 text-sm mb-8">Entre com o código da mesa</p>
+          
+          {sessionExpiredMessage && (
+            <div className="mb-6 bg-yellow-500/10 border border-yellow-500/30 rounded-2xl p-4 text-left">
+              <div className="flex items-start gap-3">
+                <span className="text-2xl">⏱️</span>
+                <div>
+                  <h3 className="text-yellow-400 font-black text-sm mb-1">Sessão Expirada</h3>
+                  <p className="text-white/70 text-xs leading-relaxed">
+                    Sua sessão de administrador expirou. Por favor, faça login novamente no modo administrativo.
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setSessionExpiredMessage(false)}
+                className="mt-3 w-full text-yellow-400/60 hover:text-yellow-400 text-xs font-bold uppercase tracking-wider transition-colors"
+              >
+                OK, ENTENDI
+              </button>
+            </div>
+          )}
+          
           <div className="space-y-4">
             <form onSubmit={handleCodeSubmit} className="space-y-4">
               <input 
