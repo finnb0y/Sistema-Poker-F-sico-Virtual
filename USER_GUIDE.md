@@ -134,7 +134,7 @@ Se você encontrar problemas ou tiver dúvidas:
 
 1. **Consulte este guia** primeiro
 2. **Entre em contato** com o organizador do torneio
-3. **Reporte bugs** através do GitHub (para usuários técnicos)
+3. **Reporte bugs** através do [GitHub Issues](https://github.com/finnb0y/Sistema-Poker-Fisico-Virtual/issues) (para usuários técnicos)
 
 ## 🎯 Recursos Adicionais
 

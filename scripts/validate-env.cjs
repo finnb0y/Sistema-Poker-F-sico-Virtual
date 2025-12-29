@@ -18,7 +18,7 @@ const PLACEHOLDER_PATTERNS = ['your_supabase_project_url_here', 'your_supabase_a
 
 console.log('\n🔍 Validando Configuração de Variáveis de Ambiente\n');
 console.log('='.repeat(60));
-console.log('\n⚠️  NOTA: Este script é para DESENVOLVEDORES/MANTENEDORES');
+console.warn('\n⚠️  NOTA: Este script é para DESENVOLVEDORES/MANTENEDORES');
 console.log('    Usuários finais não precisam configurar nada!');
 console.log('');
 

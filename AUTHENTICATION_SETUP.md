@@ -1,5 +1,15 @@
 # 🔐 Guia de Configuração de Autenticação de Usuários
 
+> **⚠️ NOTA IMPORTANTE**: Este documento foi supersedido por documentação mais abrangente.
+> 
+> - **Para usuários finais**: Veja [USER_GUIDE.md](USER_GUIDE.md)
+> - **Para desenvolvedores**: Veja [DEVELOPER_SETUP.md](DEVELOPER_SETUP.md)
+> - **Para deploy em produção**: Veja [PRODUCTION_DEPLOYMENT.md](PRODUCTION_DEPLOYMENT.md)
+> 
+> Este arquivo é mantido para referência histórica.
+
+---
+
 Este guia explica como configurar o sistema de autenticação de usuários e sincronização multi-dispositivo no Sistema de Poker Físico-Virtual.
 
 ## 📋 Visão Geral
