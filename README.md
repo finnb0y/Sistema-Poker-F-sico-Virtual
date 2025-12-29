@@ -4,165 +4,69 @@ Sistema de fichas de poker virtual para unificação de jogos de poker com carta
 
 ## 📋 Sobre o Projeto
 
-Este projeto permite jogar poker usando cartas físicas reais enquanto gerencia fichas, apostas e o pot de forma virtual através de uma interface web moderna. **O sistema opera em modo multi-dispositivo exclusivo, permitindo sincronização em tempo real entre múltiplos dispositivos.**
+Este projeto permite jogar poker usando cartas físicas reais enquanto gerencia fichas, apostas e o pot de forma virtual através de uma interface web moderna. **O sistema opera em modo multi-dispositivo, permitindo sincronização em tempo real entre múltiplos dispositivos.**
 
-## ⚠️ Requisito Obrigatório: Supabase
+## ✨ Nenhuma Configuração Necessária!
 
-🔒 **Este sistema requer configuração do Supabase para funcionar.**
+**Acesse, crie sua conta e comece a jogar!** Não é necessário configurar nada - o sistema está pronto para uso.
 
-O sistema foi projetado para operar **exclusivamente em modo multi-dispositivo** com sincronização em tempo real via Supabase. Não há modo local ou offline disponível.
-
-### Por que Supabase é Obrigatório?
-
-- ✅ **Sincronização multi-dispositivo**: Vários dispositivos conectados em tempo real
-- ✅ **Sem tela preta**: Elimina inconsistências de autenticação
-- ✅ **Confiabilidade**: Estado sempre consistente entre dispositivos
-- ✅ **Escalabilidade**: Suporta múltiplos jogadores e mesas simultâneas
-
-📖 **[Guia de Migração](./MIGRACAO_MODO_MULTI_DISPOSITIVO.md)** - Entenda as mudanças
+- ✅ **Sincronização automática** em tempo real
+- ✅ **Multi-dispositivo** - jogue de qualquer lugar
+- ✅ **Sem instalação** - tudo funciona no navegador
+- ✅ **Pronto para usar** - sem configuração complexa
 
 ## 🎮 Como Usar
 
-### Para Administradores
-
-**Criar e gerenciar torneios:**
-1. **Configure o Supabase** (veja seção abaixo)
-2. **Registre sua conta** no primeiro acesso ao modo administrativo
-3. **Crie torneios** e gerencie mesas
-4. **Gere códigos** para jogadores e dealers
-
 ### Para Jogadores e Dealers
 
-**Entrar em uma mesa:**
-1. Receba seu código do administrador (4 caracteres para jogador, Dxxx para dealer)
-2. Abra o aplicativo
-3. Digite o código
+**Entrar em uma mesa (não precisa criar conta!):**
+1. Receba seu código do organizador do torneio
+   - Jogadores: código de 4 caracteres (ex: `AB12`)
+   - Dealers: código começando com D (ex: `DABC`)
+2. Acesse o site
+3. Digite o código na tela inicial
 4. Jogue em tempo real!
 
-📖 **[Veja o guia completo de códigos de acesso](./CODIGO_ACESSO.md)**
+### Para Organizadores de Torneios
+
+**Criar e gerenciar torneios:**
+1. **Acesse o site** e clique em "Modo Administrativo"
+2. **Crie sua conta** no primeiro acesso (username e senha)
+3. **Crie torneios** e gerencie mesas
+4. **Registre jogadores** e gere códigos de acesso
+5. **Acompanhe em tempo real** - suas alterações aparecem instantaneamente
+
+📖 **[Guia Completo para Usuários](./USER_GUIDE.md)** - Instruções detalhadas de uso
 
 ## 🚀 Tecnologias
 
 - **React** - Biblioteca para construção da interface
 - **TypeScript** - Tipagem estática para JavaScript
 - **Vite** - Build tool e dev server ultra-rápido
-- **Supabase** - Banco de dados PostgreSQL e sincronização em tempo real (obrigatório)
+- **Supabase** - Banco de dados PostgreSQL e sincronização em tempo real
 - **Vercel** - Hospedagem e deploy contínuo
 
-## 💻 Configuração Inicial
+## 🌐 Acesso ao Sistema
 
-### Pré-requisitos
+O sistema está hospedado e pronto para uso! Não é necessário instalar ou configurar nada.
 
-- Node.js 16+ instalado
-- npm ou yarn
-- **Conta no Supabase (gratuita)** - [Criar conta](https://supabase.com) - **OBRIGATÓRIO**
+**Para usar o sistema:**
+1. Acesse o site do poker (URL fornecida pelo mantenedor)
+2. Se for organizador: crie sua conta e faça login
+3. Se for jogador/dealer: use o código de acesso fornecido
+4. Comece a jogar!
 
-### Passo 1: Instalação
+## 💻 Para Desenvolvedores
 
-```bash
-# Clone o repositório
-git clone https://github.com/finnb0y/Sistema-Poker-F-sico-Virtual.git
+Se você é desenvolvedor ou mantenedor do sistema e precisa configurar o ambiente de desenvolvimento:
 
-# Entre na pasta do projeto
-cd Sistema-Poker-F-sico-Virtual
+📖 **[Guia Completo de Configuração para Desenvolvedores](./DEVELOPER_SETUP.md)**
 
-# Instale as dependências
-npm install
-```
-
-### Passo 2: Configuração do Supabase (OBRIGATÓRIO)
-
-#### 2.1. Criar Projeto Supabase
-
-1. Acesse [https://supabase.com](https://supabase.com)
-2. Crie uma conta gratuita (se ainda não tiver)
-3. Crie um novo projeto
-
-#### 2.2. Executar Scripts SQL
-
-No SQL Editor do Supabase, execute os scripts na ordem:
-
-```sql
--- 1. Primeiro: Estrutura básica do banco
--- Copie e cole o conteúdo de: supabase-setup.sql
-
--- 2. Depois: Sistema de autenticação
--- Copie e cole o conteúdo de: supabase-auth-migration.sql
-```
-
-#### 2.3. Configurar Variáveis de Ambiente
-
-```bash
-# Copie o arquivo de exemplo
-cp .env.example .env
-
-# Edite o arquivo .env com suas credenciais
-# Encontre as credenciais em: Project Settings > API
-```
-
-Arquivo `.env`:
-```bash
-VITE_SUPABASE_URL=https://seu-projeto.supabase.co
-VITE_SUPABASE_ANON_KEY=sua-chave-anonima-publica
-```
-
-#### 2.4. Validar Configuração
-
-```bash
-# Validar variáveis de ambiente (opcional mas recomendado)
-npm run validate-env
-
-# Iniciar servidor de desenvolvimento
-npm run dev
-```
-
-O projeto estará rodando em `http://localhost:3000`
-
-Se tudo estiver correto, você verá:
-```
-✅ Supabase configurado - sincronização multi-dispositivo habilitada
-🔗 Conectando ao projeto: https://seu-projeto.supabase.co
-```
-
-### Passo 3: Primeiro Acesso
-
-1. Acesse `http://localhost:3000`
-2. Clique em **"Modo Administrativo"**
-3. Registre sua conta de administrador
-4. Comece a criar torneios!
-
-📖 **[Guia detalhado de configuração](./ENVIRONMENT_SETUP.md)**
-
-## 🏗️ Build
-
-```bash
-# Criar build de produção
-npm run build
-
-# Preview do build
-npm run preview
-```
-
-## 🌐 Deploy
-
-Este projeto está configurado para deploy automático na Vercel:
-
-1. Faça push para o repositório GitHub
-2. Conecte o repositório na [Vercel](https://vercel.com)
-3. O deploy acontece automaticamente a cada push
-
-### Deploy Manual via CLI
-
-```bash
-# Instalar Vercel CLI
-npm i -g vercel
-
-# Deploy
-vercel
-
-# Deploy em produção
-vercel --prod
-```
+Este guia contém:
+- Configuração do Supabase
+- Setup de variáveis de ambiente
+- Deploy e build
+- Testes e validação
 
 ## 📁 Estrutura do Projeto
 
@@ -180,112 +84,106 @@ vercel --prod
 
 ## 🎮 Funcionalidades
 
-### Para Todos os Usuários (sem necessidade de conta)
-- ✅ **Acesso por código** - Entre na mesa com código de 4 caracteres (jogador) ou Dxxx (dealer)
+### Para Todos os Usuários
+- ✅ **Interface intuitiva** e responsiva
+- ✅ **Sincronização em tempo real** entre dispositivos
+- ✅ **Sem instalação** - funciona direto no navegador
+- ✅ **Multi-plataforma** - computador, tablet ou celular
+
+### Para Jogadores (sem necessidade de conta)
+- ✅ **Acesso por código** - Entre na mesa com código de 4 caracteres
 - ✅ Gerenciamento de fichas virtuais
-- ✅ Controle de apostas e pot
-- ✅ Interface intuitiva e responsiva
+- ✅ Controle de apostas (fold, check, call, raise)
+- ✅ Visualização do pot em tempo real
 - ✅ Suporte para heads-up (2 jogadores) e multi-jogador (3+)
 
-### Para Dealers (com código Dxxx)
+### Para Dealers (código Dxxx)
 - ✅ Iniciar e controlar mãos
 - ✅ Lógica completa do dealer (botão, blinds, ordem de ação)
-- ✅ Distribuir potes
+- ✅ Distribuir potes (incluindo side pots automáticos)
 - ✅ Gerenciar rodadas de apostas
+- ✅ Controlar all-ins e situações especiais
 
-### Para Administradores (com conta e Supabase)
-- ✅ **Autenticação de usuários** - Cada administrador possui login único
-- ✅ **Gerenciamento isolado de torneios** - Seus torneios são privados e sincronizados entre dispositivos
+### Para Organizadores (com conta)
+- ✅ **Criar conta facilmente** - apenas username e senha
+- ✅ **Gerenciamento de torneios** - seus torneios são privados
 - ✅ Criar e editar torneios
 - ✅ Registrar jogadores e gerar códigos
-- ✅ **Sincronização em tempo real entre múltiplos dispositivos**
+- ✅ **Sincronização automática** entre seus dispositivos
 - ✅ Modo TV para transmissão
-- ✅ **Ambiente de testes modular para validação de cenários**
+- ✅ Acompanhamento em tempo real
 
 ## 🔐 Sistema de Acesso
 
-### Acesso Simples (Jogadores e Dealers)
+### Modo Simples (Jogadores e Dealers)
 
-Não precisa criar conta! Veja [CODIGO_ACESSO.md](./CODIGO_ACESSO.md) para detalhes completos.
+**Não precisa criar conta!** Veja [USER_GUIDE.md](./USER_GUIDE.md) para detalhes completos.
 
 **Jogadores:**
-1. Receba seu código de 4 caracteres (ex: `AB12`)
-2. Digite o código na tela inicial
-3. Entre na mesa como jogador
+- Receba código de 4 caracteres (ex: `AB12`)
+- Digite o código na tela inicial
+- Entre na mesa e jogue!
 
 **Dealers:**
-1. Receba o código de dealer da mesa (ex: `DABC`)
-2. Digite o código na tela inicial
-3. Entre na mesa como dealer
+- Receba código de dealer (ex: `DABC`)
+- Digite o código na tela inicial
+- Controle a mesa!
 
-### Modo Administrativo
+### Modo Administrativo (Organizadores)
 
-Para criar e gerenciar torneios, o sistema usa **autenticação de usuários e sincronização multi-dispositivo via Supabase**.
+**Para criar e gerenciar torneios:**
 
-### 🔐 Como Funciona
+1. **Acesse o site** e clique em "Modo Administrativo"
+2. **Primeira vez:**
+   - Clique em "Criar Conta"
+   - Escolha um username
+   - Defina uma senha segura
+   - Pronto! Você já está logado
+3. **Próximas vezes:**
+   - Use suas credenciais para fazer login
+   - Seus torneios aparecem automaticamente
+4. **Sincronização automática:**
+   - Acesse de qualquer dispositivo
+   - Mudanças aparecem em tempo real em todos os seus dispositivos
 
-1. **Crie uma conta** - Registre-se na primeira vez que acessar
-2. **Faça login** - Use suas credenciais em qualquer dispositivo
-3. **Crie torneios** - Seus torneios ficam salvos no servidor
-4. **Sincronização automática** - Mudanças aparecem instantaneamente em todos os seus dispositivos
+### 🔒 Privacidade e Segurança
 
-### 🚀 Configuração Rápida
-
-1. **Crie uma conta gratuita no [Supabase](https://supabase.com)**
-2. **Crie um novo projeto** no dashboard do Supabase
-3. **Execute os scripts SQL** no SQL Editor:
-   - Primeiro: `supabase-setup.sql` (estrutura base)
-   - Depois: `supabase-auth-migration.sql` (autenticação e isolamento de usuários)
-4. **Configure as variáveis de ambiente**:
-   ```bash
-   cp .env.example .env
-   ```
-5. **Adicione suas credenciais** do Supabase no arquivo `.env`:
-   - `VITE_SUPABASE_URL` - URL do projeto (ex: https://xxxxx.supabase.co)
-   - `VITE_SUPABASE_ANON_KEY` - Chave pública/anon do projeto
-6. **Reinicie o servidor de desenvolvimento** (`npm run dev`)
-
-📖 **Guias de Configuração:**
-- **[Guia Rápido de Variáveis de Ambiente](ENVIRONMENT_SETUP.md)** - Como configurar `.env` corretamente
-- **[Guia Completo Multi-Usuário](SETUP_MULTI_USUARIO.md)** - Configuração detalhada do Supabase
-
-### 🔒 Privacidade e Isolamento
-
-- Cada usuário vê **apenas seus próprios torneios e mesas**
-- Dados são isolados no nível do banco de dados via Row Level Security (RLS)
+- Cada organizador vê **apenas seus próprios torneios**
+- Jogadores e dealers só acessam mesas com código válido
+- Dados isolados no nível do banco de dados
+- Senhas criptografadas
 - Sessões expiram automaticamente após 30 dias
-- Senhas são hasheadas antes de serem armazenadas
 
 ## 🧪 Testes
 
-### Ambiente de Testes Modular
+O sistema inclui ambiente completo de testes para cenários de poker.
 
-Este projeto inclui um ambiente completo de testes para cenários de poker:
+📖 **[Documentação de Testes - Para Desenvolvedores](./DEVELOPER_SETUP.md#testing)**
 
-```bash
-# Executar todos os testes do ambiente modular
-npx tsx utils/pokerTestEnvironment.test.ts
+## 📁 Estrutura do Projeto
 
-# Executar exemplos de uso
-npx tsx utils/testExamples.ts
-
-# Executar testes específicos
-npx tsx utils/sidePotLogic.test.ts
-npx tsx utils/multipleAllInRounds.test.ts
 ```
-
-**Recursos do ambiente de testes:**
-- 🎯 Criação rápida de cenários personalizados
-- 📝 Logging automático de todas as ações
-- ✅ Validação automática de comportamentos
-- 🐛 Detecção e reporte de bugs
-- 📊 Relatórios detalhados
-
-Para mais informações, consulte a [documentação completa do ambiente de testes](docs/TESTING_ENVIRONMENT.md).
+├── components/          # Componentes React
+├── services/           # Lógica de negócio e serviços
+├── utils/              # Utilitários e lógica de jogo
+├── docs/               # Documentação técnica
+├── USER_GUIDE.md       # Guia para usuários finais
+├── DEVELOPER_SETUP.md  # Guia para desenvolvedores
+├── README.md           # Este arquivo
+└── package.json        # Dependências e scripts
+```
 
 ## 🤝 Contribuindo
 
 Contribuições são bem-vindas! Sinta-se à vontade para abrir issues e pull requests.
+
+**Para contribuir:**
+1. Fork o repositório
+2. Crie uma branch para sua feature
+3. Faça suas mudanças e teste
+4. Submeta um pull request
+
+📖 **[Guia para Desenvolvedores](./DEVELOPER_SETUP.md)** - Setup completo do ambiente
 
 ## 📝 Licença
 
@@ -295,6 +193,15 @@ Este projeto é de código aberto e está disponível sob a licença MIT.
 
 **finnb0y**
 - GitHub: [@finnb0y](https://github.com/finnb0y)
+
+---
+
+## 📚 Documentação Adicional
+
+- **[USER_GUIDE.md](./USER_GUIDE.md)** - Guia completo para usuários finais
+- **[DEVELOPER_SETUP.md](./DEVELOPER_SETUP.md)** - Setup e configuração para desenvolvedores
+- **[CODIGO_ACESSO.md](./CODIGO_ACESSO.md)** - Sistema de códigos de acesso
+- **[ENVIRONMENT_SETUP.md](./ENVIRONMENT_SETUP.md)** - Configuração de variáveis de ambiente (desenvolvedores)
 
 ---
 

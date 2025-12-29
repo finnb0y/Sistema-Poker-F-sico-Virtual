@@ -1090,22 +1090,25 @@ const App: React.FC = () => {
               <div className="text-white/40 mb-6 text-[10px] font-bold tracking-[6px] uppercase">
                 Gerenciador de Fichas & Suite Profissional
               </div>
-              <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-6 text-left">
-                <h2 className="text-red-400 font-black text-xl mb-4">🔒 Configuração Obrigatória</h2>
+              <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-2xl p-6 text-left">
+                <h2 className="text-yellow-400 font-black text-xl mb-4">⚠️ Sistema não Configurado</h2>
                 <p className="text-white/80 mb-4">
-                  O sistema requer Supabase para sincronização multi-dispositivo em tempo real.
+                  O backend do sistema ainda não foi configurado pelo administrador.
                 </p>
-                <p className="text-white/60 text-sm mb-4">
-                  Para usar o sistema, você precisa:
-                </p>
-                <ol className="text-white/60 text-sm space-y-2 list-decimal list-inside mb-4">
-                  <li>Criar uma conta gratuita em <a href="https://supabase.com" target="_blank" rel="noopener noreferrer" className="text-yellow-400 hover:underline">supabase.com</a></li>
-                  <li>Executar os scripts SQL: <code className="bg-black/40 px-2 py-1 rounded">supabase-setup.sql</code> e <code className="bg-black/40 px-2 py-1 rounded">supabase-auth-migration.sql</code></li>
-                  <li>Configurar as variáveis de ambiente no arquivo <code className="bg-black/40 px-2 py-1 rounded">.env</code></li>
-                  <li>Reiniciar o servidor de desenvolvimento</li>
-                </ol>
+                <div className="bg-black/40 rounded-xl p-4 mb-4">
+                  <p className="text-white/70 text-sm mb-3">
+                    <strong>👤 Se você é um usuário:</strong> Entre em contato com o administrador do sistema.
+                  </p>
+                  <p className="text-white/70 text-sm">
+                    <strong>🔧 Se você é o mantenedor:</strong> Configure o Supabase seguindo o guia:
+                  </p>
+                  <ul className="text-white/60 text-xs mt-2 space-y-1 list-disc list-inside">
+                    <li><code className="bg-black/40 px-2 py-1 rounded">DEVELOPER_SETUP.md</code> - Setup completo</li>
+                    <li><code className="bg-black/40 px-2 py-1 rounded">ENVIRONMENT_SETUP.md</code> - Variáveis de ambiente</li>
+                  </ul>
+                </div>
                 <p className="text-white/60 text-sm">
-                  📖 Consulte <code className="bg-black/40 px-2 py-1 rounded">ENVIRONMENT_SETUP.md</code> para instruções detalhadas.
+                  📖 Após configurado, o modo administrativo estará disponível para criação de torneios.
                 </p>
               </div>
             </div>
@@ -1131,7 +1134,7 @@ const App: React.FC = () => {
   }
 
   // Main interface - authentication required for all operations
-  // Show Supabase requirement if not configured
+  // Show backend not configured message if Supabase is not set up
   if (!isSupabaseConfigured()) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-6 poker-felt">
@@ -1145,43 +1148,51 @@ const App: React.FC = () => {
             </p>
           </div>
           
-          <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-6 mb-6">
+          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-2xl p-6 mb-6">
             <div className="flex items-start gap-4 mb-4">
-              <span className="text-4xl">🔒</span>
+              <span className="text-4xl">⚠️</span>
               <div>
-                <h2 className="text-red-400 font-black text-xl mb-2">Configuração Obrigatória</h2>
+                <h2 className="text-yellow-400 font-black text-xl mb-2">Sistema em Configuração</h2>
                 <p className="text-white/80 mb-4 leading-relaxed">
-                  Este sistema opera <strong>exclusivamente em modo multi-dispositivo</strong> e requer 
-                  configuração do Supabase para sincronização em tempo real.
+                  O backend deste sistema ainda não foi configurado pelo administrador.
                 </p>
               </div>
             </div>
             
             <div className="bg-black/40 rounded-xl p-4 mb-4">
-              <h3 className="text-yellow-400 font-black text-sm mb-3 uppercase tracking-wider">
-                📋 Passos para Configuração:
+              <h3 className="text-white font-bold text-sm mb-3">
+                👤 Se você é um USUÁRIO:
               </h3>
-              <ol className="text-white/70 text-sm space-y-2 list-decimal list-inside">
-                <li>Crie uma conta gratuita em <a href="https://supabase.com" target="_blank" rel="noopener noreferrer" className="text-yellow-400 hover:underline font-bold">supabase.com</a></li>
-                <li>No SQL Editor do Supabase, execute o script: <code className="bg-black/40 px-2 py-1 rounded text-yellow-300">supabase-setup.sql</code></li>
-                <li>Execute também: <code className="bg-black/40 px-2 py-1 rounded text-yellow-300">supabase-auth-migration.sql</code></li>
-                <li>Copie o arquivo: <code className="bg-black/40 px-2 py-1 rounded text-yellow-300">.env.example</code> para <code className="bg-black/40 px-2 py-1 rounded text-yellow-300">.env</code></li>
-                <li>Configure as variáveis VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY</li>
-                <li>Reinicie o servidor de desenvolvimento: <code className="bg-black/40 px-2 py-1 rounded text-yellow-300">npm run dev</code></li>
-              </ol>
+              <p className="text-white/70 text-sm mb-3">
+                Não se preocupe! Isso não é algo que você precisa resolver. 
+                Entre em contato com o administrador do sistema para que ele configure o servidor.
+              </p>
+              <p className="text-white/60 text-xs">
+                O sistema foi projetado para funcionar sem nenhuma configuração do lado do usuário.
+              </p>
             </div>
             
-            <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
-              <p className="text-blue-300 text-sm">
-                <strong>💡 Nota:</strong> A configuração leva apenas 5 minutos e garante sincronização 
-                em tempo real entre múltiplos dispositivos e usuários.
+            <div className="bg-black/40 rounded-xl p-4">
+              <h3 className="text-blue-300 font-bold text-sm mb-3">
+                🔧 Se você é um DESENVOLVEDOR/MANTENEDOR:
+              </h3>
+              <p className="text-white/70 text-sm mb-3">
+                Configure o backend do Supabase seguindo os passos em:
+              </p>
+              <ul className="text-white/60 text-xs space-y-1 list-disc list-inside mb-3">
+                <li><code className="bg-black/40 px-2 py-1 rounded text-blue-300">DEVELOPER_SETUP.md</code> - Guia completo</li>
+                <li><code className="bg-black/40 px-2 py-1 rounded text-blue-300">ENVIRONMENT_SETUP.md</code> - Configuração de variáveis</li>
+              </ul>
+              <p className="text-white/50 text-xs">
+                Após configurar, todos os usuários poderão acessar sem setup adicional.
               </p>
             </div>
           </div>
           
           <div className="text-center">
-            <p className="text-white/40 text-xs mb-4">
-              📖 Documentação completa: <code className="bg-black/40 px-2 py-1 rounded text-yellow-300">ENVIRONMENT_SETUP.md</code>
+            <p className="text-white/40 text-xs">
+              📖 Precisa de ajuda? Consulte <code className="bg-black/40 px-2 py-1 rounded text-yellow-300">USER_GUIDE.md</code> 
+              para usuários ou <code className="bg-black/40 px-2 py-1 rounded text-blue-300">DEVELOPER_SETUP.md</code> para desenvolvedores
             </p>
           </div>
         </div>
