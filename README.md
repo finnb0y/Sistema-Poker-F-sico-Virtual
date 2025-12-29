@@ -185,16 +185,6 @@ O sistema inclui ambiente completo de testes para cenários de poker.
 └── package.json        # Dependências e scripts
 ```
 
-## 🤝 Contribuindo
-
-Contribuições são bem-vindas! Sinta-se à vontade para abrir issues e pull requests.
-
-**Para contribuir:**
-1. Fork o repositório
-2. Crie uma branch para sua feature
-3. Faça suas mudanças e teste
-4. Submeta um pull request
-
 📖 **[Guia para Desenvolvedores](./DEVELOPER_SETUP.md)** - Setup completo do ambiente
 
 ## 📝 Licença
