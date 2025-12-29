@@ -51,9 +51,20 @@ const App: React.FC = () => {
           setCurrentUser(session.user);
           // Set user ID in sync service
           syncService.setUserId(session.user.id);
+        } else {
+          // Session is invalid or expired - clear any stale role/player data
+          // This prevents the "Cannot subscribe: user not authenticated" error
+          console.log('🔄 Sessão inválida ou expirada - limpando dados locais');
+          localStorage.removeItem('poker_current_role');
+          localStorage.removeItem('poker_current_player_id');
+          localStorage.removeItem('poker_current_table_id');
         }
       } catch (error) {
         console.error('Failed to check authentication:', error);
+        // On error, also clear stale data to prevent black screen
+        localStorage.removeItem('poker_current_role');
+        localStorage.removeItem('poker_current_player_id');
+        localStorage.removeItem('poker_current_table_id');
       } finally {
         setIsLoading(false);
       }

@@ -84,15 +84,17 @@ export const syncService = {
   
   subscribe: (callback: (msg: ActionMessage) => void) => {
     if (!currentUserId) {
-      console.error('Cannot subscribe: user not authenticated');
-      return () => {};
+      console.warn('⚠️ Subscrevendo sem usuário autenticado - modo local apenas');
+      // In local mode (without authentication), we can still use BroadcastChannel
+      // This allows players/dealers with access codes to work
+      // Only admin features require authentication
     }
 
     const cleanupFunctions: (() => void)[] = [];
-    const userSessionId = getGameSessionId(currentUserId);
     
-    // Subscribe to Supabase Realtime if configured
-    if (isSupabaseConfigured() && supabase) {
+    // Subscribe to Supabase Realtime if configured AND user is authenticated
+    if (isSupabaseConfigured() && supabase && currentUserId) {
+      const userSessionId = getGameSessionId(currentUserId);
       console.log('🔄 Inscrevendo-se no Supabase Realtime para sincronização multi-dispositivo...');
       
       realtimeChannel = supabase
