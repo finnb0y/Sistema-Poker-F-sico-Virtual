@@ -1,5 +1,5 @@
 import { supabase, isSupabaseConfigured } from './supabaseClient';
-import { Club, ClubManager } from '../types';
+import { Club, ClubManager, ClubManagerLoginLog } from '../types';
 
 export interface ClubManagerSession {
   manager: ClubManager;
@@ -398,6 +398,22 @@ export const clubService = {
         return { success: false, error: 'Falha ao criar sessão' };
       }
 
+      // Log the login attempt
+      try {
+        await supabase
+          .from('poker_club_manager_login_logs')
+          .insert({
+            manager_id: manager.id,
+            club_id: manager.club_id,
+            login_time: new Date().toISOString()
+            // Note: IP address and user agent would require server-side implementation
+            // or could be added from client if acceptable
+          });
+      } catch (logError) {
+        // Don't fail login if logging fails
+        console.warn('Failed to log manager login:', logError);
+      }
+
       const managerObj: ClubManager = {
         id: manager.id,
         clubId: manager.club_id,
@@ -549,6 +565,90 @@ export const clubService = {
     } catch (error) {
       console.error('Error deleting manager:', error);
       return { success: false, error: 'Erro ao deletar gerente' };
+    }
+  },
+
+  /**
+   * Get manager login logs for a club
+   */
+  getManagerLoginLogs: async (clubId: string, limit: number = 50): Promise<ClubManagerLoginLog[]> => {
+    if (!isSupabaseConfigured() || !supabase) {
+      return [];
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('poker_club_manager_login_logs')
+        .select(`
+          id,
+          manager_id,
+          club_id,
+          login_time,
+          ip_address,
+          user_agent
+        `)
+        .eq('club_id', clubId)
+        .order('login_time', { ascending: false })
+        .limit(limit);
+
+      if (error) {
+        console.error('Error fetching manager login logs:', error);
+        return [];
+      }
+
+      return (data || []).map(log => ({
+        id: log.id,
+        managerId: log.manager_id,
+        clubId: log.club_id,
+        loginTime: new Date(log.login_time),
+        ipAddress: log.ip_address,
+        userAgent: log.user_agent
+      }));
+    } catch (error) {
+      console.error('Error loading manager login logs:', error);
+      return [];
+    }
+  },
+
+  /**
+   * Get login logs for a specific manager
+   */
+  getManagerLoginLogsByManager: async (managerId: string, limit: number = 50): Promise<ClubManagerLoginLog[]> => {
+    if (!isSupabaseConfigured() || !supabase) {
+      return [];
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('poker_club_manager_login_logs')
+        .select(`
+          id,
+          manager_id,
+          club_id,
+          login_time,
+          ip_address,
+          user_agent
+        `)
+        .eq('manager_id', managerId)
+        .order('login_time', { ascending: false })
+        .limit(limit);
+
+      if (error) {
+        console.error('Error fetching manager login logs:', error);
+        return [];
+      }
+
+      return (data || []).map(log => ({
+        id: log.id,
+        managerId: log.manager_id,
+        clubId: log.club_id,
+        loginTime: new Date(log.login_time),
+        ipAddress: log.ip_address,
+        userAgent: log.user_agent
+      }));
+    } catch (error) {
+      console.error('Error loading manager login logs:', error);
+      return [];
     }
   }
 };

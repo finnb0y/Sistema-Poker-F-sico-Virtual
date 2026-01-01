@@ -481,8 +481,11 @@ const App: React.FC = () => {
             totalInvestment += tourney.config.addon.price;
           }
 
-          newState.players.push({
-            id: Math.random().toString(36).substr(2, 9),
+          const newPlayerId = Math.random().toString(36).substr(2, 9);
+          
+          // Create new player
+          const newPlayer: Player = {
+            id: newPlayerId,
             personId: person.id,
             tournamentId: tourney.id,
             name: person.nickname || person.name,
@@ -496,7 +499,29 @@ const App: React.FC = () => {
             rebuysCount: rebuysAtStart,
             hasAddon: hasAddonAtStart,
             totalInvested: totalInvestment
-          });
+          };
+
+          newState.players.push(newPlayer);
+
+          // Automatic balancing: assign player to table with least players
+          const tableUsage = tourney.assignedTableIds.map(tid => ({ 
+            id: tid, 
+            count: newState.players.filter(p2 => p2.tableId === tid).length 
+          }));
+          const leastBusyTable = tableUsage.sort((a, b) => a.count - b.count)[0];
+          
+          // Reserve seat 1 for dealer - maxSeats - 1 available seats for players
+          if (leastBusyTable && leastBusyTable.count < (tourney.config.maxSeats - 1)) {
+            newPlayer.tableId = leastBusyTable.id;
+            const takenSeats = newState.players.filter(p2 => p2.tableId === leastBusyTable.id).map(p2 => p2.seatNumber);
+            // Skip seat 1 (dealer position) when assigning seats
+            for(let s=2; s<=tourney.config.maxSeats; s++) {
+              if (!takenSeats.includes(s)) { 
+                newPlayer.seatNumber = s; 
+                break; 
+              }
+            }
+          }
           break;
 
         case 'AUTO_BALANCE':
@@ -1077,6 +1102,41 @@ const App: React.FC = () => {
               if (nextLevel < tournament.config.blindStructure.levels.length) {
                 tableStateForBlinds.currentBlindLevel = nextLevel;
               }
+            }
+          }
+          break;
+
+        case 'START_TOURNAMENT':
+          const tournamentToStart = newState.tournaments.find(t => t.id === payload.tournamentId);
+          if (tournamentToStart) {
+            tournamentToStart.isStarted = true;
+            tournamentToStart.startedAt = new Date();
+            tournamentToStart.currentBlindLevelStartTime = new Date();
+          }
+          break;
+
+        case 'STOP_TOURNAMENT':
+          const tournamentToStop = newState.tournaments.find(t => t.id === payload.tournamentId);
+          if (tournamentToStop) {
+            tournamentToStop.isStarted = false;
+          }
+          break;
+
+        case 'AUTO_ADVANCE_BLIND_LEVEL':
+          const tournamentForBlindAdvance = newState.tournaments.find(t => t.id === payload.tournamentId);
+          if (tournamentForBlindAdvance && tournamentForBlindAdvance.isStarted) {
+            // Advance all tables in this tournament to the next blind level
+            const tablesToAdvance = newState.tableStates.filter(ts => ts.tournamentId === payload.tournamentId);
+            const currentLevel = tablesToAdvance[0]?.currentBlindLevel || 0;
+            const nextLevel = currentLevel + 1;
+            
+            if (nextLevel < tournamentForBlindAdvance.config.blindStructure.levels.length) {
+              tablesToAdvance.forEach(table => {
+                table.currentBlindLevel = nextLevel;
+              });
+              
+              // Update the tournament's blind level start time
+              tournamentForBlindAdvance.currentBlindLevelStartTime = new Date();
             }
           }
           break;

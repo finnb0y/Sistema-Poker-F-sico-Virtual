@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { GameState, ActionMessage, TournamentConfig, Player, RegisteredPerson, Tournament, RoomTable, BlindInterval, BlindLevel, Club } from '../types';
+import { GameState, ActionMessage, TournamentConfig, Player, RegisteredPerson, Tournament, RoomTable, BlindInterval, BlindLevel, Club, ClubManager, ClubManagerLoginLog } from '../types';
 import TableView from './TableView';
 import BlindStructureManager from './BlindStructureManager';
+import TournamentBlindTimer from './TournamentBlindTimer';
 import { createDefaultBlindStructure } from '../utils/blindStructure';
 import { handleNumericInput, DEFAULT_BREAK_DURATION } from '../utils/inputHelpers';
 import { clubService } from '../services/clubService';
@@ -52,6 +53,15 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isMa
   const [newClubDescription, setNewClubDescription] = useState('');
   const [isCreatingClub, setIsCreatingClub] = useState(false);
   const [expandedClubId, setExpandedClubId] = useState<string | null>(null);
+  
+  // Manager Management State
+  const [clubManagers, setClubManagers] = useState<Record<string, ClubManager[]>>({});
+  const [managerLoginLogs, setManagerLoginLogs] = useState<Record<string, ClubManagerLoginLog[]>>({});
+  const [showCreateManager, setShowCreateManager] = useState<string | null>(null); // clubId
+  const [newManagerUsername, setNewManagerUsername] = useState('');
+  const [newManagerPassword, setNewManagerPassword] = useState('');
+  const [isCreatingManager, setIsCreatingManager] = useState(false);
+  const [showManagerLogs, setShowManagerLogs] = useState<string | null>(null); // clubId
 
   useEffect(() => {
     setActiveTourneyId(state.activeTournamentId);
@@ -243,6 +253,115 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isMa
       console.error('Error deleting club:', error);
       alert('Erro ao excluir clube. Tente novamente.');
     }
+  };
+
+  // Load managers for a club
+  const loadClubManagers = async (clubId: string) => {
+    try {
+      const managers = await clubService.getClubManagers(clubId);
+      setClubManagers(prev => ({ ...prev, [clubId]: managers }));
+    } catch (error) {
+      console.error('Error loading managers:', error);
+    }
+  };
+
+  // Load manager login logs for a club
+  const loadManagerLoginLogs = async (clubId: string) => {
+    try {
+      const logs = await clubService.getManagerLoginLogs(clubId, 50);
+      setManagerLoginLogs(prev => ({ ...prev, [clubId]: logs }));
+    } catch (error) {
+      console.error('Error loading login logs:', error);
+    }
+  };
+
+  // Create a new manager
+  const handleCreateManager = async (e: React.FormEvent, clubId: string) => {
+    e.preventDefault();
+    
+    const trimmedUsername = newManagerUsername.trim();
+    const trimmedPassword = newManagerPassword.trim();
+    
+    if (!trimmedUsername || trimmedUsername.length < 3) {
+      alert('Nome de usuário deve ter pelo menos 3 caracteres');
+      return;
+    }
+
+    if (!trimmedPassword || trimmedPassword.length < 6) {
+      alert('Senha deve ter pelo menos 6 caracteres');
+      return;
+    }
+
+    setIsCreatingManager(true);
+    
+    try {
+      const result = await clubService.createManager(clubId, trimmedUsername, trimmedPassword);
+
+      if (result.success && result.manager) {
+        alert('Gerente criado com sucesso!');
+        setNewManagerUsername('');
+        setNewManagerPassword('');
+        setShowCreateManager(null);
+        
+        // Reload managers list
+        loadClubManagers(clubId);
+      } else {
+        alert(result.error || 'Erro ao criar gerente');
+      }
+    } catch (error) {
+      console.error('Error creating manager:', error);
+      alert('Erro ao criar gerente. Tente novamente.');
+    } finally {
+      setIsCreatingManager(false);
+    }
+  };
+
+  // Delete a manager
+  const handleDeleteManager = async (managerId: string, clubId: string) => {
+    if (!confirm('Tem certeza que deseja excluir este gerente?')) {
+      return;
+    }
+
+    try {
+      const result = await clubService.deleteManager(managerId);
+      
+      if (result.success) {
+        alert('Gerente excluído com sucesso!');
+        // Reload managers list
+        loadClubManagers(clubId);
+      } else {
+        alert(result.error || 'Erro ao excluir gerente');
+      }
+    } catch (error) {
+      console.error('Error deleting manager:', error);
+      alert('Erro ao excluir gerente. Tente novamente.');
+    }
+  };
+
+  // Handle starting a tournament
+  const handleStartTournament = (tournamentId: string) => {
+    if (!confirm('Tem certeza que deseja iniciar este torneio? Os blinds começarão a contar automaticamente.')) {
+      return;
+    }
+
+    onDispatch({
+      type: 'START_TOURNAMENT',
+      payload: { tournamentId },
+      senderId: 'DIR'
+    });
+  };
+
+  // Handle stopping a tournament
+  const handleStopTournament = (tournamentId: string) => {
+    if (!confirm('Tem certeza que deseja pausar este torneio?')) {
+      return;
+    }
+
+    onDispatch({
+      type: 'STOP_TOURNAMENT',
+      payload: { tournamentId },
+      senderId: 'DIR'
+    });
   };
 
   return (

@@ -171,6 +171,39 @@ $$ LANGUAGE plpgsql;
 -- Optional: Schedule manager session cleanup (requires pg_cron extension)
 -- SELECT cron.schedule('cleanup-expired-manager-sessions', '0 * * * *', 'SELECT cleanup_expired_manager_sessions();');
 
+-- Table to track manager login history
+CREATE TABLE IF NOT EXISTS poker_club_manager_login_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  manager_id UUID NOT NULL REFERENCES poker_club_managers(id) ON DELETE CASCADE,
+  club_id UUID NOT NULL REFERENCES poker_clubs(id) ON DELETE CASCADE,
+  login_time TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  ip_address TEXT,
+  user_agent TEXT
+);
+
+-- Index for fast manager login lookup
+CREATE INDEX IF NOT EXISTS idx_manager_login_logs_manager 
+ON poker_club_manager_login_logs(manager_id, login_time DESC);
+
+-- Index for club login history
+CREATE INDEX IF NOT EXISTS idx_manager_login_logs_club 
+ON poker_club_manager_login_logs(club_id, login_time DESC);
+
+-- Enable Row Level Security
+ALTER TABLE poker_club_manager_login_logs ENABLE ROW LEVEL SECURITY;
+
+-- Policy: Anyone can read login logs (club owners will filter by club_id in queries)
+CREATE POLICY "Anyone can read login logs"
+ON poker_club_manager_login_logs FOR SELECT
+TO public
+USING (true);
+
+-- Policy: Anyone can insert login logs (for automatic logging on login)
+CREATE POLICY "Anyone can insert login logs"
+ON poker_club_manager_login_logs FOR INSERT
+TO public
+WITH CHECK (true);
+
 -- =====================================================
 -- Verification of tables created
 -- =====================================================
@@ -179,5 +212,5 @@ SELECT
   (SELECT COUNT(*) FROM information_schema.columns WHERE table_name = t.table_name) as column_count
 FROM information_schema.tables t
 WHERE table_schema = 'public'
-  AND table_name IN ('poker_clubs', 'poker_club_managers', 'poker_club_manager_sessions')
+  AND table_name IN ('poker_clubs', 'poker_club_managers', 'poker_club_manager_sessions', 'poker_club_manager_login_logs')
 ORDER BY table_name;
