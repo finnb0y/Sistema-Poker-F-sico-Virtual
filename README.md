@@ -208,6 +208,7 @@ Este projeto é de código aberto e está disponível sob a licença MIT.
 - **[DEVELOPER_SETUP.md](./DEVELOPER_SETUP.md)** - Setup e configuração para desenvolvedores
 - **[PRODUCTION_DEPLOYMENT.md](./PRODUCTION_DEPLOYMENT.md)** - Guia de deploy em produção
 - **[ENVIRONMENT_SETUP.md](./ENVIRONMENT_SETUP.md)** - Configuração de variáveis de ambiente
+- **[SYSTEM_RESET_GUIDE.md](./SYSTEM_RESET_GUIDE.md)** - Como resetar o sistema para um estado limpo
 
 ---
 

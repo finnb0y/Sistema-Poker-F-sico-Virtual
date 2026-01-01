@@ -346,6 +346,24 @@ If you're contributing to the project:
 3. **Regular backups**: Supabase provides automatic backups, but consider additional backups for critical data
 4. **Update dependencies**: Regularly update npm packages and Supabase
 5. **Monitor errors**: Set up error tracking (Sentry, LogRocket, etc.)
+6. **System reset**: Need to clear all data? See [SYSTEM_RESET_GUIDE.md](./SYSTEM_RESET_GUIDE.md) for instructions
+
+## 🔄 Resetting the System
+
+If you need to reset the system to a clean state (remove all users, tournaments, and data):
+
+**Quick command:**
+```bash
+npm run reset-system
+```
+
+**Full documentation**: See [SYSTEM_RESET_GUIDE.md](./SYSTEM_RESET_GUIDE.md) for:
+- Detailed reset instructions
+- Both TypeScript script and SQL methods
+- Verification steps
+- Troubleshooting
+
+⚠️ **Warning**: This permanently deletes all user data while preserving the database structure.
 
 ## ⚠️ Important Notes
 
