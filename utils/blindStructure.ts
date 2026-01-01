@@ -1,4 +1,5 @@
 import { BlindLevel, BlindInterval } from '../types';
+import { DEFAULT_BREAK_DURATION } from './inputHelpers';
 
 /**
  * Generates blind levels from an array of intervals with optional breaks
@@ -9,7 +10,7 @@ import { BlindLevel, BlindInterval } from '../types';
 export function generateBlindStructureFromIntervals(
   intervals: BlindInterval[],
   breakEnabled: boolean = false,
-  breakDuration: number = 10,
+  breakDuration: number = DEFAULT_BREAK_DURATION,
   breakFrequency: number = 0
 ): BlindLevel[] {
   const levels: BlindLevel[] = [];
@@ -61,7 +62,7 @@ export function createDefaultBlindStructure(): { intervals: BlindInterval[], lev
     }
   ];
   
-  const levels = generateBlindStructureFromIntervals(intervals, false, 10, 0);
+  const levels = generateBlindStructureFromIntervals(intervals, false, DEFAULT_BREAK_DURATION, 0);
   
   return { intervals, levels };
 }

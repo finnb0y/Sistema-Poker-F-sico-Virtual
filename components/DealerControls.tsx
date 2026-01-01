@@ -1,9 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import { GameState, ActionMessage, TournamentConfig, Player, RegisteredPerson, Tournament, RoomTable, BlindInterval, BlindLevel } from '../types';
 import TableView from './TableView';
 import BlindStructureManager from './BlindStructureManager';
 import { createDefaultBlindStructure } from '../utils/blindStructure';
+import { handleNumericInput, DEFAULT_BREAK_DURATION } from '../utils/inputHelpers';
 
 interface DealerControlsProps {
   state: GameState;
@@ -92,7 +92,7 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch }) =>
             intervals: defaultStructure.intervals,
             levels: defaultStructure.levels,
             breakEnabled: false,
-            breakDuration: 10,
+            breakDuration: DEFAULT_BREAK_DURATION,
             breakFrequency: 0
           }
         },
@@ -312,7 +312,7 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch }) =>
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
                            <label className="text-[10px] font-black text-white/30 uppercase tracking-widest ml-4">Premiação Garantida ($)</label>
-                           <input type="number" value={editingTourney.guaranteed} onChange={e => setEditingTourney({...editingTourney, guaranteed: Number(e.target.value)})} className="w-full bg-black/60 border border-white/10 rounded-3xl p-6 text-xl font-black text-green-500 outline-none focus:border-yellow-500" />
+                           <input type="number" value={editingTourney.guaranteed || ''} onChange={e => setEditingTourney({...editingTourney, guaranteed: handleNumericInput(e.target.value)})} placeholder="0" className="w-full bg-black/60 border border-white/10 rounded-3xl p-6 text-xl font-black text-green-500 outline-none focus:border-yellow-500" />
                         </div>
                         <div className="space-y-2 p-6 bg-black/40 rounded-3xl flex flex-col justify-center">
                            <div className="flex justify-between items-center mb-2">
@@ -348,8 +348,8 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch }) =>
                                  />
                               </div>
                               <div className="space-y-3">
-                                 <div className="space-y-1"><label className="text-[7px] font-black text-white/20 uppercase">Valor ($)</label><input type="number" value={(editingTourney.config as any)[opt.key].price} onChange={e => setEditingTourney({...editingTourney, config: {...editingTourney.config!, [opt.key]: {...(editingTourney.config as any)[opt.key], price: Number(e.target.value)}}})} className="w-full bg-black/40 p-3 rounded-xl text-xs font-bold text-white" /></div>
-                                 <div className="space-y-1"><label className="text-[7px] font-black text-white/20 uppercase">Fichas</label><input type="number" value={(editingTourney.config as any)[opt.key].chips} onChange={e => setEditingTourney({...editingTourney, config: {...editingTourney.config!, [opt.key]: {...(editingTourney.config as any)[opt.key], chips: Number(e.target.value)}}})} className="w-full bg-black/40 p-3 rounded-xl text-xs font-bold text-white" /></div>
+                                 <div className="space-y-1"><label className="text-[7px] font-black text-white/20 uppercase">Valor ($)</label><input type="number" value={(editingTourney.config as any)[opt.key].price || ''} onChange={e => setEditingTourney({...editingTourney, config: {...editingTourney.config!, [opt.key]: {...(editingTourney.config as any)[opt.key], price: handleNumericInput(e.target.value)}}})} placeholder="0" className="w-full bg-black/40 p-3 rounded-xl text-xs font-bold text-white" /></div>
+                                 <div className="space-y-1"><label className="text-[7px] font-black text-white/20 uppercase">Fichas</label><input type="number" value={(editingTourney.config as any)[opt.key].chips || ''} onChange={e => setEditingTourney({...editingTourney, config: {...editingTourney.config!, [opt.key]: {...(editingTourney.config as any)[opt.key], chips: handleNumericInput(e.target.value)}}})} placeholder="0" className="w-full bg-black/40 p-3 rounded-xl text-xs font-bold text-white" /></div>
                               </div>
                            </div>
                         ))}

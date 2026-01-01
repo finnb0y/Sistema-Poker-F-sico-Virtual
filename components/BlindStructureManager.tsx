@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { BlindInterval, BlindLevel } from '../types';
-import { generateBlindStructureFromIntervals, validateAndFixBlindLevel } from '../utils/blindStructure';
+import { generateBlindStructureFromIntervals } from '../utils/blindStructure';
+import { handleNumericInput, DEFAULT_BREAK_DURATION } from '../utils/inputHelpers';
 
 interface BlindStructureManagerProps {
   initialIntervals: BlindInterval[];
@@ -57,6 +58,23 @@ const BlindStructureManager: React.FC<BlindStructureManagerProps> = ({
     }
   };
 
+  const addManualBreak = (afterIndex: number) => {
+    const newLevels = [...levels];
+    newLevels.splice(afterIndex + 1, 0, {
+      smallBlind: 0,
+      bigBlind: 0,
+      ante: 0,
+      duration: breakDuration || DEFAULT_BREAK_DURATION,
+      isBreak: true
+    });
+    setLevels(newLevels);
+  };
+
+  const removeBreak = (index: number) => {
+    const newLevels = levels.filter((_, i) => i !== index);
+    setLevels(newLevels);
+  };
+
   const regenerateLevels = (currentIntervals: BlindInterval[] = intervals) => {
     const newLevels = generateBlindStructureFromIntervals(
       currentIntervals,
@@ -71,16 +89,18 @@ const BlindStructureManager: React.FC<BlindStructureManagerProps> = ({
     const newLevels = [...levels];
     newLevels[index] = { ...newLevels[index], [field]: value };
     
-    // If updating small blind or big blind, validate and fix
-    if (field === 'smallBlind' || field === 'bigBlind') {
-      newLevels[index] = validateAndFixBlindLevel(newLevels[index]);
-    }
+    // Issue 3 fix: Remove automatic validation for Big Blind in generated structure
+    // Users should be able to edit both Small and Big Blind independently
     
     setLevels(newLevels);
   };
 
   const toggleBreaks = (enabled: boolean) => {
     setBreakEnabled(enabled);
+    // Issue 2 fix: When activating breaks, set default frequency to 5 levels if not already set
+    if (enabled && breakFrequency === 0) {
+      setBreakFrequency(5);
+    }
     regenerateLevels();
   };
 
@@ -129,8 +149,9 @@ const BlindStructureManager: React.FC<BlindStructureManagerProps> = ({
                   <label className="text-[9px] font-black text-white/40 uppercase tracking-widest">Small Blind Inicial</label>
                   <input 
                     type="number" 
-                    value={interval.startingSmallBlind}
-                    onChange={(e) => updateInterval(index, 'startingSmallBlind', Number(e.target.value))}
+                    value={interval.startingSmallBlind || ''}
+                    onChange={(e) => updateInterval(index, 'startingSmallBlind', handleNumericInput(e.target.value))}
+                    placeholder="0"
                     className="w-full bg-black/60 border border-white/10 rounded-xl p-3 text-white font-bold outline-none focus:border-yellow-500"
                   />
                 </div>
@@ -139,8 +160,9 @@ const BlindStructureManager: React.FC<BlindStructureManagerProps> = ({
                   <label className="text-[9px] font-black text-white/40 uppercase tracking-widest">Incremento</label>
                   <input 
                     type="number" 
-                    value={interval.increment}
-                    onChange={(e) => updateInterval(index, 'increment', Number(e.target.value))}
+                    value={interval.increment || ''}
+                    onChange={(e) => updateInterval(index, 'increment', handleNumericInput(e.target.value))}
+                    placeholder="0"
                     className="w-full bg-black/60 border border-white/10 rounded-xl p-3 text-yellow-500 font-bold outline-none focus:border-yellow-500"
                   />
                 </div>
@@ -149,8 +171,9 @@ const BlindStructureManager: React.FC<BlindStructureManagerProps> = ({
                   <label className="text-[9px] font-black text-white/40 uppercase tracking-widest">Duração (min)</label>
                   <input 
                     type="number" 
-                    value={interval.levelDuration}
-                    onChange={(e) => updateInterval(index, 'levelDuration', Number(e.target.value))}
+                    value={interval.levelDuration || ''}
+                    onChange={(e) => updateInterval(index, 'levelDuration', handleNumericInput(e.target.value))}
+                    placeholder="0"
                     className="w-full bg-black/60 border border-white/10 rounded-xl p-3 text-white font-bold outline-none focus:border-yellow-500"
                   />
                 </div>
@@ -159,8 +182,9 @@ const BlindStructureManager: React.FC<BlindStructureManagerProps> = ({
                   <label className="text-[9px] font-black text-white/40 uppercase tracking-widest">Nº de Níveis</label>
                   <input 
                     type="number" 
-                    value={interval.numberOfLevels}
-                    onChange={(e) => updateInterval(index, 'numberOfLevels', Number(e.target.value))}
+                    value={interval.numberOfLevels || ''}
+                    onChange={(e) => updateInterval(index, 'numberOfLevels', handleNumericInput(e.target.value))}
+                    placeholder="0"
                     className="w-full bg-black/60 border border-white/10 rounded-xl p-3 text-white font-bold outline-none focus:border-yellow-500"
                   />
                 </div>
@@ -195,8 +219,9 @@ const BlindStructureManager: React.FC<BlindStructureManagerProps> = ({
                 <label className="text-[9px] font-black text-white/40 uppercase tracking-widest">Duração do Break (min)</label>
                 <input 
                   type="number" 
-                  value={breakDuration}
-                  onChange={(e) => updateBreakSettings(Number(e.target.value), undefined)}
+                  value={breakDuration || ''}
+                  onChange={(e) => updateBreakSettings(handleNumericInput(e.target.value), undefined)}
+                  placeholder="0"
                   className="w-full bg-black/60 border border-white/10 rounded-xl p-3 text-white font-bold outline-none focus:border-yellow-500"
                 />
               </div>
@@ -205,8 +230,9 @@ const BlindStructureManager: React.FC<BlindStructureManagerProps> = ({
                 <label className="text-[9px] font-black text-white/40 uppercase tracking-widest">Break a Cada X Níveis (0 = sem breaks)</label>
                 <input 
                   type="number" 
-                  value={breakFrequency}
-                  onChange={(e) => updateBreakSettings(undefined, Number(e.target.value))}
+                  value={breakFrequency || ''}
+                  onChange={(e) => updateBreakSettings(undefined, handleNumericInput(e.target.value))}
+                  placeholder="0"
                   className="w-full bg-black/60 border border-white/10 rounded-xl p-3 text-white font-bold outline-none focus:border-yellow-500"
                 />
               </div>
@@ -219,50 +245,84 @@ const BlindStructureManager: React.FC<BlindStructureManagerProps> = ({
           <h3 className="text-xl font-black text-white mb-4">Níveis Gerados ({levels.length} níveis)</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 max-h-[500px] overflow-y-auto pr-2">
             {levels.map((level, idx) => (
-              <div key={idx} className={`rounded-xl p-4 border ${level.isBreak ? 'bg-blue-600/20 border-blue-500/30' : 'bg-white/5 border-white/5'}`}>
-                {level.isBreak ? (
-                  <>
-                    <div className="text-[9px] font-black text-blue-400 uppercase tracking-widest mb-1">Break</div>
-                    <div className="text-lg font-black text-blue-400">{level.duration} min</div>
-                  </>
-                ) : (
-                  <>
-                    <div className="text-[9px] font-black text-white/40 uppercase tracking-widest mb-1">Nível {levels.filter((l, i) => i < idx && !l.isBreak).length + 1}</div>
-                    <div className="grid grid-cols-2 gap-2 mb-2">
-                      <div>
-                        <div className="text-[7px] text-white/30 font-black">SB</div>
+              <div key={idx}>
+                <div className={`rounded-xl p-4 border ${level.isBreak ? 'bg-blue-600/20 border-blue-500/30' : 'bg-white/5 border-white/5'}`}>
+                  {level.isBreak ? (
+                    <>
+                      <div className="flex justify-between items-center mb-2">
+                        <div className="text-[9px] font-black text-blue-400 uppercase tracking-widest">Break</div>
+                        <button 
+                          onClick={() => removeBreak(idx)}
+                          className="text-red-500 hover:text-red-400 text-xs font-black"
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[7px] text-blue-300 font-black">Duração (min)</label>
                         <input 
                           type="number" 
-                          value={level.smallBlind}
-                          onChange={(e) => updateLevel(idx, 'smallBlind', Number(e.target.value))}
-                          className="w-full bg-black/40 border border-white/5 rounded p-1 text-sm font-black text-yellow-500 outline-none focus:border-yellow-500"
+                          value={level.duration || ''}
+                          onChange={(e) => updateLevel(idx, 'duration', handleNumericInput(e.target.value))}
+                          placeholder="0"
+                          className="w-full bg-black/40 border border-blue-500/30 rounded p-2 text-lg font-black text-blue-400 outline-none focus:border-blue-500"
                         />
                       </div>
-                      <div>
-                        <div className="text-[7px] text-white/30 font-black">BB</div>
-                        <div className="w-full bg-black/20 border border-white/5 rounded p-1 text-sm font-black text-green-500">
-                          {level.bigBlind}
+                    </>
+                  ) : (
+                    <>
+                      <div className="text-[9px] font-black text-white/40 uppercase tracking-widest mb-1">Nível {levels.filter((l, i) => i < idx && !l.isBreak).length + 1}</div>
+                      <div className="grid grid-cols-2 gap-2 mb-2">
+                        <div>
+                          <div className="text-[7px] text-white/30 font-black">SB</div>
+                          <input 
+                            type="number" 
+                            value={level.smallBlind || ''}
+                            onChange={(e) => updateLevel(idx, 'smallBlind', handleNumericInput(e.target.value))}
+                            placeholder="0"
+                            className="w-full bg-black/40 border border-white/5 rounded p-1 text-sm font-black text-yellow-500 outline-none focus:border-yellow-500"
+                          />
+                        </div>
+                        <div>
+                          <div className="text-[7px] text-white/30 font-black">BB</div>
+                          <input 
+                            type="number" 
+                            value={level.bigBlind || ''}
+                            onChange={(e) => updateLevel(idx, 'bigBlind', handleNumericInput(e.target.value))}
+                            placeholder="0"
+                            className="w-full bg-black/40 border border-white/5 rounded p-1 text-sm font-black text-green-500 outline-none focus:border-green-500"
+                          />
                         </div>
                       </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <div className="text-[7px] text-white/30 font-black">Ante</div>
-                        <div className="w-full bg-black/20 border border-white/5 rounded p-1 text-xs font-black text-blue-400">
-                          {level.ante}
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <div className="text-[7px] text-white/30 font-black">Ante</div>
+                          <div className="w-full bg-black/20 border border-white/5 rounded p-1 text-xs font-black text-blue-400">
+                            {level.ante}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-[7px] text-white/30 font-black">Tempo</div>
+                          <input 
+                            type="number" 
+                            value={level.duration || ''}
+                            onChange={(e) => updateLevel(idx, 'duration', handleNumericInput(e.target.value))}
+                            placeholder="0"
+                            className="w-full bg-black/40 border border-white/5 rounded p-1 text-xs font-black text-white outline-none focus:border-yellow-500"
+                          />
                         </div>
                       </div>
-                      <div>
-                        <div className="text-[7px] text-white/30 font-black">Tempo</div>
-                        <input 
-                          type="number" 
-                          value={level.duration}
-                          onChange={(e) => updateLevel(idx, 'duration', Number(e.target.value))}
-                          className="w-full bg-black/40 border border-white/5 rounded p-1 text-xs font-black text-white outline-none focus:border-yellow-500"
-                        />
-                      </div>
-                    </div>
-                  </>
+                    </>
+                  )}
+                </div>
+                {/* Add Break Button - appears after each level/break */}
+                {!level.isBreak && (
+                  <button 
+                    onClick={() => addManualBreak(idx)}
+                    className="w-full mt-2 py-1 bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/30 rounded-lg text-blue-400 text-[8px] font-black uppercase transition-all"
+                  >
+                    + Adicionar Break Aqui
+                  </button>
                 )}
               </div>
             ))}
