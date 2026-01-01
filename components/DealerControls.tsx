@@ -8,6 +8,7 @@ import { handleNumericInput, DEFAULT_BREAK_DURATION } from '../utils/inputHelper
 interface DealerControlsProps {
   state: GameState;
   onDispatch: (action: ActionMessage) => void;
+  isManager?: boolean;
 }
 
 const ToggleSlider: React.FC<{ checked: boolean, onChange: (val: boolean) => void, colorClass?: string }> = ({ checked, onChange, colorClass = 'bg-yellow-500' }) => (
@@ -20,8 +21,8 @@ const ToggleSlider: React.FC<{ checked: boolean, onChange: (val: boolean) => voi
   </button>
 );
 
-const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch }) => {
-  const [activeTab, setActiveTab] = useState<'torneios' | 'salao' | 'registry' | 'tv'>('torneios');
+const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isManager = false }) => {
+  const [activeTab, setActiveTab] = useState<'torneios' | 'salao' | 'registry' | 'tv' | 'clubes'>('torneios');
   const [editingTourney, setEditingTourney] = useState<Partial<Tournament> | null>(null);
   const [activeTourneyId, setActiveTourneyId] = useState<string | null>(state.activeTournamentId);
   const [regName, setRegName] = useState('');
@@ -163,7 +164,9 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch }) =>
              { id: 'torneios', label: 'Torneios', icon: '🏆' },
              { id: 'salao', label: 'Salão (Mesas)', icon: '🏢' },
              { id: 'registry', label: 'Jogadores', icon: '👤' },
-             { id: 'tv', label: 'Modo TV', icon: '📡' }
+             { id: 'tv', label: 'Modo TV', icon: '📡' },
+             // Only show Clubes tab for owners, not for managers
+             ...(!isManager ? [{ id: 'clubes', label: 'Clubes', icon: '🏛️' }] : [])
            ].map(tab => (
              <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`flex items-center gap-4 p-4 rounded-2xl transition-all ${activeTab === tab.id ? 'bg-yellow-500 text-black font-black' : 'text-white/40 hover:text-white'}`}>
                <span className="text-xl">{tab.icon}</span>
@@ -654,6 +657,117 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch }) =>
                   <div className="h-full w-full flex items-center justify-center text-white/5 text-4xl font-black uppercase tracking-[20px]">Nenhuma Mesa Ativa</div>
                 )}
              </div>
+          </div>
+        )}
+
+        {/* CLUBES TAB */}
+        {activeTab === 'clubes' && !isManager && (
+          <div className="p-8">
+            <div className="max-w-4xl mx-auto">
+              <div className="mb-8">
+                <h2 className="text-4xl font-outfit font-black text-white mb-2 italic">Meus Clubes</h2>
+                <p className="text-white/40 text-sm">Gerencie seus clubes e gerentes</p>
+              </div>
+
+              {/* Clubs List */}
+              <div className="space-y-4">
+                {state.clubs.length === 0 ? (
+                  <div className="text-center py-12">
+                    <p className="text-white/40 text-sm mb-4">Você ainda não tem clubes</p>
+                    <p className="text-white/30 text-xs">Use a tela de seleção de clubes para criar um novo</p>
+                  </div>
+                ) : (
+                  state.clubs.map((club) => (
+                    <div key={club.id} className="glass p-6 rounded-2xl border border-white/10">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          {club.profilePhotoUrl ? (
+                            <img 
+                              src={club.profilePhotoUrl} 
+                              alt={club.name}
+                              className="w-16 h-16 rounded-xl object-cover"
+                            />
+                          ) : (
+                            <div className="w-16 h-16 rounded-xl bg-yellow-500/20 flex items-center justify-center">
+                              <span className="text-yellow-500 text-3xl font-black">
+                                {club.name.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                          )}
+                          <div>
+                            <h3 className="text-white font-black text-xl">{club.name}</h3>
+                            {club.description && (
+                              <p className="text-white/40 text-sm mt-1">{club.description}</p>
+                            )}
+                            <p className="text-white/30 text-xs mt-2">
+                              Criado em {new Date(club.createdAt).toLocaleDateString('pt-BR')}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => {
+                              onDispatch({
+                                type: 'SET_ACTIVE_CLUB',
+                                payload: { id: club.id },
+                                senderId: 'DIR'
+                              });
+                            }}
+                            className={`px-4 py-2 rounded-xl font-black text-xs uppercase transition-all tracking-widest ${
+                              state.activeClubId === club.id
+                                ? 'bg-yellow-500 text-black'
+                                : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white'
+                            }`}
+                          >
+                            {state.activeClubId === club.id ? 'ATIVO' : 'ATIVAR'}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Club Stats */}
+                      <div className="mt-4 pt-4 border-t border-white/5">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-white/40 text-xs uppercase tracking-wider mb-1">Torneios</p>
+                            <p className="text-white font-black text-2xl">
+                              {state.tournaments.filter(t => t.clubId === club.id).length}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-white/40 text-xs uppercase tracking-wider mb-1">Mesas Usadas</p>
+                            <p className="text-white font-black text-2xl">
+                              {new Set(
+                                state.tournaments
+                                  .filter(t => t.clubId === club.id)
+                                  .flatMap(t => t.assignedTableIds)
+                              ).size}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Info about managers */}
+                      <div className="mt-4 p-4 bg-blue-500/5 border border-blue-500/20 rounded-xl">
+                        <p className="text-blue-400 text-xs">
+                          ℹ️ Para criar gerentes deste clube, use o botão "Entrar como Gerente" na tela de código do clube.
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Instructions */}
+              <div className="mt-8 p-6 bg-white/5 rounded-2xl border border-white/10">
+                <h3 className="text-white font-black mb-3">Como usar clubes</h3>
+                <ul className="text-white/60 text-sm space-y-2">
+                  <li>• Crie clubes para organizar seus torneios</li>
+                  <li>• Cada clube pode ter vários gerentes com permissões limitadas</li>
+                  <li>• Quando você cria um torneio, ele será associado ao clube ativo</li>
+                  <li>• Jogadores e dealers acessam através da seleção de clube</li>
+                </ul>
+              </div>
+            </div>
           </div>
         )}
       </div>

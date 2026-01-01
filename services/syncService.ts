@@ -176,7 +176,31 @@ export const syncService = {
         .single();
       
       if (!error && data?.state) {
-        return data.state as GameState;
+        const state = data.state as GameState;
+        
+        // Load clubs from database if not present in state
+        if (!state.clubs) {
+          const { data: clubsData } = await supabase
+            .from('poker_clubs')
+            .select('*')
+            .eq('owner_user_id', currentUserId)
+            .order('created_at', { ascending: false });
+          
+          if (clubsData) {
+            state.clubs = clubsData.map(club => ({
+              id: club.id,
+              name: club.name,
+              ownerUserId: club.owner_user_id,
+              profilePhotoUrl: club.profile_photo_url,
+              bannerUrl: club.banner_url,
+              description: club.description,
+              createdAt: new Date(club.created_at),
+              updatedAt: new Date(club.updated_at)
+            }));
+          }
+        }
+        
+        return state;
       }
       
       if (error) {
