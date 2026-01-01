@@ -1,10 +1,14 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Role, GameState, Player, PlayerStatus, ActionMessage, Tournament, RoomTable, RegisteredPerson, TournamentConfig, TableState, BettingRound, BetActionType } from './types';
+import { Role, GameState, Player, PlayerStatus, ActionMessage, Tournament, RoomTable, RegisteredPerson, TournamentConfig, TableState, BettingRound, BetActionType, Club } from './types';
 import { syncService } from './services/syncService';
 import { authService, AuthSession, User } from './services/authService';
+import { clubService, ClubManagerSession } from './services/clubService';
 import { isSupabaseConfigured } from './services/supabaseClient';
 import Login from './components/Login';
+import ClubSelection from './components/ClubSelection';
+import ClubCodeEntry from './components/ClubCodeEntry';
+import ManagerLogin from './components/ManagerLogin';
 import PlayerDashboard from './components/PlayerDashboard';
 import DealerControls from './components/DealerControls';
 import TableDealerInterface from './components/TableDealerInterface';
@@ -33,6 +37,7 @@ const PERSIST_DEBOUNCE_DELAY = 500;
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [managerSession, setManagerSession] = useState<ClubManagerSession | null>(null);
   const [role, setRole] = useState<Role | null>(null);
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [tableId, setTableId] = useState<number | null>(null);
@@ -42,6 +47,11 @@ const App: React.FC = () => {
   const [sessionExpiredMessage, setSessionExpiredMessage] = useState(false);
   const [gameState, setGameState] = useState<GameState>(INITIAL_STATE);
   const [syncUserId, setSyncUserId] = useState<string | null>(null); // Track userId for sync subscription
+  
+  // Club flow states
+  const [selectedClub, setSelectedClub] = useState<Club | null>(null);
+  const [showClubSelection, setShowClubSelection] = useState(false);
+  const [showManagerLogin, setShowManagerLogin] = useState(false);
   
   // Debounce timer for state persistence to improve performance
   const persistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1315,83 +1325,150 @@ const App: React.FC = () => {
     );
   }
 
-  // Show code entry only for unauthenticated users (requires Supabase to be configured)
-  if (!role && !currentUser) {
-    const handleCodeSubmit = async (e: React.FormEvent) => {
-      e.preventDefault();
-      const code = accessCodeInput.toUpperCase();
-      
-      // First, try to find the code in local state
-      let foundPlayer = gameState.players.find(p => p.accessCode === code);
-      let foundTable = gameState.tableStates.find(ts => ts.dealerAccessCode === code);
-      
-      // If not found locally and Supabase is configured, search in backend
-      if (!foundPlayer && !foundTable && isSupabaseConfigured()) {
-        console.log('🔍 Código não encontrado localmente, buscando no backend...');
+  // Show club selection for unauthenticated users (requires Supabase to be configured)
+  if (!role && !currentUser && !managerSession) {
+    // Show manager login if a club is selected and user clicked "Enter as Manager"
+    if (showManagerLogin && selectedClub) {
+      return (
+        <ManagerLogin
+          club={selectedClub}
+          onLoginSuccess={(session) => {
+            setManagerSession(session);
+            setShowManagerLogin(false);
+            // Load the club owner's game state for the manager
+            syncService.setUserId(selectedClub.ownerUserId);
+            setSyncUserId(selectedClub.ownerUserId);
+            localStorage.setItem('poker_sync_user_id', selectedClub.ownerUserId);
+            
+            // Load state
+            syncService.loadStateForUser(selectedClub.ownerUserId).then(state => {
+              if (state) {
+                setGameState(state);
+                // Set active club
+                dispatch({
+                  type: 'SET_ACTIVE_CLUB',
+                  payload: { id: selectedClub.id },
+                  senderId: 'system'
+                });
+              }
+            });
+          }}
+          onBack={() => setShowManagerLogin(false)}
+        />
+      );
+    }
+
+    // Show code entry if club is selected
+    if (selectedClub && !showClubSelection) {
+      const handleCodeSubmit = async (code: string) => {
+        const upperCode = code.toUpperCase();
         
-        try {
-          // Find which user owns this code
-          const ownerUserId = await syncService.findUserByAccessCode(code);
+        // First, try to find the code in local state
+        let foundPlayer = gameState.players.find(p => p.accessCode === upperCode);
+        let foundTable = gameState.tableStates.find(ts => ts.dealerAccessCode === upperCode);
+        
+        // If not found locally and Supabase is configured, search in backend
+        if (!foundPlayer && !foundTable && isSupabaseConfigured()) {
+          console.log('🔍 Código não encontrado localmente, buscando no backend...');
           
-          if (ownerUserId) {
-            console.log('✅ Código encontrado! Carregando estado do torneio...');
+          try {
+            // Find which user owns this code
+            const ownerUserId = await syncService.findUserByAccessCode(upperCode);
             
-            // Load that user's game state
-            const ownerState = await syncService.loadStateForUser(ownerUserId);
-            
-            if (ownerState) {
-              // Update local game state with the owner's state
-              setGameState(ownerState);
+            if (ownerUserId) {
+              console.log('✅ Código encontrado! Carregando estado do torneio...');
               
-              // Set this user ID for synchronization (guest access to owner's session)
-              syncService.setUserId(ownerUserId);
-              setSyncUserId(ownerUserId); // Trigger subscription effect
+              // Load that user's game state
+              const ownerState = await syncService.loadStateForUser(ownerUserId);
               
-              // Save to localStorage for persistence across page refreshes
-              localStorage.setItem('poker_sync_user_id', ownerUserId);
-              
-              // Now find the player/table in the loaded state
-              foundPlayer = ownerState.players.find(p => p.accessCode === code);
-              foundTable = ownerState.tableStates.find(ts => ts.dealerAccessCode === code);
-              
-              console.log('✅ Estado do torneio carregado com sucesso');
-            } else {
-              console.error('❌ Falha ao carregar estado do torneio');
-              alert('Erro ao carregar dados do torneio. Tente novamente.');
-              return;
+              if (ownerState) {
+                // Update local game state with the owner's state
+                setGameState(ownerState);
+                
+                // Set this user ID for synchronization (guest access to owner's session)
+                syncService.setUserId(ownerUserId);
+                setSyncUserId(ownerUserId); // Trigger subscription effect
+                
+                // Save to localStorage for persistence across page refreshes
+                localStorage.setItem('poker_sync_user_id', ownerUserId);
+                
+                // Now find the player/table in the loaded state
+                foundPlayer = ownerState.players.find(p => p.accessCode === upperCode);
+                foundTable = ownerState.tableStates.find(ts => ts.dealerAccessCode === upperCode);
+                
+                console.log('✅ Estado do torneio carregado com sucesso');
+              } else {
+                console.error('❌ Falha ao carregar estado do torneio');
+                alert('Erro ao carregar dados do torneio. Tente novamente.');
+                return;
+              }
             }
+          } catch (error) {
+            console.error('❌ Erro ao buscar código no backend:', error);
+            alert('Erro ao buscar código. Verifique sua conexão e tente novamente.');
+            return;
           }
-        } catch (error) {
-          console.error('❌ Erro ao buscar código no backend:', error);
-          alert('Erro ao buscar código. Verifique sua conexão e tente novamente.');
+        }
+        
+        // Check if it's a player code
+        if (foundPlayer) {
+          setPlayerId(foundPlayer.id);
+          localStorage.setItem('poker_current_player_id', foundPlayer.id);
+          selectRole(Role.PLAYER);
           return;
         }
-      }
-      
-      // Check if it's a player code
-      if (foundPlayer) {
-        setPlayerId(foundPlayer.id);
-        localStorage.setItem('poker_current_player_id', foundPlayer.id);
-        selectRole(Role.PLAYER);
-        return;
-      }
-      
-      // Check if it's a dealer code
-      if (foundTable) {
-        selectRole(Role.DEALER, foundTable.id);
-        return;
-      }
-      
-      // Code not found
-      alert('Código não encontrado. Verifique o código e tente novamente.');
-    };
+        
+        // Check if it's a dealer code
+        if (foundTable) {
+          selectRole(Role.DEALER, foundTable.id);
+          return;
+        }
+        
+        // Code not found
+        alert('Código não encontrado. Verifique o código e tente novamente.');
+      };
 
+      return (
+        <ClubCodeEntry
+          club={selectedClub}
+          onCodeSubmit={handleCodeSubmit}
+          onBack={() => {
+            setSelectedClub(null);
+            setShowClubSelection(false);
+          }}
+          onManagerLogin={() => setShowManagerLogin(true)}
+        />
+      );
+    }
+
+    // Show club selection (first screen for non-authenticated users)
+    // But first check if user wants club selection or admin mode
+    if (showClubSelection) {
+      return (
+        <ClubSelection
+          userId="guest" // Guest users can search all clubs
+          onClubSelect={(club) => {
+            setSelectedClub(club);
+            setShowClubSelection(false);
+            // Load the club owner's state
+            syncService.loadStateForUser(club.ownerUserId).then(state => {
+              if (state) {
+                setGameState(state);
+              }
+            });
+          }}
+          onBack={() => setShowClubSelection(false)}
+        />
+      );
+    }
+
+    // Default home screen: Choose between club selection or admin mode
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-6 poker-felt">
         <div className="w-full max-w-md glass p-10 rounded-[40px] shadow-2xl text-center border-white/20 border">
           <h1 className="text-6xl font-outfit font-black text-white mb-2 italic tracking-tighter">POKER<span className="text-yellow-500"> 2</span></h1>
           <p className="text-white/40 mb-2 text-[10px] font-bold tracking-[6px] uppercase">Gerenciador de Fichas & Suite Profissional</p>
-          <p className="text-white/60 text-sm mb-8">Entre com o código da mesa</p>
+          <p className="text-white/60 text-sm mb-8">Bem-vindo ao sistema</p>
           
           {sessionExpiredMessage && (
             <div className="mb-6 bg-yellow-500/10 border border-yellow-500/30 rounded-2xl p-4 text-left">
@@ -1414,20 +1491,15 @@ const App: React.FC = () => {
           )}
           
           <div className="space-y-4">
-            <form onSubmit={handleCodeSubmit} className="space-y-4">
-              <input 
-                type="text" 
-                maxLength={4} 
-                value={accessCodeInput} 
-                onChange={e => setAccessCodeInput(e.target.value.toUpperCase())} 
-                placeholder="CÓDIGO" 
-                className="w-full bg-black/40 border border-white/10 rounded-3xl p-6 text-center text-4xl font-black text-yellow-500 outline-none transition-all tracking-[12px] focus:border-yellow-500/50" 
-              />
-              <button type="submit" className="w-full bg-yellow-600 hover:bg-yellow-500 text-white font-black py-5 rounded-3xl text-xl shadow-xl transition-all">ENTRAR</button>
-            </form>
+            <button 
+              onClick={() => setShowClubSelection(true)}
+              className="w-full bg-yellow-600 hover:bg-yellow-500 text-white font-black py-5 rounded-3xl text-xl shadow-xl transition-all"
+            >
+              ENTRAR EM UM CLUBE
+            </button>
             <button 
               onClick={() => setShowAdminLogin(true)} 
-              className="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-white/60 hover:text-white font-black py-3 rounded-2xl transition-all uppercase text-[10px] tracking-widest mt-6"
+              className="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-white/60 hover:text-white font-black py-3 rounded-2xl transition-all uppercase text-[10px] tracking-widest"
             >
               Modo Administrativo
             </button>
@@ -1458,23 +1530,40 @@ const App: React.FC = () => {
     <div className="min-h-screen bg-[#050505]">
       {role === Role.PLAYER && playerId && <PlayerDashboard state={gameState} playerId={playerId} onDispatch={dispatch} />}
       {role === Role.DEALER && tableId && <TableDealerInterface state={gameState} tableId={tableId} onDispatch={dispatch} onExit={exitRole} />}
-      {role === Role.DIRECTOR && currentUser && (
+      {role === Role.DIRECTOR && (currentUser || managerSession) && (
         <div className="h-screen flex flex-col">
           <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 bg-black">
             <div className="flex items-center gap-4">
-               <div className="w-10 h-10 rounded-xl bg-yellow-500 flex items-center justify-center font-black text-black text-xl">D</div>
+               <div className="w-10 h-10 rounded-xl bg-yellow-500 flex items-center justify-center font-black text-black text-xl">
+                 {managerSession ? 'M' : 'D'}
+               </div>
                <div>
                  <h1 className="text-2xl font-outfit font-black text-white italic tracking-tight uppercase">Gerenciamento</h1>
-                 <p className="text-white/40 text-xs">Usuário: {currentUser.username}</p>
+                 <p className="text-white/40 text-xs">
+                   {currentUser ? `Usuário: ${currentUser.username}` : `Gerente: ${managerSession?.manager.username}`}
+                   {managerSession && <span className="ml-2 text-yellow-500/60">(Permissões Limitadas)</span>}
+                 </p>
                </div>
             </div>
             <div className="flex gap-2">
               <button onClick={exitRole} className="px-6 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-[10px] font-black uppercase transition-all tracking-widest">VOLTAR</button>
-              <button onClick={handleLogout} className="px-6 py-2 rounded-xl bg-white/5 hover:bg-red-600/20 text-white/40 hover:text-red-500 text-[10px] font-black uppercase transition-all tracking-widest">LOGOUT</button>
+              <button 
+                onClick={async () => {
+                  if (managerSession) {
+                    await clubService.managerLogout();
+                    setManagerSession(null);
+                  } else {
+                    await handleLogout();
+                  }
+                }} 
+                className="px-6 py-2 rounded-xl bg-white/5 hover:bg-red-600/20 text-white/40 hover:text-red-500 text-[10px] font-black uppercase transition-all tracking-widest"
+              >
+                LOGOUT
+              </button>
             </div>
           </div>
           <div className="flex-1 overflow-hidden bg-[#0a0a0a]">
-            <DealerControls state={gameState} onDispatch={dispatch} />
+            <DealerControls state={gameState} onDispatch={dispatch} isManager={!!managerSession} />
           </div>
         </div>
       )}

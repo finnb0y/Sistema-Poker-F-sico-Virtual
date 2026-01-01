@@ -8,6 +8,7 @@ import { handleNumericInput, DEFAULT_BREAK_DURATION } from '../utils/inputHelper
 interface DealerControlsProps {
   state: GameState;
   onDispatch: (action: ActionMessage) => void;
+  isManager?: boolean;
 }
 
 const ToggleSlider: React.FC<{ checked: boolean, onChange: (val: boolean) => void, colorClass?: string }> = ({ checked, onChange, colorClass = 'bg-yellow-500' }) => (
@@ -20,7 +21,7 @@ const ToggleSlider: React.FC<{ checked: boolean, onChange: (val: boolean) => voi
   </button>
 );
 
-const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch }) => {
+const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isManager = false }) => {
   const [activeTab, setActiveTab] = useState<'torneios' | 'salao' | 'registry' | 'tv'>('torneios');
   const [editingTourney, setEditingTourney] = useState<Partial<Tournament> | null>(null);
   const [activeTourneyId, setActiveTourneyId] = useState<string | null>(state.activeTournamentId);
