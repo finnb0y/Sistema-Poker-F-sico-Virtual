@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { GameState, ActionMessage, TournamentConfig, Player, RegisteredPerson, Tournament, RoomTable, BlindInterval, BlindLevel, Club } from '../types';
+import { GameState, ActionMessage, TournamentConfig, Player, RegisteredPerson, Tournament, RoomTable, BlindInterval, BlindLevel, Club, ClubManager, ClubManagerLoginLog } from '../types';
 import TableView from './TableView';
 import BlindStructureManager from './BlindStructureManager';
+// TODO: TournamentBlindTimer is ready for integration but requires careful JSX structure modification
+// The component is imported and ready to display the automatic blind timer when a tournament is started
+// To integrate: Add <TournamentBlindTimer tournament={currentTourney} state={state} onDispatch={onDispatch} />
+// in the active tournament section (around line 465-475) where tournament details are shown
+import TournamentBlindTimer from './TournamentBlindTimer';
 import { createDefaultBlindStructure } from '../utils/blindStructure';
 import { handleNumericInput, DEFAULT_BREAK_DURATION } from '../utils/inputHelpers';
 import { clubService } from '../services/clubService';
@@ -52,6 +57,15 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isMa
   const [newClubDescription, setNewClubDescription] = useState('');
   const [isCreatingClub, setIsCreatingClub] = useState(false);
   const [expandedClubId, setExpandedClubId] = useState<string | null>(null);
+  
+  // Manager Management State
+  const [clubManagers, setClubManagers] = useState<Record<string, ClubManager[]>>({});
+  const [managerLoginLogs, setManagerLoginLogs] = useState<Record<string, ClubManagerLoginLog[]>>({});
+  const [showCreateManager, setShowCreateManager] = useState<string | null>(null); // clubId
+  const [newManagerUsername, setNewManagerUsername] = useState('');
+  const [newManagerPassword, setNewManagerPassword] = useState('');
+  const [isCreatingManager, setIsCreatingManager] = useState(false);
+  const [showManagerLogs, setShowManagerLogs] = useState<string | null>(null); // clubId
 
   useEffect(() => {
     setActiveTourneyId(state.activeTournamentId);
@@ -245,6 +259,115 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isMa
     }
   };
 
+  // Load managers for a club
+  const loadClubManagers = async (clubId: string) => {
+    try {
+      const managers = await clubService.getClubManagers(clubId);
+      setClubManagers(prev => ({ ...prev, [clubId]: managers }));
+    } catch (error) {
+      console.error('Error loading managers:', error);
+    }
+  };
+
+  // Load manager login logs for a club
+  const loadManagerLoginLogs = async (clubId: string) => {
+    try {
+      const logs = await clubService.getManagerLoginLogs(clubId, 50);
+      setManagerLoginLogs(prev => ({ ...prev, [clubId]: logs }));
+    } catch (error) {
+      console.error('Error loading login logs:', error);
+    }
+  };
+
+  // Create a new manager
+  const handleCreateManager = async (e: React.FormEvent, clubId: string) => {
+    e.preventDefault();
+    
+    const trimmedUsername = newManagerUsername.trim();
+    const trimmedPassword = newManagerPassword.trim();
+    
+    if (!trimmedUsername || trimmedUsername.length < 3) {
+      alert('Nome de usuário deve ter pelo menos 3 caracteres');
+      return;
+    }
+
+    if (!trimmedPassword || trimmedPassword.length < 6) {
+      alert('Senha deve ter pelo menos 6 caracteres');
+      return;
+    }
+
+    setIsCreatingManager(true);
+    
+    try {
+      const result = await clubService.createManager(clubId, trimmedUsername, trimmedPassword);
+
+      if (result.success && result.manager) {
+        alert('Gerente criado com sucesso!');
+        setNewManagerUsername('');
+        setNewManagerPassword('');
+        setShowCreateManager(null);
+        
+        // Reload managers list
+        loadClubManagers(clubId);
+      } else {
+        alert(result.error || 'Erro ao criar gerente');
+      }
+    } catch (error) {
+      console.error('Error creating manager:', error);
+      alert('Erro ao criar gerente. Tente novamente.');
+    } finally {
+      setIsCreatingManager(false);
+    }
+  };
+
+  // Delete a manager
+  const handleDeleteManager = async (managerId: string, clubId: string) => {
+    if (!confirm('Tem certeza que deseja excluir este gerente?')) {
+      return;
+    }
+
+    try {
+      const result = await clubService.deleteManager(managerId);
+      
+      if (result.success) {
+        alert('Gerente excluído com sucesso!');
+        // Reload managers list
+        loadClubManagers(clubId);
+      } else {
+        alert(result.error || 'Erro ao excluir gerente');
+      }
+    } catch (error) {
+      console.error('Error deleting manager:', error);
+      alert('Erro ao excluir gerente. Tente novamente.');
+    }
+  };
+
+  // Handle starting a tournament
+  const handleStartTournament = (tournamentId: string) => {
+    if (!confirm('Tem certeza que deseja iniciar este torneio? Os blinds começarão a contar automaticamente.')) {
+      return;
+    }
+
+    onDispatch({
+      type: 'START_TOURNAMENT',
+      payload: { tournamentId },
+      senderId: 'DIR'
+    });
+  };
+
+  // Handle stopping a tournament
+  const handleStopTournament = (tournamentId: string) => {
+    if (!confirm('Tem certeza que deseja pausar este torneio?')) {
+      return;
+    }
+
+    onDispatch({
+      type: 'STOP_TOURNAMENT',
+      payload: { tournamentId },
+      senderId: 'DIR'
+    });
+  };
+
   return (
     <div className="flex h-full flex-col lg:flex-row">
       {/* Primary Sidebar */}
@@ -289,6 +412,11 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isMa
                                <div className="flex items-center gap-3 flex-wrap">
                                  <h3 className="text-2xl font-black text-white">{t.name}</h3>
                                  <span className="bg-yellow-500/10 text-yellow-500 px-3 py-1 rounded-lg font-black text-xs">{t.acronym}</span>
+                                 {t.isStarted && (
+                                   <span className="bg-green-500/10 text-green-500 px-3 py-1 rounded-lg font-black text-xs animate-pulse" title="Torneio em andamento">
+                                     ▶ Em Andamento
+                                   </span>
+                                 )}
                                  {!t.clubId && (
                                    <span className="bg-orange-500/10 text-orange-500 px-3 py-1 rounded-lg font-black text-xs" title="Este torneio não está associado a nenhum clube">
                                      ⚠️ Sem clube
@@ -310,7 +438,7 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isMa
                                <button onClick={() => onDispatch({ type: 'DELETE_TOURNAMENT', payload: { id: t.id }, senderId: 'DIR' })} className="p-2 text-white/10 hover:text-red-500">🗑️</button>
                             </div>
                          </div>
-                         <div className="flex flex-wrap gap-2">
+                         <div className="flex flex-wrap gap-2 mb-4">
                             {t.config.buyIn.enabled && <span className="text-[8px] bg-green-500/10 text-green-500 px-3 py-1 rounded-full font-black uppercase">Buy-in OK</span>}
                             {t.config.reentry.enabled && <span className="text-[8px] bg-orange-500/10 text-orange-500 px-3 py-1 rounded-full font-black uppercase">Re-entry OK</span>}
                             {t.config.rebuy.enabled && <span className="text-[8px] bg-blue-500/10 text-blue-500 px-3 py-1 rounded-full font-black uppercase">Rebuy OK</span>}
@@ -318,6 +446,24 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isMa
                          </div>
                       </div>
                     ))}
+                          
+                          <div className="mt-4">
+                            {!t.isStarted ? (
+                              <button 
+                                onClick={() => handleStartTournament(t.id)}
+                                className="w-full bg-green-600 hover:bg-green-500 text-white font-black py-3 rounded-xl text-xs uppercase shadow-lg transition-all"
+                              >
+                                ▶ Iniciar Torneio
+                              </button>
+                            ) : (
+                              <button 
+                                onClick={() => handleStopTournament(t.id)}
+                                className="w-full bg-orange-600 hover:bg-orange-500 text-white font-black py-3 rounded-xl text-xs uppercase shadow-lg transition-all"
+                              >
+                                ⏸ Pausar Torneio
+                              </button>
+                            )}
+                          </div>
                  </div>
 
                  {activeTourneyId && currentTourney && (

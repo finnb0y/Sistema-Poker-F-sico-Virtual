@@ -72,6 +72,15 @@ export interface ClubManager {
   createdAt: Date;
 }
 
+export interface ClubManagerLoginLog {
+  id: string;
+  managerId: string;
+  clubId: string;
+  loginTime: Date;
+  ipAddress?: string;
+  userAgent?: string;
+}
+
 export interface Tournament {
   id: string;
   name: string;
@@ -81,6 +90,9 @@ export interface Tournament {
   assignedTableIds: number[];
   isActive: boolean;
   clubId?: string; // Reference to the club this tournament belongs to
+  isStarted?: boolean; // Whether the tournament has been started (blinds timer active)
+  startedAt?: Date; // When the tournament was started
+  currentBlindLevelStartTime?: Date; // When the current blind level started (for timer)
 }
 
 export interface Player {
@@ -174,6 +186,8 @@ export type ActionType =
   | 'CREATE_TOURNAMENT'
   | 'UPDATE_TOURNAMENT'
   | 'DELETE_TOURNAMENT'
+  | 'START_TOURNAMENT' // NEW: Start tournament and begin blind timer
+  | 'STOP_TOURNAMENT' // NEW: Stop tournament and pause blind timer
   | 'REGISTER_PLAYER_TO_TOURNAMENT'
   | 'REMOVE_PLAYER'
   | 'MOVE_PLAYER'
@@ -196,7 +210,8 @@ export type ActionType =
   | 'AUTO_BALANCE'
   | 'SET_ACTIVE_TOURNAMENT'
   | 'MOVE_DEALER_BUTTON'
-  | 'ADVANCE_BLIND_LEVEL';
+  | 'ADVANCE_BLIND_LEVEL'
+  | 'AUTO_ADVANCE_BLIND_LEVEL'; // NEW: Automatically advance blind level for all tournament tables
 
 export interface ActionMessage {
   type: ActionType;
