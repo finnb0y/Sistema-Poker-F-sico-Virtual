@@ -39,7 +39,7 @@ const App: React.FC = () => {
   const [syncUserId, setSyncUserId] = useState<string | null>(null); // Track userId for sync subscription
   
   // Debounce timer for state persistence to improve performance
-  const persistTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const persistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Keep a ref to the latest gameState for cleanup without causing re-renders
   const gameStateRef = useRef<GameState>(gameState);
   
