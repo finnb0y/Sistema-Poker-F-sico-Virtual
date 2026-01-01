@@ -168,7 +168,8 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isMa
   const handleCreateClub = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!newClubName.trim() || newClubName.trim().length < 3) {
+    const trimmedName = newClubName.trim();
+    if (!trimmedName || trimmedName.length < 3) {
       alert('Nome do clube deve ter pelo menos 3 caracteres');
       return;
     }
@@ -183,7 +184,7 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isMa
       }
 
       const result = await clubService.createClub(
-        newClubName.trim(),
+        trimmedName,
         session.user.id,
         newClubDescription.trim() || undefined
       );
