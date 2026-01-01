@@ -10,6 +10,7 @@ interface TournamentBlindTimerProps {
 const TournamentBlindTimer: React.FC<TournamentBlindTimerProps> = ({ tournament, state, onDispatch }) => {
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
   const [isPaused, setIsPaused] = useState(false);
+  const hasAdvancedRef = React.useRef(false);
 
   // Get current blind level from first table assigned to this tournament
   const firstTable = state.tableStates.find(ts => ts.tournamentId === tournament.id);
@@ -21,8 +22,8 @@ const TournamentBlindTimer: React.FC<TournamentBlindTimerProps> = ({ tournament,
       return;
     }
 
-    // Track if we've already advanced to prevent multiple dispatches
-    let hasAdvanced = false;
+    // Reset the flag when dependencies change (new level started)
+    hasAdvancedRef.current = false;
 
     // Calculate time remaining
     const calculateTimeRemaining = () => {
@@ -44,9 +45,9 @@ const TournamentBlindTimer: React.FC<TournamentBlindTimerProps> = ({ tournament,
       const remaining = calculateTimeRemaining();
       setTimeRemaining(remaining);
 
-      // Auto-advance when time runs out (only once per level)
-      if (remaining === 0 && !hasAdvanced) {
-        hasAdvanced = true;
+      // Auto-advance when time runs out (only once per level using ref)
+      if (remaining === 0 && !hasAdvancedRef.current) {
+        hasAdvancedRef.current = true;
         onDispatch({
           type: 'AUTO_ADVANCE_BLIND_LEVEL',
           payload: { tournamentId: tournament.id },
