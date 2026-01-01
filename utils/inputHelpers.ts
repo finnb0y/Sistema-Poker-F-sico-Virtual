@@ -15,7 +15,7 @@ export const DEFAULT_BREAK_DURATION = 10;
  */
 export const handleNumericInput = (value: string): number => {
   if (value === '' || value === '0') return 0;
-  // Remove leading zeros
-  const cleaned = value.replace(/^0+/, '') || '0';
-  return Number(cleaned);
+  // Remove leading zeros only when followed by other digits
+  const cleaned = value.replace(/^0+(?=\d)/, '');
+  return Number(cleaned) || 0;
 };

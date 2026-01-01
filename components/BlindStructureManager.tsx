@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { BlindInterval, BlindLevel } from '../types';
-import { generateBlindStructureFromIntervals, validateAndFixBlindLevel } from '../utils/blindStructure';
+import { generateBlindStructureFromIntervals } from '../utils/blindStructure';
 import { handleNumericInput, DEFAULT_BREAK_DURATION } from '../utils/inputHelpers';
 
 interface BlindStructureManagerProps {
