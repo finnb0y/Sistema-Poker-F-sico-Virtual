@@ -1,19 +1,20 @@
 import React, { useEffect, useState } from 'react';
-import { Tournament, ActionMessage } from '../types';
+import { Tournament, ActionMessage, GameState } from '../types';
 
 interface TournamentBlindTimerProps {
   tournament: Tournament;
+  state: GameState;
   onDispatch: (action: ActionMessage) => void;
 }
 
-const TournamentBlindTimer: React.FC<TournamentBlindTimerProps> = ({ tournament, onDispatch }) => {
+const TournamentBlindTimer: React.FC<TournamentBlindTimerProps> = ({ tournament, state, onDispatch }) => {
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
   const [isPaused, setIsPaused] = useState(false);
 
-  // Get current blind level
-  const currentBlindLevel = tournament.config.blindStructure.levels[
-    tournament.config.blindStructure.levels.length > 0 ? 0 : 0 // This will be updated from table state
-  ];
+  // Get current blind level from first table assigned to this tournament
+  const firstTable = state.tableStates.find(ts => ts.tournamentId === tournament.id);
+  const currentBlindLevelIndex = firstTable?.currentBlindLevel || 0;
+  const currentBlindLevel = tournament.config.blindStructure.levels[currentBlindLevelIndex];
 
   useEffect(() => {
     if (!tournament.isStarted || !tournament.currentBlindLevelStartTime || isPaused) {
