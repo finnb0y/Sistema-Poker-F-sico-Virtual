@@ -399,6 +399,8 @@ export const clubService = {
       }
 
       // Log the login attempt
+      // Note: IP address and user agent tracking requires server-side implementation
+      // or additional client-side permission. Currently logging time only.
       try {
         await supabase
           .from('poker_club_manager_login_logs')
@@ -406,8 +408,8 @@ export const clubService = {
             manager_id: manager.id,
             club_id: manager.club_id,
             login_time: new Date().toISOString()
-            // Note: IP address and user agent would require server-side implementation
-            // or could be added from client if acceptable
+            // ip_address and user_agent would need server-side implementation
+            // or browser APIs with user permission for full security auditing
           });
       } catch (logError) {
         // Don't fail login if logging fails

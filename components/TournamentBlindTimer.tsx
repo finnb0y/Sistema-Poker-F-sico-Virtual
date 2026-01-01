@@ -21,6 +21,9 @@ const TournamentBlindTimer: React.FC<TournamentBlindTimerProps> = ({ tournament,
       return;
     }
 
+    // Track if we've already advanced to prevent multiple dispatches
+    let hasAdvanced = false;
+
     // Calculate time remaining
     const calculateTimeRemaining = () => {
       if (!tournament.currentBlindLevelStartTime || !currentBlindLevel) {
@@ -41,8 +44,9 @@ const TournamentBlindTimer: React.FC<TournamentBlindTimerProps> = ({ tournament,
       const remaining = calculateTimeRemaining();
       setTimeRemaining(remaining);
 
-      // Auto-advance when time runs out
-      if (remaining === 0) {
+      // Auto-advance when time runs out (only once per level)
+      if (remaining === 0 && !hasAdvanced) {
+        hasAdvanced = true;
         onDispatch({
           type: 'AUTO_ADVANCE_BLIND_LEVEL',
           payload: { tournamentId: tournament.id },

@@ -2,6 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { GameState, ActionMessage, TournamentConfig, Player, RegisteredPerson, Tournament, RoomTable, BlindInterval, BlindLevel, Club, ClubManager, ClubManagerLoginLog } from '../types';
 import TableView from './TableView';
 import BlindStructureManager from './BlindStructureManager';
+// TODO: TournamentBlindTimer is ready for integration but requires careful JSX structure modification
+// The component is imported and ready to display the automatic blind timer when a tournament is started
+// To integrate: Add <TournamentBlindTimer tournament={currentTourney} state={state} onDispatch={onDispatch} />
+// in the active tournament section (around line 465-475) where tournament details are shown
 import TournamentBlindTimer from './TournamentBlindTimer';
 import { createDefaultBlindStructure } from '../utils/blindStructure';
 import { handleNumericInput, DEFAULT_BREAK_DURATION } from '../utils/inputHelpers';

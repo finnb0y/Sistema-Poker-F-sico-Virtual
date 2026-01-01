@@ -510,11 +510,11 @@ const App: React.FC = () => {
           }));
           const leastBusyTable = tableUsage.sort((a, b) => a.count - b.count)[0];
           
-          // Reserve seat 1 for dealer - maxSeats - 1 available seats for players
+          // Reserve seat 1 for dealer - only (maxSeats - 1) seats available for players
           if (leastBusyTable && leastBusyTable.count < (tourney.config.maxSeats - 1)) {
             newPlayer.tableId = leastBusyTable.id;
             const takenSeats = newState.players.filter(p2 => p2.tableId === leastBusyTable.id).map(p2 => p2.seatNumber);
-            // Skip seat 1 (dealer position) when assigning seats
+            // Skip seat 1 (reserved for dealer) when assigning player seats
             for(let s=2; s<=tourney.config.maxSeats; s++) {
               if (!takenSeats.includes(s)) { 
                 newPlayer.seatNumber = s; 
