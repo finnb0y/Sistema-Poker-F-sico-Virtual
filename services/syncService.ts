@@ -178,8 +178,8 @@ export const syncService = {
       if (!error && data?.state) {
         const state = data.state as GameState;
         
-        // Load clubs from database if not in state
-        if (!state.clubs || state.clubs.length === 0) {
+        // Load clubs from database if not present in state
+        if (!state.clubs) {
           const { data: clubsData } = await supabase
             .from('poker_clubs')
             .select('*')

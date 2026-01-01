@@ -1,10 +1,10 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Role, GameState, Player, PlayerStatus, ActionMessage, Tournament, RoomTable, RegisteredPerson, TournamentConfig, TableState, BettingRound, BetActionType, Club } from './types';
 import { syncService } from './services/syncService';
 import { authService, AuthSession, User } from './services/authService';
 import { clubService, ClubManagerSession } from './services/clubService';
 import { isSupabaseConfigured } from './services/supabaseClient';
+import { migrateGameState } from './utils/stateMigration';
 import Login from './components/Login';
 import ClubSelection from './components/ClubSelection';
 import ClubCodeEntry from './components/ClubCodeEntry';
@@ -146,36 +146,9 @@ const App: React.FC = () => {
       try {
         const loadedState = await syncService.loadState();
         if (loadedState) {
-          // Migrate old table states to include new fields
-          loadedState.tableStates = loadedState.tableStates.map(ts => {
-            const migratedState = ts as TableState;
-            if (!('lastAggressorId' in migratedState)) {
-              migratedState.lastAggressorId = null;
-            }
-            if (!('playersActedInRound' in migratedState)) {
-              migratedState.playersActedInRound = [];
-            }
-            if (!('potDistribution' in migratedState)) {
-              migratedState.potDistribution = null;
-            }
-            if (!('betActions' in migratedState)) {
-              migratedState.betActions = [];
-            }
-            if (!('dealerAccessCode' in migratedState) || !migratedState.dealerAccessCode) {
-              migratedState.dealerAccessCode = generateDealerCode();
-            }
-            return migratedState;
-          });
-          
-          // Migrate to include clubs if not present
-          if (!('clubs' in loadedState)) {
-            loadedState.clubs = [];
-          }
-          if (!('activeClubId' in loadedState)) {
-            loadedState.activeClubId = null;
-          }
-          
-          setGameState(loadedState);
+          // Apply all migrations using centralized migration utility
+          const migratedState = migrateGameState(loadedState);
+          setGameState(migratedState);
         }
       } catch (error) {
         console.error('Erro ao carregar estado inicial:', error);
