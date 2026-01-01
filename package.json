@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "validate-env": "node scripts/validate-env.cjs",
-    "reset-system": "tsx scripts/reset-system.ts"
+    "reset-system": "tsx scripts/reset-system.ts",
+    "test-reset-script": "tsx scripts/test-reset-script.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.89.0",
