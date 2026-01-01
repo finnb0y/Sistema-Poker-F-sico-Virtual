@@ -285,9 +285,19 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isMa
                       <div key={t.id} className={`p-8 rounded-[40px] glass border-2 transition-all ${activeTourneyId === t.id ? 'border-yellow-500 bg-yellow-500/5' : 'border-white/5'}`}>
                          <div className="flex justify-between items-start mb-6">
                             <div>
-                               <div className="flex items-center gap-3">
+                               <div className="flex items-center gap-3 flex-wrap">
                                  <h3 className="text-2xl font-black text-white">{t.name}</h3>
                                  <span className="bg-yellow-500/10 text-yellow-500 px-3 py-1 rounded-lg font-black text-xs">{t.acronym}</span>
+                                 {!t.clubId && (
+                                   <span className="bg-orange-500/10 text-orange-500 px-3 py-1 rounded-lg font-black text-xs" title="Este torneio não está associado a nenhum clube">
+                                     ⚠️ Sem clube
+                                   </span>
+                                 )}
+                                 {t.clubId && state.clubs.find(c => c.id === t.clubId) && (
+                                   <span className="bg-blue-500/10 text-blue-500 px-3 py-1 rounded-lg font-black text-xs" title={`Clube: ${state.clubs.find(c => c.id === t.clubId)?.name}`}>
+                                     🏛️ {state.clubs.find(c => c.id === t.clubId)?.name}
+                                   </span>
+                                 )}
                                </div>
                                <p className="text-[10px] font-black text-white/30 uppercase tracking-widest mt-1">
                                  {t.guaranteed ? `Garantido: $${t.guaranteed.toLocaleString()}` : 'Sem Garantido'} • {t.assignedTableIds.length} Mesas
@@ -400,6 +410,38 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isMa
                            <input type="text" maxLength={3} value={editingTourney.acronym} onChange={e => setEditingTourney({...editingTourney, acronym: e.target.value.toUpperCase()})} className="w-full bg-black/60 border border-white/10 rounded-3xl p-6 text-xl font-black text-yellow-500 text-center outline-none focus:border-yellow-500" placeholder="EX: ME1" required />
                         </div>
                      </div>
+
+                     {/* Club Association */}
+                     {state.clubs.length > 0 && (
+                       <div className="bg-yellow-500/5 border border-yellow-500/20 rounded-3xl p-6">
+                         <div className="flex items-start gap-4">
+                           <span className="text-3xl">🏛️</span>
+                           <div className="flex-1">
+                             <label className="text-[10px] font-black text-yellow-500/80 uppercase tracking-widest mb-3 block">
+                               Clube Associado
+                             </label>
+                             <select 
+                               value={editingTourney.clubId || state.activeClubId || ''}
+                               onChange={e => setEditingTourney({...editingTourney, clubId: e.target.value || undefined})}
+                               className="w-full bg-black/60 border border-white/10 rounded-2xl p-4 text-white outline-none focus:border-yellow-500 font-bold"
+                             >
+                               <option value="">Sem clube (não recomendado)</option>
+                               {state.clubs.map(club => (
+                                 <option key={club.id} value={club.id}>
+                                   {club.name} {state.activeClubId === club.id ? '(Ativo)' : ''}
+                                 </option>
+                               ))}
+                             </select>
+                             <p className="text-white/40 text-xs mt-3">
+                               {editingTourney.clubId || state.activeClubId
+                                 ? '✓ Este torneio será associado ao clube selecionado'
+                                 : '⚠️ Recomendamos associar o torneio a um clube para melhor organização'
+                               }
+                             </p>
+                           </div>
+                         </div>
+                       </div>
+                     )}
 
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
