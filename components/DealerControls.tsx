@@ -1,17 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import { GameState, ActionMessage, TournamentConfig, Player, RegisteredPerson, Tournament, RoomTable, BlindInterval, BlindLevel } from '../types';
 import TableView from './TableView';
 import BlindStructureManager from './BlindStructureManager';
 import { createDefaultBlindStructure } from '../utils/blindStructure';
-
-// Helper function to handle numeric input without leading zeros
-const handleNumericInput = (value: string): number => {
-  if (value === '' || value === '0') return 0;
-  // Remove leading zeros
-  const cleaned = value.replace(/^0+/, '') || '0';
-  return Number(cleaned);
-};
+import { handleNumericInput, DEFAULT_BREAK_DURATION } from '../utils/inputHelpers';
 
 interface DealerControlsProps {
   state: GameState;
@@ -100,7 +92,7 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch }) =>
             intervals: defaultStructure.intervals,
             levels: defaultStructure.levels,
             breakEnabled: false,
-            breakDuration: 10,
+            breakDuration: DEFAULT_BREAK_DURATION,
             breakFrequency: 0
           }
         },

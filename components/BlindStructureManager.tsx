@@ -1,14 +1,7 @@
 import React, { useState } from 'react';
 import { BlindInterval, BlindLevel } from '../types';
 import { generateBlindStructureFromIntervals, validateAndFixBlindLevel } from '../utils/blindStructure';
-
-// Helper function to handle numeric input without leading zeros
-const handleNumericInput = (value: string): number => {
-  if (value === '' || value === '0') return 0;
-  // Remove leading zeros
-  const cleaned = value.replace(/^0+/, '') || '0';
-  return Number(cleaned);
-};
+import { handleNumericInput, DEFAULT_BREAK_DURATION } from '../utils/inputHelpers';
 
 interface BlindStructureManagerProps {
   initialIntervals: BlindInterval[];
@@ -71,7 +64,7 @@ const BlindStructureManager: React.FC<BlindStructureManagerProps> = ({
       smallBlind: 0,
       bigBlind: 0,
       ante: 0,
-      duration: breakDuration || 10,
+      duration: breakDuration || DEFAULT_BREAK_DURATION,
       isBreak: true
     });
     setLevels(newLevels);
