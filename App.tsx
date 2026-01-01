@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Role, GameState, Player, PlayerStatus, ActionMessage, Tournament, RoomTable, RegisteredPerson, TournamentConfig, TableState, BettingRound, BetActionType } from './types';
 import { syncService } from './services/syncService';
 import { authService, AuthSession, User } from './services/authService';
@@ -37,6 +37,23 @@ const App: React.FC = () => {
   const [sessionExpiredMessage, setSessionExpiredMessage] = useState(false);
   const [gameState, setGameState] = useState<GameState>(INITIAL_STATE);
   const [syncUserId, setSyncUserId] = useState<string | null>(null); // Track userId for sync subscription
+  
+  // Debounce timer for state persistence to improve performance
+  const persistTimerRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Debounced persist function to reduce database writes
+  const debouncedPersistState = useCallback((state: GameState) => {
+    // Clear any existing timer
+    if (persistTimerRef.current) {
+      clearTimeout(persistTimerRef.current);
+    }
+    
+    // Set a new timer to persist after 500ms of inactivity
+    persistTimerRef.current = setTimeout(() => {
+      syncService.persistState(state);
+      persistTimerRef.current = null;
+    }, 500);
+  }, []);
   
   // Helper function to clear session data (localStorage + state)
   // This prevents black screen when session is invalid
@@ -1026,10 +1043,10 @@ const App: React.FC = () => {
           break;
       }
 
-      syncService.persistState(newState);
+      debouncedPersistState(newState);
       return newState;
     });
-  }, []);
+  }, [debouncedPersistState]);
 
   useEffect(() => {
     // Only subscribe after authentication check is complete and we have a user ID
@@ -1043,8 +1060,14 @@ const App: React.FC = () => {
     return () => {
       console.log('🔌 Encerrando assinatura de sincronização');
       unsubscribe();
+      
+      // Flush any pending persistence on unmount
+      if (persistTimerRef.current) {
+        clearTimeout(persistTimerRef.current);
+        syncService.persistState(gameState);
+      }
     };
-  }, [processAction, isLoading, syncUserId]);
+  }, [processAction, isLoading, syncUserId, gameState]);
 
   const dispatch = (msg: ActionMessage) => {
     // Only send to Supabase - will be processed once when received via subscription
