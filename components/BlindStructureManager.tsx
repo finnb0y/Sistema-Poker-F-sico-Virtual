@@ -2,6 +2,14 @@ import React, { useState } from 'react';
 import { BlindInterval, BlindLevel } from '../types';
 import { generateBlindStructureFromIntervals, validateAndFixBlindLevel } from '../utils/blindStructure';
 
+// Helper function to handle numeric input without leading zeros
+const handleNumericInput = (value: string): number => {
+  if (value === '' || value === '0') return 0;
+  // Remove leading zeros
+  const cleaned = value.replace(/^0+/, '') || '0';
+  return Number(cleaned);
+};
+
 interface BlindStructureManagerProps {
   initialIntervals: BlindInterval[];
   initialLevels: BlindLevel[];
@@ -71,16 +79,18 @@ const BlindStructureManager: React.FC<BlindStructureManagerProps> = ({
     const newLevels = [...levels];
     newLevels[index] = { ...newLevels[index], [field]: value };
     
-    // If updating small blind or big blind, validate and fix
-    if (field === 'smallBlind' || field === 'bigBlind') {
-      newLevels[index] = validateAndFixBlindLevel(newLevels[index]);
-    }
+    // Issue 3 fix: Remove automatic validation for Big Blind in generated structure
+    // Users should be able to edit both Small and Big Blind independently
     
     setLevels(newLevels);
   };
 
   const toggleBreaks = (enabled: boolean) => {
     setBreakEnabled(enabled);
+    // Issue 2 fix: When activating breaks, set default frequency to 5 levels if not already set
+    if (enabled && breakFrequency === 0) {
+      setBreakFrequency(5);
+    }
     regenerateLevels();
   };
 
@@ -129,8 +139,9 @@ const BlindStructureManager: React.FC<BlindStructureManagerProps> = ({
                   <label className="text-[9px] font-black text-white/40 uppercase tracking-widest">Small Blind Inicial</label>
                   <input 
                     type="number" 
-                    value={interval.startingSmallBlind}
-                    onChange={(e) => updateInterval(index, 'startingSmallBlind', Number(e.target.value))}
+                    value={interval.startingSmallBlind || ''}
+                    onChange={(e) => updateInterval(index, 'startingSmallBlind', handleNumericInput(e.target.value))}
+                    placeholder="0"
                     className="w-full bg-black/60 border border-white/10 rounded-xl p-3 text-white font-bold outline-none focus:border-yellow-500"
                   />
                 </div>
@@ -139,8 +150,9 @@ const BlindStructureManager: React.FC<BlindStructureManagerProps> = ({
                   <label className="text-[9px] font-black text-white/40 uppercase tracking-widest">Incremento</label>
                   <input 
                     type="number" 
-                    value={interval.increment}
-                    onChange={(e) => updateInterval(index, 'increment', Number(e.target.value))}
+                    value={interval.increment || ''}
+                    onChange={(e) => updateInterval(index, 'increment', handleNumericInput(e.target.value))}
+                    placeholder="0"
                     className="w-full bg-black/60 border border-white/10 rounded-xl p-3 text-yellow-500 font-bold outline-none focus:border-yellow-500"
                   />
                 </div>
@@ -149,8 +161,9 @@ const BlindStructureManager: React.FC<BlindStructureManagerProps> = ({
                   <label className="text-[9px] font-black text-white/40 uppercase tracking-widest">Duração (min)</label>
                   <input 
                     type="number" 
-                    value={interval.levelDuration}
-                    onChange={(e) => updateInterval(index, 'levelDuration', Number(e.target.value))}
+                    value={interval.levelDuration || ''}
+                    onChange={(e) => updateInterval(index, 'levelDuration', handleNumericInput(e.target.value))}
+                    placeholder="0"
                     className="w-full bg-black/60 border border-white/10 rounded-xl p-3 text-white font-bold outline-none focus:border-yellow-500"
                   />
                 </div>
@@ -159,8 +172,9 @@ const BlindStructureManager: React.FC<BlindStructureManagerProps> = ({
                   <label className="text-[9px] font-black text-white/40 uppercase tracking-widest">Nº de Níveis</label>
                   <input 
                     type="number" 
-                    value={interval.numberOfLevels}
-                    onChange={(e) => updateInterval(index, 'numberOfLevels', Number(e.target.value))}
+                    value={interval.numberOfLevels || ''}
+                    onChange={(e) => updateInterval(index, 'numberOfLevels', handleNumericInput(e.target.value))}
+                    placeholder="0"
                     className="w-full bg-black/60 border border-white/10 rounded-xl p-3 text-white font-bold outline-none focus:border-yellow-500"
                   />
                 </div>
@@ -195,8 +209,9 @@ const BlindStructureManager: React.FC<BlindStructureManagerProps> = ({
                 <label className="text-[9px] font-black text-white/40 uppercase tracking-widest">Duração do Break (min)</label>
                 <input 
                   type="number" 
-                  value={breakDuration}
-                  onChange={(e) => updateBreakSettings(Number(e.target.value), undefined)}
+                  value={breakDuration || ''}
+                  onChange={(e) => updateBreakSettings(handleNumericInput(e.target.value), undefined)}
+                  placeholder="0"
                   className="w-full bg-black/60 border border-white/10 rounded-xl p-3 text-white font-bold outline-none focus:border-yellow-500"
                 />
               </div>
@@ -205,8 +220,9 @@ const BlindStructureManager: React.FC<BlindStructureManagerProps> = ({
                 <label className="text-[9px] font-black text-white/40 uppercase tracking-widest">Break a Cada X Níveis (0 = sem breaks)</label>
                 <input 
                   type="number" 
-                  value={breakFrequency}
-                  onChange={(e) => updateBreakSettings(undefined, Number(e.target.value))}
+                  value={breakFrequency || ''}
+                  onChange={(e) => updateBreakSettings(undefined, handleNumericInput(e.target.value))}
+                  placeholder="0"
                   className="w-full bg-black/60 border border-white/10 rounded-xl p-3 text-white font-bold outline-none focus:border-yellow-500"
                 />
               </div>
@@ -233,16 +249,21 @@ const BlindStructureManager: React.FC<BlindStructureManagerProps> = ({
                         <div className="text-[7px] text-white/30 font-black">SB</div>
                         <input 
                           type="number" 
-                          value={level.smallBlind}
-                          onChange={(e) => updateLevel(idx, 'smallBlind', Number(e.target.value))}
+                          value={level.smallBlind || ''}
+                          onChange={(e) => updateLevel(idx, 'smallBlind', handleNumericInput(e.target.value))}
+                          placeholder="0"
                           className="w-full bg-black/40 border border-white/5 rounded p-1 text-sm font-black text-yellow-500 outline-none focus:border-yellow-500"
                         />
                       </div>
                       <div>
                         <div className="text-[7px] text-white/30 font-black">BB</div>
-                        <div className="w-full bg-black/20 border border-white/5 rounded p-1 text-sm font-black text-green-500">
-                          {level.bigBlind}
-                        </div>
+                        <input 
+                          type="number" 
+                          value={level.bigBlind || ''}
+                          onChange={(e) => updateLevel(idx, 'bigBlind', handleNumericInput(e.target.value))}
+                          placeholder="0"
+                          className="w-full bg-black/40 border border-white/5 rounded p-1 text-sm font-black text-green-500 outline-none focus:border-green-500"
+                        />
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
@@ -256,8 +277,9 @@ const BlindStructureManager: React.FC<BlindStructureManagerProps> = ({
                         <div className="text-[7px] text-white/30 font-black">Tempo</div>
                         <input 
                           type="number" 
-                          value={level.duration}
-                          onChange={(e) => updateLevel(idx, 'duration', Number(e.target.value))}
+                          value={level.duration || ''}
+                          onChange={(e) => updateLevel(idx, 'duration', handleNumericInput(e.target.value))}
+                          placeholder="0"
                           className="w-full bg-black/40 border border-white/5 rounded p-1 text-xs font-black text-white outline-none focus:border-yellow-500"
                         />
                       </div>
