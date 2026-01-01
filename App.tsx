@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Role, GameState, Player, PlayerStatus, ActionMessage, Tournament, RoomTable, RegisteredPerson, TournamentConfig, TableState, BettingRound, BetActionType } from './types';
 import { syncService } from './services/syncService';
 import { authService, AuthSession, User } from './services/authService';
@@ -26,6 +26,9 @@ const INITIAL_STATE: GameState = {
 const generateAccessCode = () => Math.random().toString(36).substring(2, 6).toUpperCase();
 const generateDealerCode = () => 'D' + Math.random().toString(36).substring(2, 5).toUpperCase();
 
+// Debounce delay for state persistence (in milliseconds)
+const PERSIST_DEBOUNCE_DELAY = 500;
+
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [role, setRole] = useState<Role | null>(null);
@@ -37,6 +40,30 @@ const App: React.FC = () => {
   const [sessionExpiredMessage, setSessionExpiredMessage] = useState(false);
   const [gameState, setGameState] = useState<GameState>(INITIAL_STATE);
   const [syncUserId, setSyncUserId] = useState<string | null>(null); // Track userId for sync subscription
+  
+  // Debounce timer for state persistence to improve performance
+  const persistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Keep a ref to the latest gameState for cleanup without causing re-renders
+  const gameStateRef = useRef<GameState>(gameState);
+  
+  // Update gameStateRef whenever gameState changes
+  useEffect(() => {
+    gameStateRef.current = gameState;
+  }, [gameState]);
+  
+  // Debounced persist function to reduce database writes
+  const debouncedPersistState = useCallback((state: GameState) => {
+    // Clear any existing timer
+    if (persistTimerRef.current) {
+      clearTimeout(persistTimerRef.current);
+    }
+    
+    // Set a new timer to persist after inactivity
+    persistTimerRef.current = setTimeout(() => {
+      syncService.persistState(state);
+      persistTimerRef.current = null;
+    }, PERSIST_DEBOUNCE_DELAY);
+  }, []);
   
   // Helper function to clear session data (localStorage + state)
   // This prevents black screen when session is invalid
@@ -1026,10 +1053,10 @@ const App: React.FC = () => {
           break;
       }
 
-      syncService.persistState(newState);
+      debouncedPersistState(newState);
       return newState;
     });
-  }, []);
+  }, [debouncedPersistState]);
 
   useEffect(() => {
     // Only subscribe after authentication check is complete and we have a user ID
@@ -1043,6 +1070,12 @@ const App: React.FC = () => {
     return () => {
       console.log('🔌 Encerrando assinatura de sincronização');
       unsubscribe();
+      
+      // Flush any pending persistence on unmount using the ref to avoid dependency issues
+      if (persistTimerRef.current) {
+        clearTimeout(persistTimerRef.current);
+        syncService.persistState(gameStateRef.current);
+      }
     };
   }, [processAction, isLoading, syncUserId]);
 

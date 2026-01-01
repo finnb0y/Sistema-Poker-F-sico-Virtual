@@ -3,6 +3,9 @@ import { BlindInterval, BlindLevel } from '../types';
 import { generateBlindStructureFromIntervals } from '../utils/blindStructure';
 import { handleNumericInput, DEFAULT_BREAK_DURATION } from '../utils/inputHelpers';
 
+// Default frequency for breaks when first enabled (every X levels)
+const DEFAULT_BREAK_FREQUENCY = 5;
+
 interface BlindStructureManagerProps {
   initialIntervals: BlindInterval[];
   initialLevels: BlindLevel[];
@@ -75,12 +78,17 @@ const BlindStructureManager: React.FC<BlindStructureManagerProps> = ({
     setLevels(newLevels);
   };
 
-  const regenerateLevels = (currentIntervals: BlindInterval[] = intervals) => {
+  const regenerateLevels = (
+    currentIntervals: BlindInterval[] = intervals,
+    currentBreakEnabled: boolean = breakEnabled,
+    currentBreakDuration: number = breakDuration,
+    currentBreakFrequency: number = breakFrequency
+  ) => {
     const newLevels = generateBlindStructureFromIntervals(
       currentIntervals,
-      breakEnabled,
-      breakDuration,
-      breakFrequency
+      currentBreakEnabled,
+      currentBreakDuration,
+      currentBreakFrequency
     );
     setLevels(newLevels);
   };
@@ -97,17 +105,22 @@ const BlindStructureManager: React.FC<BlindStructureManagerProps> = ({
 
   const toggleBreaks = (enabled: boolean) => {
     setBreakEnabled(enabled);
-    // Issue 2 fix: When activating breaks, set default frequency to 5 levels if not already set
-    if (enabled && breakFrequency === 0) {
-      setBreakFrequency(5);
-    }
-    regenerateLevels();
+    // When activating breaks, set default frequency if not already set
+    const newFrequency = enabled && breakFrequency === 0 ? DEFAULT_BREAK_FREQUENCY : breakFrequency;
+    setBreakFrequency(newFrequency);
+    // Pass the new values directly to regenerateLevels to avoid state update race condition
+    regenerateLevels(intervals, enabled, breakDuration, newFrequency);
   };
 
   const updateBreakSettings = (duration?: number, frequency?: number) => {
+    const newDuration = duration !== undefined ? duration : breakDuration;
+    const newFrequency = frequency !== undefined ? frequency : breakFrequency;
+    
     if (duration !== undefined) setBreakDuration(duration);
     if (frequency !== undefined) setBreakFrequency(frequency);
-    regenerateLevels();
+    
+    // Pass the new values directly to regenerateLevels to avoid state update race condition
+    regenerateLevels(intervals, breakEnabled, newDuration, newFrequency);
   };
 
   return (
