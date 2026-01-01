@@ -1047,8 +1047,13 @@ const App: React.FC = () => {
   }, [processAction, isLoading, syncUserId]);
 
   const dispatch = (msg: ActionMessage) => {
-    processAction(msg);
-    syncService.sendMessage(msg);
+    // Only send to Supabase - will be processed once when received via subscription
+    // This prevents duplicate processing: local + subscription callback
+    syncService.sendMessage(msg).catch(error => {
+      console.error('❌ Erro ao enviar ação:', error);
+      // In case of error, still process locally to prevent UI from breaking
+      processAction(msg);
+    });
   };
 
   const selectRole = (r: Role, tId?: number) => {
