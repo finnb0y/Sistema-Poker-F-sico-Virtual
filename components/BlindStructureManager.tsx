@@ -3,6 +3,9 @@ import { BlindInterval, BlindLevel } from '../types';
 import { generateBlindStructureFromIntervals } from '../utils/blindStructure';
 import { handleNumericInput, DEFAULT_BREAK_DURATION } from '../utils/inputHelpers';
 
+// Default frequency for breaks when first enabled (every X levels)
+const DEFAULT_BREAK_FREQUENCY = 5;
+
 interface BlindStructureManagerProps {
   initialIntervals: BlindInterval[];
   initialLevels: BlindLevel[];
@@ -102,8 +105,8 @@ const BlindStructureManager: React.FC<BlindStructureManagerProps> = ({
 
   const toggleBreaks = (enabled: boolean) => {
     setBreakEnabled(enabled);
-    // Issue 2 fix: When activating breaks, set default frequency to 5 levels if not already set
-    const newFrequency = enabled && breakFrequency === 0 ? 5 : breakFrequency;
+    // Issue 2 fix: When activating breaks, set default frequency if not already set
+    const newFrequency = enabled && breakFrequency === 0 ? DEFAULT_BREAK_FREQUENCY : breakFrequency;
     setBreakFrequency(newFrequency);
     // Pass the new values directly to regenerateLevels to avoid state update race condition
     regenerateLevels(intervals, enabled, breakDuration, newFrequency);

@@ -26,6 +26,9 @@ const INITIAL_STATE: GameState = {
 const generateAccessCode = () => Math.random().toString(36).substring(2, 6).toUpperCase();
 const generateDealerCode = () => 'D' + Math.random().toString(36).substring(2, 5).toUpperCase();
 
+// Debounce delay for state persistence (in milliseconds)
+const PERSIST_DEBOUNCE_DELAY = 500;
+
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [role, setRole] = useState<Role | null>(null);
@@ -55,11 +58,11 @@ const App: React.FC = () => {
       clearTimeout(persistTimerRef.current);
     }
     
-    // Set a new timer to persist after 500ms of inactivity
+    // Set a new timer to persist after inactivity
     persistTimerRef.current = setTimeout(() => {
       syncService.persistState(state);
       persistTimerRef.current = null;
-    }, 500);
+    }, PERSIST_DEBOUNCE_DELAY);
   }, []);
   
   // Helper function to clear session data (localStorage + state)
