@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env tsx
 
 /**
  * =====================================================
@@ -19,7 +19,7 @@
  *   npm run reset-system
  * 
  * Or directly:
- *   node scripts/reset-system.js
+ *   npx tsx scripts/reset-system.ts
  * 
  * Requirements:
  * - VITE_SUPABASE_URL must be set
@@ -191,7 +191,7 @@ async function resetSystem() {
     const { error: sessionError } = await supabase
       .from('poker_user_sessions')
       .delete()
-      .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+      .gte('created_at', '1970-01-01'); // Delete all records (using date that's always true)
     
     if (sessionError) throw new Error(`Session deletion failed: ${sessionError.message}`);
     logSuccess('User sessions cleared');
@@ -200,7 +200,7 @@ async function resetSystem() {
     const { error: actionError } = await supabase
       .from('poker_actions')
       .delete()
-      .neq('id', 0); // Delete all
+      .gte('created_at', '1970-01-01'); // Delete all records (using date that's always true)
     
     if (actionError) throw new Error(`Action deletion failed: ${actionError.message}`);
     logSuccess('Game actions cleared');
@@ -209,7 +209,7 @@ async function resetSystem() {
     const { error: stateError } = await supabase
       .from('poker_game_state')
       .delete()
-      .neq('session_id', ''); // Delete all
+      .gte('updated_at', '1970-01-01'); // Delete all records (using date that's always true)
     
     if (stateError) throw new Error(`State deletion failed: ${stateError.message}`);
     logSuccess('Game states cleared');
@@ -218,7 +218,7 @@ async function resetSystem() {
     const { error: userError } = await supabase
       .from('poker_users')
       .delete()
-      .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+      .gte('created_at', '1970-01-01'); // Delete all records (using date that's always true)
     
     if (userError) throw new Error(`User deletion failed: ${userError.message}`);
     logSuccess('User accounts cleared');
