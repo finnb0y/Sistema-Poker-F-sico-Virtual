@@ -40,6 +40,13 @@ const App: React.FC = () => {
   
   // Debounce timer for state persistence to improve performance
   const persistTimerRef = useRef<NodeJS.Timeout | null>(null);
+  // Keep a ref to the latest gameState for cleanup without causing re-renders
+  const gameStateRef = useRef<GameState>(gameState);
+  
+  // Update gameStateRef whenever gameState changes
+  useEffect(() => {
+    gameStateRef.current = gameState;
+  }, [gameState]);
   
   // Debounced persist function to reduce database writes
   const debouncedPersistState = useCallback((state: GameState) => {
@@ -1061,13 +1068,13 @@ const App: React.FC = () => {
       console.log('🔌 Encerrando assinatura de sincronização');
       unsubscribe();
       
-      // Flush any pending persistence on unmount
+      // Flush any pending persistence on unmount using the ref to avoid dependency issues
       if (persistTimerRef.current) {
         clearTimeout(persistTimerRef.current);
-        syncService.persistState(gameState);
+        syncService.persistState(gameStateRef.current);
       }
     };
-  }, [processAction, isLoading, syncUserId, gameState]);
+  }, [processAction, isLoading, syncUserId]);
 
   const dispatch = (msg: ActionMessage) => {
     // Only send to Supabase - will be processed once when received via subscription

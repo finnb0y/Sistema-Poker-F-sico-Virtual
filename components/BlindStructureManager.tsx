@@ -104,7 +104,7 @@ const BlindStructureManager: React.FC<BlindStructureManagerProps> = ({
     setBreakEnabled(enabled);
     // Issue 2 fix: When activating breaks, set default frequency to 5 levels if not already set
     const newFrequency = enabled && breakFrequency === 0 ? 5 : breakFrequency;
-    if (enabled && breakFrequency === 0) {
+    if (newFrequency !== breakFrequency) {
       setBreakFrequency(newFrequency);
     }
     // Pass the new values directly to regenerateLevels to avoid state update race condition
