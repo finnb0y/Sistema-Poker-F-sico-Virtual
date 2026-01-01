@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { GameState, ActionMessage, TournamentConfig, Player, RegisteredPerson, Tournament, RoomTable, BlindInterval, BlindLevel } from '../types';
+import { GameState, ActionMessage, TournamentConfig, Player, RegisteredPerson, Tournament, RoomTable, BlindInterval, BlindLevel, Club } from '../types';
 import TableView from './TableView';
 import BlindStructureManager from './BlindStructureManager';
 import { createDefaultBlindStructure } from '../utils/blindStructure';
 import { handleNumericInput, DEFAULT_BREAK_DURATION } from '../utils/inputHelpers';
+import { clubService } from '../services/clubService';
+import { authService } from '../services/authService';
 
 interface DealerControlsProps {
   state: GameState;
@@ -42,6 +44,14 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isMa
   
   // Blind Structure Manager State
   const [showBlindStructureManager, setShowBlindStructureManager] = useState(false);
+  
+  // Club Management State
+  const [showCreateClub, setShowCreateClub] = useState(false);
+  const [editingClub, setEditingClub] = useState<Partial<Club> | null>(null);
+  const [newClubName, setNewClubName] = useState('');
+  const [newClubDescription, setNewClubDescription] = useState('');
+  const [isCreatingClub, setIsCreatingClub] = useState(false);
+  const [expandedClubId, setExpandedClubId] = useState<string | null>(null);
 
   useEffect(() => {
     setActiveTourneyId(state.activeTournamentId);
@@ -155,6 +165,86 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isMa
     setShowBlindStructureManager(false);
   };
 
+  const handleCreateClub = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const trimmedName = newClubName.trim();
+    if (!trimmedName || trimmedName.length < 3) {
+      alert('Nome do clube deve ter pelo menos 3 caracteres');
+      return;
+    }
+
+    setIsCreatingClub(true);
+    
+    try {
+      const session = await authService.getCurrentSession();
+      if (!session) {
+        alert('Você precisa estar logado para criar um clube');
+        return;
+      }
+
+      const result = await clubService.createClub(
+        trimmedName,
+        session.user.id,
+        newClubDescription.trim() || undefined
+      );
+
+      if (result.success && result.club) {
+        // Dispatch action to add club to local state
+        onDispatch({
+          type: 'CREATE_CLUB',
+          payload: {
+            id: result.club.id,
+            name: result.club.name,
+            ownerUserId: result.club.ownerUserId,
+            profilePhotoUrl: result.club.profilePhotoUrl,
+            bannerUrl: result.club.bannerUrl,
+            description: result.club.description,
+            createdAt: result.club.createdAt.toISOString(),
+            updatedAt: result.club.updatedAt.toISOString()
+          },
+          senderId: 'DIR'
+        });
+        
+        setNewClubName('');
+        setNewClubDescription('');
+        setShowCreateClub(false);
+        alert('Clube criado com sucesso!');
+      } else {
+        alert(result.error || 'Erro ao criar clube');
+      }
+    } catch (error) {
+      console.error('Error creating club:', error);
+      alert('Erro ao criar clube. Tente novamente.');
+    } finally {
+      setIsCreatingClub(false);
+    }
+  };
+
+  const handleDeleteClub = async (clubId: string) => {
+    if (!confirm('Tem certeza que deseja excluir este clube? Todos os torneios associados também serão removidos.')) {
+      return;
+    }
+
+    try {
+      const result = await clubService.deleteClub(clubId);
+      
+      if (result.success) {
+        onDispatch({
+          type: 'DELETE_CLUB',
+          payload: { id: clubId },
+          senderId: 'DIR'
+        });
+        alert('Clube excluído com sucesso!');
+      } else {
+        alert(result.error || 'Erro ao excluir clube');
+      }
+    } catch (error) {
+      console.error('Error deleting club:', error);
+      alert('Erro ao excluir clube. Tente novamente.');
+    }
+  };
+
   return (
     <div className="flex h-full flex-col lg:flex-row">
       {/* Primary Sidebar */}
@@ -196,9 +286,19 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isMa
                       <div key={t.id} className={`p-8 rounded-[40px] glass border-2 transition-all ${activeTourneyId === t.id ? 'border-yellow-500 bg-yellow-500/5' : 'border-white/5'}`}>
                          <div className="flex justify-between items-start mb-6">
                             <div>
-                               <div className="flex items-center gap-3">
+                               <div className="flex items-center gap-3 flex-wrap">
                                  <h3 className="text-2xl font-black text-white">{t.name}</h3>
                                  <span className="bg-yellow-500/10 text-yellow-500 px-3 py-1 rounded-lg font-black text-xs">{t.acronym}</span>
+                                 {!t.clubId && (
+                                   <span className="bg-orange-500/10 text-orange-500 px-3 py-1 rounded-lg font-black text-xs" title="Este torneio não está associado a nenhum clube">
+                                     ⚠️ Sem clube
+                                   </span>
+                                 )}
+                                 {t.clubId && state.clubs.find(c => c.id === t.clubId) && (
+                                   <span className="bg-blue-500/10 text-blue-500 px-3 py-1 rounded-lg font-black text-xs" title={`Clube: ${state.clubs.find(c => c.id === t.clubId)?.name}`}>
+                                     🏛️ {state.clubs.find(c => c.id === t.clubId)?.name}
+                                   </span>
+                                 )}
                                </div>
                                <p className="text-[10px] font-black text-white/30 uppercase tracking-widest mt-1">
                                  {t.guaranteed ? `Garantido: $${t.guaranteed.toLocaleString()}` : 'Sem Garantido'} • {t.assignedTableIds.length} Mesas
@@ -311,6 +411,38 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isMa
                            <input type="text" maxLength={3} value={editingTourney.acronym} onChange={e => setEditingTourney({...editingTourney, acronym: e.target.value.toUpperCase()})} className="w-full bg-black/60 border border-white/10 rounded-3xl p-6 text-xl font-black text-yellow-500 text-center outline-none focus:border-yellow-500" placeholder="EX: ME1" required />
                         </div>
                      </div>
+
+                     {/* Club Association */}
+                     {state.clubs.length > 0 && (
+                       <div className="bg-yellow-500/5 border border-yellow-500/20 rounded-3xl p-6">
+                         <div className="flex items-start gap-4">
+                           <span className="text-3xl">🏛️</span>
+                           <div className="flex-1">
+                             <label className="text-[10px] font-black text-yellow-500/80 uppercase tracking-widest mb-3 block">
+                               Clube Associado
+                             </label>
+                             <select 
+                               value={editingTourney.clubId || state.activeClubId || ''}
+                               onChange={e => setEditingTourney({...editingTourney, clubId: e.target.value || undefined})}
+                               className="w-full bg-black/60 border border-white/10 rounded-2xl p-4 text-white outline-none focus:border-yellow-500 font-bold"
+                             >
+                               <option value="">Sem clube (não recomendado)</option>
+                               {state.clubs.map(club => (
+                                 <option key={club.id} value={club.id}>
+                                   {club.name} {state.activeClubId === club.id ? '(Ativo)' : ''}
+                                 </option>
+                               ))}
+                             </select>
+                             <p className="text-white/40 text-xs mt-3">
+                               {editingTourney.clubId || state.activeClubId
+                                 ? '✓ Este torneio será associado ao clube selecionado'
+                                 : '⚠️ Recomendamos associar o torneio a um clube para melhor organização'
+                               }
+                             </p>
+                           </div>
+                         </div>
+                       </div>
+                     )}
 
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
@@ -662,112 +794,346 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isMa
 
         {/* CLUBES TAB */}
         {activeTab === 'clubes' && !isManager && (
-          <div className="p-8">
-            <div className="max-w-4xl mx-auto">
-              <div className="mb-8">
-                <h2 className="text-4xl font-outfit font-black text-white mb-2 italic">Meus Clubes</h2>
-                <p className="text-white/40 text-sm">Gerencie seus clubes e gerentes</p>
+          <div className="p-10 space-y-10 animate-in fade-in">
+            <div className="flex justify-between items-end">
+              <div>
+                <h2 className="text-4xl font-outfit font-black text-white italic">Meus Clubes</h2>
+                <p className="text-white/30 text-xs font-bold uppercase mt-2 tracking-widest">Organize seus torneios em clubes</p>
               </div>
+              <button 
+                onClick={() => setShowCreateClub(true)}
+                className="bg-green-600 hover:bg-green-500 text-white font-black px-8 py-4 rounded-2xl text-[10px] uppercase shadow-lg transition-all"
+              >
+                CRIAR NOVO CLUBE
+              </button>
+            </div>
 
-              {/* Clubs List */}
-              <div className="space-y-4">
-                {state.clubs.length === 0 ? (
-                  <div className="text-center py-12">
-                    <p className="text-white/40 text-sm mb-4">Você ainda não tem clubes</p>
-                    <p className="text-white/30 text-xs">Use a tela de seleção de clubes para criar um novo</p>
-                  </div>
-                ) : (
-                  state.clubs.map((club) => (
-                    <div key={club.id} className="glass p-6 rounded-2xl border border-white/10">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          {club.profilePhotoUrl ? (
-                            <img 
-                              src={club.profilePhotoUrl} 
-                              alt={club.name}
-                              className="w-16 h-16 rounded-xl object-cover"
-                            />
-                          ) : (
-                            <div className="w-16 h-16 rounded-xl bg-yellow-500/20 flex items-center justify-center">
-                              <span className="text-yellow-500 text-3xl font-black">
-                                {club.name.charAt(0).toUpperCase()}
-                              </span>
-                            </div>
-                          )}
-                          <div>
-                            <h3 className="text-white font-black text-xl">{club.name}</h3>
-                            {club.description && (
-                              <p className="text-white/40 text-sm mt-1">{club.description}</p>
-                            )}
-                            <p className="text-white/30 text-xs mt-2">
-                              Criado em {new Date(club.createdAt).toLocaleDateString('pt-BR')}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => {
-                              onDispatch({
-                                type: 'SET_ACTIVE_CLUB',
-                                payload: { id: club.id },
-                                senderId: 'DIR'
-                              });
-                            }}
-                            className={`px-4 py-2 rounded-xl font-black text-xs uppercase transition-all tracking-widest ${
-                              state.activeClubId === club.id
-                                ? 'bg-yellow-500 text-black'
-                                : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white'
-                            }`}
-                          >
-                            {state.activeClubId === club.id ? 'ATIVO' : 'ATIVAR'}
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Club Stats */}
-                      <div className="mt-4 pt-4 border-t border-white/5">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <p className="text-white/40 text-xs uppercase tracking-wider mb-1">Torneios</p>
-                            <p className="text-white font-black text-2xl">
-                              {state.tournaments.filter(t => t.clubId === club.id).length}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-white/40 text-xs uppercase tracking-wider mb-1">Mesas Usadas</p>
-                            <p className="text-white font-black text-2xl">
-                              {new Set(
-                                state.tournaments
-                                  .filter(t => t.clubId === club.id)
-                                  .flatMap(t => t.assignedTableIds)
-                              ).size}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Info about managers */}
-                      <div className="mt-4 p-4 bg-blue-500/5 border border-blue-500/20 rounded-xl">
-                        <p className="text-blue-400 text-xs">
-                          ℹ️ Para criar gerentes deste clube, use o botão "Entrar como Gerente" na tela de código do clube.
-                        </p>
-                      </div>
+            {/* Create Club Modal */}
+            {showCreateClub && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+                <div className="glass p-10 rounded-[40px] max-w-2xl w-full mx-4 border border-white/20">
+                  <div className="flex justify-between items-start mb-8">
+                    <div>
+                      <h3 className="text-3xl font-outfit font-black text-white italic">Criar Novo Clube</h3>
+                      <p className="text-white/40 text-sm mt-2">Configure seu clube para organizar torneios</p>
                     </div>
-                  ))
-                )}
-              </div>
+                    <button 
+                      onClick={() => {
+                        setShowCreateClub(false);
+                        setNewClubName('');
+                        setNewClubDescription('');
+                      }}
+                      className="text-white/40 hover:text-white text-2xl"
+                    >
+                      ✕
+                    </button>
+                  </div>
 
-              {/* Instructions */}
-              <div className="mt-8 p-6 bg-white/5 rounded-2xl border border-white/10">
-                <h3 className="text-white font-black mb-3">Como usar clubes</h3>
-                <ul className="text-white/60 text-sm space-y-2">
-                  <li>• Crie clubes para organizar seus torneios</li>
-                  <li>• Cada clube pode ter vários gerentes com permissões limitadas</li>
-                  <li>• Quando você cria um torneio, ele será associado ao clube ativo</li>
-                  <li>• Jogadores e dealers acessam através da seleção de clube</li>
-                </ul>
+                  <form onSubmit={handleCreateClub} className="space-y-6">
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-black text-white/60 uppercase tracking-widest px-2">
+                        Nome do Clube *
+                      </label>
+                      <input
+                        type="text"
+                        value={newClubName}
+                        onChange={(e) => setNewClubName(e.target.value)}
+                        placeholder="Ex: Poker Club São Paulo"
+                        className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-white outline-none focus:border-yellow-500 transition-all"
+                        required
+                        minLength={3}
+                        disabled={isCreatingClub}
+                      />
+                    </div>
+
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-black text-white/60 uppercase tracking-widest px-2">
+                        Descrição (Opcional)
+                      </label>
+                      <textarea
+                        value={newClubDescription}
+                        onChange={(e) => setNewClubDescription(e.target.value)}
+                        placeholder="Ex: Clube de poker profissional com torneios semanais"
+                        className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-white outline-none focus:border-yellow-500 transition-all resize-none"
+                        rows={3}
+                        disabled={isCreatingClub}
+                      />
+                    </div>
+
+                    <div className="flex gap-4 pt-4">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowCreateClub(false);
+                          setNewClubName('');
+                          setNewClubDescription('');
+                        }}
+                        className="flex-1 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white font-black py-4 rounded-2xl text-xs uppercase transition-all"
+                        disabled={isCreatingClub}
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="submit"
+                        className="flex-1 bg-green-600 hover:bg-green-500 text-white font-black py-4 rounded-2xl text-xs uppercase shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={isCreatingClub}
+                      >
+                        {isCreatingClub ? 'CRIANDO...' : 'CRIAR CLUBE'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+
+            {/* Clubs List */}
+            {state.clubs.length === 0 ? (
+              <div className="glass p-12 rounded-[40px] text-center border border-white/10">
+                <div className="text-6xl mb-4">🏛️</div>
+                <h3 className="text-2xl font-black text-white mb-3">Nenhum clube criado ainda</h3>
+                <p className="text-white/40 text-sm mb-6">
+                  Crie seu primeiro clube para organizar torneios de forma profissional
+                </p>
+                <button 
+                  onClick={() => setShowCreateClub(true)}
+                  className="bg-yellow-600 hover:bg-yellow-500 text-white font-black px-8 py-4 rounded-2xl text-sm uppercase shadow-lg transition-all"
+                >
+                  CRIAR PRIMEIRO CLUBE
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {state.clubs.map((club) => {
+                  const isExpanded = expandedClubId === club.id;
+                  const clubTournaments = state.tournaments.filter(t => t.clubId === club.id);
+                  const clubTables = new Set(clubTournaments.flatMap(t => t.assignedTableIds));
+                  
+                  return (
+                    <div key={club.id} className="glass rounded-[40px] border border-white/10 overflow-hidden">
+                      {/* Club Header */}
+                      <div className="p-8">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-6">
+                            {club.profilePhotoUrl ? (
+                              <img 
+                                src={club.profilePhotoUrl} 
+                                alt={club.name}
+                                className="w-20 h-20 rounded-2xl object-cover"
+                              />
+                            ) : (
+                              <div className="w-20 h-20 rounded-2xl bg-yellow-500/20 flex items-center justify-center">
+                                <span className="text-yellow-500 text-4xl font-black">
+                                  {club.name.charAt(0).toUpperCase()}
+                                </span>
+                              </div>
+                            )}
+                            <div>
+                              <div className="flex items-center gap-3 mb-2">
+                                <h3 className="text-3xl font-black text-white">{club.name}</h3>
+                                {state.activeClubId === club.id && (
+                                  <span className="bg-yellow-500 text-black px-3 py-1 rounded-lg font-black text-xs">
+                                    ATIVO
+                                  </span>
+                                )}
+                              </div>
+                              {club.description && (
+                                <p className="text-white/50 text-sm mb-2">{club.description}</p>
+                              )}
+                              <p className="text-white/30 text-xs">
+                                Criado em {new Date(club.createdAt).toLocaleDateString('pt-BR')}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => {
+                                onDispatch({
+                                  type: 'SET_ACTIVE_CLUB',
+                                  payload: { id: club.id },
+                                  senderId: 'DIR'
+                                });
+                              }}
+                              className={`px-6 py-3 rounded-xl font-black text-xs uppercase transition-all tracking-widest ${
+                                state.activeClubId === club.id
+                                  ? 'bg-yellow-500 text-black'
+                                  : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white'
+                              }`}
+                            >
+                              {state.activeClubId === club.id ? 'ATIVO' : 'ATIVAR'}
+                            </button>
+                            <button
+                              onClick={() => setExpandedClubId(isExpanded ? null : club.id)}
+                              className="px-4 py-3 rounded-xl bg-white/5 text-white/60 hover:bg-white/10 hover:text-white transition-all"
+                            >
+                              {isExpanded ? '▲' : '▼'}
+                            </button>
+                            <button
+                              onClick={() => handleDeleteClub(club.id)}
+                              className="px-4 py-3 rounded-xl bg-white/5 text-white/20 hover:bg-red-600/20 hover:text-red-500 transition-all"
+                            >
+                              🗑️
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Club Stats */}
+                        <div className="mt-6 pt-6 border-t border-white/5">
+                          <div className="grid grid-cols-3 gap-6">
+                            <div className="bg-black/40 p-4 rounded-2xl">
+                              <p className="text-white/40 text-xs uppercase tracking-wider mb-2">Torneios</p>
+                              <p className="text-white font-black text-3xl">{clubTournaments.length}</p>
+                            </div>
+                            <div className="bg-black/40 p-4 rounded-2xl">
+                              <p className="text-white/40 text-xs uppercase tracking-wider mb-2">Mesas Usadas</p>
+                              <p className="text-white font-black text-3xl">{clubTables.size}</p>
+                            </div>
+                            <div className="bg-black/40 p-4 rounded-2xl">
+                              <p className="text-white/40 text-xs uppercase tracking-wider mb-2">Jogadores</p>
+                              <p className="text-white font-black text-3xl">
+                                {state.players.filter(p => clubTournaments.some(t => t.id === p.tournamentId)).length}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Expanded Club Details */}
+                      {isExpanded && (
+                        <div className="px-8 pb-8 space-y-6 border-t border-white/5 pt-6">
+                          {/* Tournaments Section */}
+                          <div>
+                            <h4 className="text-white font-black text-xl mb-4">Torneios deste Clube</h4>
+                            {clubTournaments.length === 0 ? (
+                              <div className="bg-white/5 rounded-2xl p-6 text-center">
+                                <p className="text-white/40 text-sm">
+                                  Nenhum torneio criado ainda. Crie um torneio e ele será automaticamente associado ao clube ativo.
+                                </p>
+                              </div>
+                            ) : (
+                              <div className="space-y-3">
+                                {clubTournaments.map(tournament => (
+                                  <div key={tournament.id} className="bg-white/5 rounded-2xl p-4 flex items-center justify-between hover:bg-white/10 transition-all">
+                                    <div className="flex items-center gap-4">
+                                      <span className="bg-yellow-500/10 text-yellow-500 px-3 py-1 rounded-lg font-black text-xs">
+                                        {tournament.acronym}
+                                      </span>
+                                      <div>
+                                        <p className="text-white font-bold">{tournament.name}</p>
+                                        <p className="text-white/40 text-xs">
+                                          {tournament.assignedTableIds.length} mesas • {state.players.filter(p => p.tournamentId === tournament.id).length} jogadores
+                                        </p>
+                                      </div>
+                                    </div>
+                                    <div className="flex gap-2">
+                                      <button
+                                        onClick={() => {
+                                          setActiveTab('torneios');
+                                          setActiveTourneyId(tournament.id);
+                                          onDispatch({ type: 'SET_ACTIVE_TOURNAMENT', payload: { id: tournament.id }, senderId: 'DIR' });
+                                        }}
+                                        className="px-4 py-2 rounded-xl bg-white/5 text-white/60 hover:bg-white/10 hover:text-white text-xs font-black uppercase transition-all"
+                                      >
+                                        Gerenciar
+                                      </button>
+                                      <button
+                                        onClick={() => {
+                                          if (confirm('Tem certeza que deseja excluir este torneio?')) {
+                                            onDispatch({ type: 'DELETE_TOURNAMENT', payload: { id: tournament.id }, senderId: 'DIR' });
+                                          }
+                                        }}
+                                        className="p-2 text-white/20 hover:text-red-500 transition-all"
+                                      >
+                                        🗑️
+                                      </button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Info about managers */}
+                          <div className="bg-blue-500/5 border border-blue-500/20 rounded-2xl p-6">
+                            <div className="flex items-start gap-3">
+                              <span className="text-2xl">ℹ️</span>
+                              <div>
+                                <h4 className="text-blue-400 font-black text-sm mb-2">Gerentes do Clube</h4>
+                                <p className="text-white/60 text-sm">
+                                  Para criar gerentes deste clube, use o botão "Entrar como Gerente" na tela de código do clube. 
+                                  Gerentes podem criar e gerenciar torneios, mas não podem alterar configurações do clube.
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Instructions */}
+            <div className="glass p-8 rounded-[40px] border border-white/10">
+              <h3 className="text-white font-black text-xl mb-4">💡 Como usar o sistema de clubes</h3>
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="space-y-3 text-sm">
+                  <div className="flex items-start gap-3">
+                    <span className="text-yellow-500 text-xl">1️⃣</span>
+                    <p className="text-white/70">
+                      <strong className="text-white">Crie clubes</strong> para organizar seus torneios de forma profissional
+                    </p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="text-yellow-500 text-xl">2️⃣</span>
+                    <p className="text-white/70">
+                      <strong className="text-white">Ative um clube</strong> antes de criar torneios - eles serão automaticamente associados
+                    </p>
+                  </div>
+                </div>
+                <div className="space-y-3 text-sm">
+                  <div className="flex items-start gap-3">
+                    <span className="text-yellow-500 text-xl">3️⃣</span>
+                    <p className="text-white/70">
+                      <strong className="text-white">Adicione gerentes</strong> para delegar o gerenciamento de torneios
+                    </p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="text-yellow-500 text-xl">4️⃣</span>
+                    <p className="text-white/70">
+                      <strong className="text-white">Jogadores acessam</strong> através da seleção de clubes na tela inicial
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
+
+            {/* Orphaned Tournaments Warning */}
+            {state.tournaments.some(t => !t.clubId) && (
+              <div className="bg-orange-500/10 border border-orange-500/30 rounded-2xl p-6">
+                <div className="flex items-start gap-3">
+                  <span className="text-3xl">⚠️</span>
+                  <div>
+                    <h4 className="text-orange-400 font-black text-lg mb-2">Torneios sem clube detectados</h4>
+                    <p className="text-white/70 text-sm mb-4">
+                      Existem {state.tournaments.filter(t => !t.clubId).length} torneio(s) criado(s) antes da introdução do sistema de clubes.
+                      Estes torneios não estão associados a nenhum clube.
+                    </p>
+                    <button
+                      onClick={() => {
+                        setActiveTab('torneios');
+                      }}
+                      className="bg-orange-600 hover:bg-orange-500 text-white font-black px-6 py-3 rounded-xl text-xs uppercase shadow-lg transition-all"
+                    >
+                      Ver Torneios
+                    </button>
+                    <p className="text-white/50 text-xs mt-3">
+                      💡 Dica: Você pode editar esses torneios para associá-los a um clube ou excluí-los se não forem mais necessários.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
