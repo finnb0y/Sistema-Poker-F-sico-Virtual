@@ -54,6 +54,24 @@ export interface RoomTable {
   name: string;
 }
 
+export interface Club {
+  id: string;
+  name: string;
+  ownerUserId: string;
+  profilePhotoUrl?: string;
+  bannerUrl?: string;
+  description?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ClubManager {
+  id: string;
+  clubId: string;
+  username: string;
+  createdAt: Date;
+}
+
 export interface Tournament {
   id: string;
   name: string;
@@ -62,6 +80,7 @@ export interface Tournament {
   config: TournamentConfig;
   assignedTableIds: number[];
   isActive: boolean;
+  clubId?: string; // Reference to the club this tournament belongs to
 }
 
 export interface Player {
@@ -139,6 +158,8 @@ export interface GameState {
   smallBlind: number;
   bigBlind: number;
   activeTournamentId: string | null;
+  clubs: Club[];
+  activeClubId: string | null;
 }
 
 export type ActionType = 
@@ -146,6 +167,10 @@ export type ActionType =
   | 'DELETE_PERSON'
   | 'ADD_ROOM_TABLE'
   | 'REMOVE_ROOM_TABLE'
+  | 'CREATE_CLUB'
+  | 'UPDATE_CLUB'
+  | 'DELETE_CLUB'
+  | 'SET_ACTIVE_CLUB'
   | 'CREATE_TOURNAMENT'
   | 'UPDATE_TOURNAMENT'
   | 'DELETE_TOURNAMENT'

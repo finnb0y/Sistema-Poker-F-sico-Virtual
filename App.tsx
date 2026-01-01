@@ -20,7 +20,9 @@ const INITIAL_STATE: GameState = {
   registry: [],
   smallBlind: 50,
   bigBlind: 100,
-  activeTournamentId: null
+  activeTournamentId: null,
+  clubs: [],
+  activeClubId: null
 };
 
 const generateAccessCode = () => Math.random().toString(36).substring(2, 6).toUpperCase();
@@ -154,6 +156,15 @@ const App: React.FC = () => {
             }
             return migratedState;
           });
+          
+          // Migrate to include clubs if not present
+          if (!('clubs' in loadedState)) {
+            loadedState.clubs = [];
+          }
+          if (!('activeClubId' in loadedState)) {
+            loadedState.activeClubId = null;
+          }
+          
           setGameState(loadedState);
         }
       } catch (error) {
@@ -327,6 +338,40 @@ const App: React.FC = () => {
       const { type, payload, senderId } = msg;
 
       switch (type) {
+        case 'CREATE_CLUB':
+          newState.clubs.push({
+            id: payload.id,
+            name: payload.name,
+            ownerUserId: payload.ownerUserId,
+            profilePhotoUrl: payload.profilePhotoUrl,
+            bannerUrl: payload.bannerUrl,
+            description: payload.description,
+            createdAt: new Date(payload.createdAt),
+            updatedAt: new Date(payload.updatedAt)
+          });
+          break;
+
+        case 'UPDATE_CLUB':
+          const clubIdx = newState.clubs.findIndex(c => c.id === payload.id);
+          if (clubIdx !== -1) {
+            newState.clubs[clubIdx] = { 
+              ...newState.clubs[clubIdx], 
+              ...payload,
+              updatedAt: new Date()
+            };
+          }
+          break;
+
+        case 'DELETE_CLUB':
+          newState.clubs = newState.clubs.filter(c => c.id !== payload.id);
+          // Also delete tournaments associated with this club
+          newState.tournaments = newState.tournaments.filter(t => t.clubId !== payload.id);
+          break;
+
+        case 'SET_ACTIVE_CLUB':
+          newState.activeClubId = payload.id;
+          break;
+
         case 'REGISTER_PERSON':
           newState.registry.push({ id: Math.random().toString(36).substr(2, 9), name: payload.name, nickname: payload.nickname });
           break;
@@ -355,7 +400,8 @@ const App: React.FC = () => {
             guaranteed: payload.guaranteed || 0,
             config: payload.config,
             assignedTableIds: payload.assignedTableIds,
-            isActive: true
+            isActive: true,
+            clubId: payload.clubId || newState.activeClubId || undefined
           });
           payload.assignedTableIds.forEach((tid: number) => {
             if (!newState.tableStates.find(ts => ts.id === tid)) {
