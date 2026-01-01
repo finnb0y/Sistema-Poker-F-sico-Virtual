@@ -408,6 +408,11 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isMa
                                <div className="flex items-center gap-3 flex-wrap">
                                  <h3 className="text-2xl font-black text-white">{t.name}</h3>
                                  <span className="bg-yellow-500/10 text-yellow-500 px-3 py-1 rounded-lg font-black text-xs">{t.acronym}</span>
+                                 {t.isStarted && (
+                                   <span className="bg-green-500/10 text-green-500 px-3 py-1 rounded-lg font-black text-xs animate-pulse" title="Torneio em andamento">
+                                     ▶ Em Andamento
+                                   </span>
+                                 )}
                                  {!t.clubId && (
                                    <span className="bg-orange-500/10 text-orange-500 px-3 py-1 rounded-lg font-black text-xs" title="Este torneio não está associado a nenhum clube">
                                      ⚠️ Sem clube
@@ -429,7 +434,7 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isMa
                                <button onClick={() => onDispatch({ type: 'DELETE_TOURNAMENT', payload: { id: t.id }, senderId: 'DIR' })} className="p-2 text-white/10 hover:text-red-500">🗑️</button>
                             </div>
                          </div>
-                         <div className="flex flex-wrap gap-2">
+                         <div className="flex flex-wrap gap-2 mb-4">
                             {t.config.buyIn.enabled && <span className="text-[8px] bg-green-500/10 text-green-500 px-3 py-1 rounded-full font-black uppercase">Buy-in OK</span>}
                             {t.config.reentry.enabled && <span className="text-[8px] bg-orange-500/10 text-orange-500 px-3 py-1 rounded-full font-black uppercase">Re-entry OK</span>}
                             {t.config.rebuy.enabled && <span className="text-[8px] bg-blue-500/10 text-blue-500 px-3 py-1 rounded-full font-black uppercase">Rebuy OK</span>}
@@ -437,6 +442,24 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isMa
                          </div>
                       </div>
                     ))}
+                          
+                          <div className="mt-4">
+                            {!t.isStarted ? (
+                              <button 
+                                onClick={() => handleStartTournament(t.id)}
+                                className="w-full bg-green-600 hover:bg-green-500 text-white font-black py-3 rounded-xl text-xs uppercase shadow-lg transition-all"
+                              >
+                                ▶ Iniciar Torneio
+                              </button>
+                            ) : (
+                              <button 
+                                onClick={() => handleStopTournament(t.id)}
+                                className="w-full bg-orange-600 hover:bg-orange-500 text-white font-black py-3 rounded-xl text-xs uppercase shadow-lg transition-all"
+                              >
+                                ⏸ Pausar Torneio
+                              </button>
+                            )}
+                          </div>
                  </div>
 
                  {activeTourneyId && currentTourney && (
