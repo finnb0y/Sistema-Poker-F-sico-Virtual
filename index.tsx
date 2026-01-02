@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css'; 
+import { NotificationProvider } from './contexts/NotificationContext';
 
 // ========================================
 // Camada de Depuração
@@ -59,7 +60,9 @@ console.log('React root criado, renderizando aplicação...');
 
 root.render(
   <React.StrictMode>
-    <App />
+    <NotificationProvider>
+      <App />
+    </NotificationProvider>
   </React.StrictMode>
 );
 

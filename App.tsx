@@ -5,6 +5,7 @@ import { authService, AuthSession, User } from './services/authService';
 import { clubService, ClubManagerSession } from './services/clubService';
 import { isSupabaseConfigured } from './services/supabaseClient';
 import { migrateGameState } from './utils/stateMigration';
+import { useNotification } from './contexts/NotificationContext';
 import Login from './components/Login';
 import ClubSelection from './components/ClubSelection';
 import ClubCodeEntry from './components/ClubCodeEntry';
@@ -38,6 +39,7 @@ const generateDealerCode = () => 'D' + Math.random().toString(36).substring(2, 5
 const PERSIST_DEBOUNCE_DELAY = 500;
 
 const App: React.FC = () => {
+  const { showNotification, showConfirm } = useNotification();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [managerSession, setManagerSession] = useState<ClubManagerSession | null>(null);
   const [role, setRole] = useState<Role | null>(null);
@@ -1452,20 +1454,38 @@ const App: React.FC = () => {
       const handleCodeSubmit = async (code: string) => {
         const upperCode = code.toUpperCase();
         
-        // First, try to find the code in local state
+        // First, try to find the code in local state that belongs to the selected club
+        // Get the club's owner user ID to filter codes
         let foundPlayer = gameState.players.find(p => p.accessCode === upperCode);
         let foundTable = gameState.tableStates.find(ts => ts.dealerAccessCode === upperCode);
         
-        // If not found locally and Supabase is configured, search in backend
+        // Verify that the found player/table belongs to the selected club
+        if (foundPlayer) {
+          const playerTournament = gameState.tournaments.find(t => t.id === foundPlayer.tournamentId);
+          if (playerTournament && playerTournament.clubId !== selectedClub.id) {
+            // Code exists but belongs to a different club
+            foundPlayer = undefined;
+          }
+        }
+        
+        if (foundTable) {
+          const tableTournament = gameState.tournaments.find(t => t.id === foundTable.tournamentId);
+          if (tableTournament && tableTournament.clubId !== selectedClub.id) {
+            // Code exists but belongs to a different club
+            foundTable = undefined;
+          }
+        }
+        
+        // If not found locally and Supabase is configured, search in backend (only for this club)
         if (!foundPlayer && !foundTable && isSupabaseConfigured()) {
-          console.log('🔍 Código não encontrado localmente, buscando no backend...');
+          console.log('🔍 Código não encontrado localmente para este clube, buscando no backend...');
           
           try {
-            // Find which user owns this code
-            const ownerUserId = await syncService.findUserByAccessCode(upperCode);
+            // Load the club owner's game state (codes should be in the owner's state)
+            const ownerUserId = selectedClub.ownerUserId;
             
             if (ownerUserId) {
-              console.log('✅ Código encontrado! Carregando estado do torneio...');
+              console.log('✅ Carregando estado do clube...');
               
               // Load that user's game state
               const ownerState = await syncService.loadStateForUser(ownerUserId);
@@ -1481,16 +1501,25 @@ const App: React.FC = () => {
                 // Save to localStorage for persistence across page refreshes
                 localStorage.setItem('poker_sync_user_id', ownerUserId);
                 
-                // Now find the player/table in the loaded state
-                foundPlayer = ownerState.players.find(p => p.accessCode === upperCode);
-                foundTable = ownerState.tableStates.find(ts => ts.dealerAccessCode === upperCode);
+                // Now find the player/table in the loaded state that belongs to this club
+                foundPlayer = ownerState.players.find(p => {
+                  if (p.accessCode !== upperCode) return false;
+                  const tournament = ownerState.tournaments.find(t => t.id === p.tournamentId);
+                  return tournament && tournament.clubId === selectedClub.id;
+                });
+                
+                foundTable = ownerState.tableStates.find(ts => {
+                  if (ts.dealerAccessCode !== upperCode) return false;
+                  const tournament = ownerState.tournaments.find(t => t.id === ts.tournamentId);
+                  return tournament && tournament.clubId === selectedClub.id;
+                });
                 
                 console.log('✅ Estado do torneio carregado com sucesso');
               } else {
                 console.error('❌ Falha ao carregar estado do torneio');
                 console.error('   → O dono do torneio pode não ter salvado o estado no backend');
                 console.error('   → Ou pode haver um problema de conexão com o servidor');
-                alert('Erro ao carregar dados do torneio. O organizador pode não ter sincronizado o torneio ou há um problema de conexão.');
+                showNotification('Erro ao carregar dados do torneio. O organizador pode não ter sincronizado o torneio ou há um problema de conexão.', 'error');
                 return;
               }
             } else {
@@ -1503,7 +1532,7 @@ const App: React.FC = () => {
             if (error instanceof Error) {
               console.error('   Detalhes do erro:', error.message);
             }
-            alert('Erro ao buscar código. Verifique sua conexão com a internet e tente novamente.');
+            showNotification('Erro ao buscar código. Verifique sua conexão com a internet e tente novamente.', 'error');
             return;
           }
         }
@@ -1522,8 +1551,8 @@ const App: React.FC = () => {
           return;
         }
         
-        // Code not found
-        alert('Código não encontrado. Verifique o código e tente novamente.');
+        // Code not found for this club
+        showNotification('Código não encontrado para este clube. Verifique o código e tente novamente.', 'error');
       };
 
       return (
@@ -1659,6 +1688,14 @@ const App: React.FC = () => {
                         createdAt: club.createdAt.toISOString(),
                         updatedAt: club.updatedAt.toISOString()
                       },
+                      senderId: 'DIR'
+                    });
+                  }}
+                  onClubDeleted={(clubId) => {
+                    // Remove club from game state
+                    dispatch({
+                      type: 'DELETE_CLUB',
+                      payload: { id: clubId },
                       senderId: 'DIR'
                     });
                   }}
