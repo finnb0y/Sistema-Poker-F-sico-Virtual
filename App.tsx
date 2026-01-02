@@ -115,8 +115,8 @@ const App: React.FC = () => {
         
         if (session) {
           setCurrentUser(session.user);
-          // Set user ID in sync service
-          syncService.setUserId(session.user.id);
+          // Set user ID in sync service as admin (authenticated)
+          syncService.setAdminUserId(session.user.id);
           setSyncUserId(session.user.id);
         } else {
           // Check if there was a previous session that expired
@@ -206,8 +206,8 @@ const App: React.FC = () => {
       // Restore syncUserId for code-based access persistence
       if (savedSyncUserId && !currentUser) {
         // Only restore syncUserId if not logged in as admin
-        // This handles page refresh for players/dealers
-        syncService.setUserId(savedSyncUserId);
+        // This handles page refresh for players/dealers (guest mode)
+        syncService.setGuestUserId(savedSyncUserId);
         setSyncUserId(savedSyncUserId);
         
         // Load the tournament state for this user
@@ -1263,12 +1263,12 @@ const App: React.FC = () => {
     setTableId(null);
     setShowAdminLogin(false);
     setGameState(INITIAL_STATE);
-    syncService.setUserId(null);
+    syncService.setAdminUserId(null); // Clear admin session
   };
 
   const handleLoginSuccess = (session: AuthSession) => {
     setCurrentUser(session.user);
-    syncService.setUserId(session.user.id);
+    syncService.setAdminUserId(session.user.id); // Set as admin
     setShowAdminLogin(false); // Exit admin login mode after successful login
   };
 
@@ -1426,8 +1426,8 @@ const App: React.FC = () => {
           onLoginSuccess={(session) => {
             setManagerSession(session);
             setShowManagerLogin(false);
-            // Load the club owner's game state for the manager
-            syncService.setUserId(selectedClub.ownerUserId);
+            // Load the club owner's game state for the manager (guest mode)
+            syncService.setGuestUserId(selectedClub.ownerUserId);
             setSyncUserId(selectedClub.ownerUserId);
             localStorage.setItem('poker_sync_user_id', selectedClub.ownerUserId);
             
@@ -1497,7 +1497,7 @@ const App: React.FC = () => {
               setGameState(ownerState);
               
               // Set this user ID for synchronization (guest access to owner's session)
-              syncService.setUserId(ownerUserId);
+              syncService.setGuestUserId(ownerUserId);
               setSyncUserId(ownerUserId); // Trigger subscription effect
               
               // Save to localStorage for persistence across page refreshes
