@@ -1477,55 +1477,49 @@ const App: React.FC = () => {
         }
         
         // If not found locally and Supabase is configured, search in backend (only for this club)
-        if (!foundPlayer && !foundTable && isSupabaseConfigured()) {
+        if (!foundPlayer && !foundTable && isSupabaseConfigured() && selectedClub) {
           console.log('🔍 Código não encontrado localmente para este clube, buscando no backend...');
           
           try {
             // Load the club owner's game state (codes should be in the owner's state)
             const ownerUserId = selectedClub.ownerUserId;
             
-            if (ownerUserId) {
-              console.log('✅ Carregando estado do clube...');
+            console.log('✅ Carregando estado do clube...');
+            
+            // Load that user's game state
+            const ownerState = await syncService.loadStateForUser(ownerUserId);
+            
+            if (ownerState) {
+              // Update local game state with the owner's state
+              setGameState(ownerState);
               
-              // Load that user's game state
-              const ownerState = await syncService.loadStateForUser(ownerUserId);
+              // Set this user ID for synchronization (guest access to owner's session)
+              syncService.setUserId(ownerUserId);
+              setSyncUserId(ownerUserId); // Trigger subscription effect
               
-              if (ownerState) {
-                // Update local game state with the owner's state
-                setGameState(ownerState);
-                
-                // Set this user ID for synchronization (guest access to owner's session)
-                syncService.setUserId(ownerUserId);
-                setSyncUserId(ownerUserId); // Trigger subscription effect
-                
-                // Save to localStorage for persistence across page refreshes
-                localStorage.setItem('poker_sync_user_id', ownerUserId);
-                
-                // Now find the player/table in the loaded state that belongs to this club
-                foundPlayer = ownerState.players.find(p => {
-                  if (p.accessCode !== upperCode) return false;
-                  const tournament = ownerState.tournaments.find(t => t.id === p.tournamentId);
-                  return tournament && tournament.clubId === selectedClub.id;
-                });
-                
-                foundTable = ownerState.tableStates.find(ts => {
-                  if (ts.dealerAccessCode !== upperCode) return false;
-                  const tournament = ownerState.tournaments.find(t => t.id === ts.tournamentId);
-                  return tournament && tournament.clubId === selectedClub.id;
-                });
-                
-                console.log('✅ Estado do torneio carregado com sucesso');
-              } else {
-                console.error('❌ Falha ao carregar estado do torneio');
-                console.error('   → O dono do torneio pode não ter salvado o estado no backend');
-                console.error('   → Ou pode haver um problema de conexão com o servidor');
-                showNotification('Erro ao carregar dados do torneio. O organizador pode não ter sincronizado o torneio ou há um problema de conexão.', 'error');
-                return;
-              }
+              // Save to localStorage for persistence across page refreshes
+              localStorage.setItem('poker_sync_user_id', ownerUserId);
+              
+              // Now find the player/table in the loaded state that belongs to this club
+              foundPlayer = ownerState.players.find(p => {
+                if (p.accessCode !== upperCode) return false;
+                const tournament = ownerState.tournaments.find(t => t.id === p.tournamentId);
+                return tournament && tournament.clubId === selectedClub.id;
+              });
+              
+              foundTable = ownerState.tableStates.find(ts => {
+                if (ts.dealerAccessCode !== upperCode) return false;
+                const tournament = ownerState.tournaments.find(t => t.id === ts.tournamentId);
+                return tournament && tournament.clubId === selectedClub.id;
+              });
+              
+              console.log('✅ Estado do torneio carregado com sucesso');
             } else {
-              console.log('ℹ️ Código não encontrado no backend');
-              console.log('   → Verifique se o código foi digitado corretamente');
-              console.log('   → O organizador pode não ter criado o torneio ainda');
+              console.error('❌ Falha ao carregar estado do torneio');
+              console.error('   → O dono do torneio pode não ter salvado o estado no backend');
+              console.error('   → Ou pode haver um problema de conexão com o servidor');
+              showNotification('Erro ao carregar dados do torneio. O organizador pode não ter sincronizado o torneio ou há um problema de conexão.', 'error');
+              return;
             }
           } catch (error) {
             console.error('❌ Erro ao buscar código no backend:', error);

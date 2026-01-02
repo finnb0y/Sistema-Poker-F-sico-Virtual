@@ -1,6 +1,10 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, ReactNode, useRef } from 'react';
 import Notification, { NotificationProps } from '../components/Notification';
 import ConfirmDialog, { ConfirmDialogProps } from '../components/ConfirmDialog';
+
+// Constants for notification positioning
+const NOTIFICATION_TOP_OFFSET = 24; // pixels from top
+const NOTIFICATION_SPACING = 80; // vertical spacing between notifications
 
 interface NotificationContextType {
   showNotification: (message: string, type?: NotificationProps['type']) => void;
@@ -23,13 +27,13 @@ interface ConfirmState {
 export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [notifications, setNotifications] = useState<NotificationState[]>([]);
   const [confirmDialog, setConfirmDialog] = useState<ConfirmState | null>(null);
-  const [nextId, setNextId] = useState(0);
+  const nextIdRef = useRef(0); // Use ref instead of state for ID generation
 
   const showNotification = useCallback((message: string, type: NotificationProps['type'] = 'info') => {
-    const id = nextId;
-    setNextId(prev => prev + 1);
+    const id = nextIdRef.current;
+    nextIdRef.current += 1;
     setNotifications(prev => [...prev, { message, type, id }]);
-  }, [nextId]);
+  }, []); // No dependencies needed since we use ref
 
   const removeNotification = useCallback((id: number) => {
     setNotifications(prev => prev.filter(n => n.id !== id));
@@ -65,7 +69,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
           key={notification.id} 
           style={{ 
             position: 'fixed', 
-            top: `${24 + index * 80}px`, 
+            top: `${NOTIFICATION_TOP_OFFSET + index * NOTIFICATION_SPACING}px`, 
             left: '50%',
             zIndex: 9999 
           }}

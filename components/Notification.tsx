@@ -37,7 +37,7 @@ const Notification: React.FC<NotificationProps> = ({
   };
 
   return (
-    <div className="fixed top-6 left-1/2 transform -translate-x-1/2 z-[9999] animate-slide-down">
+    <div className="animate-slide-down" style={{ transform: 'translateX(-50%)' }}>
       <div className={`glass px-6 py-4 rounded-2xl border shadow-2xl ${typeStyles[type]} backdrop-blur-md max-w-md`}>
         <div className="flex items-start gap-3">
           <span className="text-2xl">{iconMap[type]}</span>
