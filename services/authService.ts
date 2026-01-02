@@ -326,8 +326,21 @@ export const authService = {
       if (expiresAt <= new Date()) {
         // Session expired
         console.log('⏱️ Sessão expirada - solicitando novo login');
-        // Use async logout but don't await to prevent blocking
-        authService.logout().catch(e => console.error('⚠️ Erro ao fazer logout:', e));
+        // Use synchronous cleanup for consistency and to prevent blocking
+        clearSessionStorage();
+        // Fire-and-forget database cleanup (best effort)
+        if (isSupabaseConfigured() && supabase) {
+          supabase
+            .from('poker_user_sessions')
+            .delete()
+            .eq('session_token', token)
+            .then(() => {
+              console.log('✅ Sessão removida do banco de dados');
+            })
+            .catch(e => {
+              console.error('⚠️ Erro ao remover sessão do banco:', e);
+            });
+        }
         return null;
       }
 

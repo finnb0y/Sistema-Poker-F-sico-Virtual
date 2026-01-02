@@ -222,10 +222,9 @@ const App: React.FC = () => {
     return () => {
       isMounted = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- currentUser intentionally omitted to prevent re-runs
     // This effect should only run once when isLoading becomes false
     // currentUser is captured at the moment the effect runs for a conditional check
-    // We explicitly don't want this to re-run when currentUser changes later
   }, [isLoading]);
 
   const getNextTurnId = (players: Player[], tableId: number, currentId: string | null): string | null => {
