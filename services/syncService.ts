@@ -35,7 +35,7 @@ export const syncService = {
    */
   setAdminUserId: (userId: string | null) => {
     currentUserId = userId;
-    isAdminMode = true;
+    isAdminMode = userId !== null; // Only set admin mode if userId is not null
   },
 
   /**
@@ -44,7 +44,7 @@ export const syncService = {
    */
   setGuestUserId: (ownerId: string | null) => {
     currentUserId = ownerId;
-    isAdminMode = false;
+    isAdminMode = false; // Always guest mode
   },
 
   /**

@@ -172,6 +172,16 @@ function testModeSwitching() {
   syncService.setUserId('legacy-1');
   assert(syncService.isAdmin() === false, 'Legacy method should set guest mode');
   
+  // Setting admin to null should reset admin mode
+  syncService.setAdminUserId(null);
+  assert(syncService.isAdmin() === false, 'Setting admin to null should reset admin mode');
+  assert(syncService.getUserId() === null, 'UserId should be null');
+  
+  // Setting guest to null should keep guest mode (already false)
+  syncService.setGuestUserId(null);
+  assert(syncService.isAdmin() === false, 'Guest mode should remain false after null');
+  assert(syncService.getUserId() === null, 'UserId should be null');
+  
   console.log('✅ Mode switching works correctly');
 }
 
