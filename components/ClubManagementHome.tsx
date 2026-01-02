@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { Club } from '../types';
 import { clubService } from '../services/clubService';
 import { authService } from '../services/authService';
+import { useNotification } from '../contexts/NotificationContext';
 
 interface ClubManagementHomeProps {
   clubs: Club[];
   currentUserId: string;
   onClubSelect: (club: Club) => void;
   onClubCreated: (club: Club) => void;
+  onClubDeleted?: (clubId: string) => void;
   onLogout: () => void;
 }
 
@@ -16,8 +18,10 @@ const ClubManagementHome: React.FC<ClubManagementHomeProps> = ({
   currentUserId, 
   onClubSelect, 
   onClubCreated,
+  onClubDeleted,
   onLogout 
 }) => {
+  const { showNotification, showConfirm } = useNotification();
   const [showCreateClub, setShowCreateClub] = useState(false);
   const [newClubName, setNewClubName] = useState('');
   const [newClubDescription, setNewClubDescription] = useState('');
@@ -55,15 +59,45 @@ const ClubManagementHome: React.FC<ClubManagementHomeProps> = ({
         setNewClubName('');
         setNewClubDescription('');
         setShowCreateClub(false);
-        alert('Clube criado com sucesso!');
+        showNotification('Clube criado com sucesso!', 'success');
       } else {
-        alert(result.error || 'Erro ao criar clube');
+        showNotification(result.error || 'Erro ao criar clube', 'error');
       }
     } catch (error) {
       console.error('Error creating club:', error);
-      alert('Erro ao criar clube. Tente novamente.');
+      showNotification('Erro ao criar clube. Tente novamente.', 'error');
     } finally {
       setIsCreatingClub(false);
+    }
+  };
+
+  const handleDeleteClub = async (club: Club, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent club selection when clicking delete
+    
+    const confirmed = await showConfirm({
+      title: 'Excluir Clube',
+      message: `Tem certeza que deseja excluir o clube "${club.name}"? Todos os torneios e dados associados serão permanentemente removidos. Esta ação não pode ser desfeita.`,
+      confirmText: 'Excluir',
+      cancelText: 'Cancelar',
+      type: 'danger'
+    });
+
+    if (!confirmed) return;
+
+    try {
+      const result = await clubService.deleteClub(club.id);
+      
+      if (result.success) {
+        showNotification('Clube excluído com sucesso!', 'success');
+        if (onClubDeleted) {
+          onClubDeleted(club.id);
+        }
+      } else {
+        showNotification(result.error || 'Erro ao excluir clube', 'error');
+      }
+    } catch (error) {
+      console.error('Error deleting club:', error);
+      showNotification('Erro ao excluir clube. Tente novamente.', 'error');
     }
   };
 
@@ -265,8 +299,17 @@ const ClubManagementHome: React.FC<ClubManagementHomeProps> = ({
                       <span className="text-yellow-500 font-black text-xs uppercase tracking-widest group-hover:text-yellow-400 transition-colors">
                         Gerenciar →
                       </span>
-                      <div className="w-8 h-8 rounded-xl bg-yellow-500/10 flex items-center justify-center group-hover:bg-yellow-500 transition-colors">
-                        <span className="text-yellow-500 group-hover:text-black font-black">▶</span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={(e) => handleDeleteClub(club, e)}
+                          className="w-8 h-8 rounded-xl bg-red-500/10 hover:bg-red-500 flex items-center justify-center transition-colors group/delete"
+                          title="Excluir clube"
+                        >
+                          <span className="text-red-500 group-hover/delete:text-white font-black">🗑️</span>
+                        </button>
+                        <div className="w-8 h-8 rounded-xl bg-yellow-500/10 flex items-center justify-center group-hover:bg-yellow-500 transition-colors">
+                          <span className="text-yellow-500 group-hover:text-black font-black">▶</span>
+                        </div>
                       </div>
                     </div>
                   </div>
