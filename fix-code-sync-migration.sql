@@ -6,6 +6,12 @@
 -- Fixes: Tournament codes not found across devices
 -- Date: January 2026
 -- =====================================================
+-- NOTE: This is a standalone version of the function also included in
+-- supabase-auth-migration.sql. You can run this file independently if
+-- you've already run the base migrations and just need to add this fix.
+-- If you're setting up from scratch, run supabase-auth-migration.sql
+-- instead (it includes this function).
+-- =====================================================
 
 -- Function to find user by access code (player or dealer)
 -- Uses SECURITY DEFINER to bypass RLS and search across all users
