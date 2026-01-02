@@ -240,43 +240,81 @@ export const syncService = {
     }
 
     try {
-      // Search all game states for this access code
+      // Use database function to search across all users (with SECURITY DEFINER to bypass RLS)
       const { data, error } = await supabase
-        .from('poker_game_state')
-        .select('user_id, state');
+        .rpc('find_user_by_access_code', { access_code: accessCode });
       
       if (error) {
-        console.error('❌ Erro ao buscar código de acesso:', error);
-        return null;
-      }
-
-      if (!data || data.length === 0) {
-        return null;
-      }
-
-      // Search through all states to find matching code
-      for (const record of data) {
-        const state = record.state as GameState;
+        console.error('❌ Erro ao buscar código de acesso via RPC:', error);
+        console.error('   Detalhes:', error.message);
         
-        // Check player codes
-        const foundPlayer = state.players?.find((p: Player) => p.accessCode === accessCode);
-        if (foundPlayer) {
-          console.log('✅ Código de jogador encontrado para usuário:', record.user_id);
-          return record.user_id;
-        }
+        // Fallback: Try direct query if RPC fails (will work if RLS allows it)
+        console.log('⚠️ Tentando busca direta como fallback...');
+        return await syncService.findUserByAccessCodeFallback(accessCode);
+      }
 
-        // Check dealer codes
-        const foundTable = state.tableStates?.find((ts: TableState) => ts.dealerAccessCode === accessCode);
-        if (foundTable) {
-          console.log('✅ Código de dealer encontrado para usuário:', record.user_id);
-          return record.user_id;
-        }
+      if (data) {
+        console.log('✅ Código encontrado para usuário:', data);
+        return data;
       }
 
       console.log('⚠️ Código não encontrado em nenhum estado de jogo');
       return null;
     } catch (error) {
       console.error('❌ Falha ao buscar código de acesso:', error);
+      // Try fallback method
+      return await syncService.findUserByAccessCodeFallback(accessCode);
+    }
+  },
+
+  /**
+   * Fallback method to find user by access code using direct query
+   * This may fail due to RLS policies but serves as a backup
+   */
+  findUserByAccessCodeFallback: async (accessCode: string): Promise<string | null> => {
+    if (!isSupabaseConfigured() || !supabase) {
+      return null;
+    }
+
+    try {
+      // Try to search all game states (may be limited by RLS)
+      const { data, error } = await supabase
+        .from('poker_game_state')
+        .select('user_id, state');
+      
+      if (error) {
+        console.error('❌ Erro na busca direta (pode ser RLS):', error.message);
+        return null;
+      }
+
+      if (!data || data.length === 0) {
+        console.log('ℹ️ Nenhum estado de jogo acessível (pode ser RLS)');
+        return null;
+      }
+
+      // Search through available states to find matching code
+      for (const record of data) {
+        const state = record.state as GameState;
+        
+        // Check player codes
+        const foundPlayer = state.players?.find((p: Player) => p.accessCode === accessCode);
+        if (foundPlayer) {
+          console.log('✅ Código de jogador encontrado (fallback):', record.user_id);
+          return record.user_id;
+        }
+
+        // Check dealer codes
+        const foundTable = state.tableStates?.find((ts: TableState) => ts.dealerAccessCode === accessCode);
+        if (foundTable) {
+          console.log('✅ Código de dealer encontrado (fallback):', record.user_id);
+          return record.user_id;
+        }
+      }
+
+      console.log('⚠️ Código não encontrado nos estados acessíveis');
+      return null;
+    } catch (error) {
+      console.error('❌ Falha na busca direta:', error);
       return null;
     }
   },

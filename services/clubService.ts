@@ -98,6 +98,7 @@ export const clubService = {
    */
   getClubsByOwner: async (ownerUserId: string): Promise<Club[]> => {
     if (!isSupabaseConfigured() || !supabase) {
+      console.warn('⚠️ Supabase não configurado - não é possível buscar clubes');
       return [];
     }
 
@@ -110,6 +111,20 @@ export const clubService = {
 
       if (error) {
         console.error('Error fetching clubs:', error);
+        console.error('  Error code:', error.code);
+        console.error('  Error message:', error.message);
+        console.error('  Error details:', error.details);
+        console.error('  Error hint:', error.hint);
+        
+        // Provide helpful guidance based on error
+        if (error.code === 'PGRST301' || error.message.includes('JWT')) {
+          console.error('  → Problema de autenticação: verifique se o usuário está autenticado');
+        } else if (error.code === '42P01' || error.message.includes('does not exist')) {
+          console.error('  → Tabela poker_clubs não existe: execute supabase-clubs-migration.sql');
+        } else if (error.message.includes('permission denied') || error.message.includes('RLS')) {
+          console.error('  → Problema de permissão (RLS): verifique as políticas no Supabase');
+        }
+        
         return [];
       }
 
