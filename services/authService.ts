@@ -15,6 +15,23 @@ const SESSION_TOKEN_KEY = 'poker_session_token';
 const SESSION_USER_KEY = 'poker_session_user';
 
 /**
+ * Clear all session-related data from localStorage
+ * This is a synchronous operation to avoid cascading async errors
+ */
+function clearSessionStorage(): void {
+  try {
+    localStorage.removeItem(SESSION_TOKEN_KEY);
+    localStorage.removeItem(SESSION_USER_KEY);
+    localStorage.removeItem('poker_current_role');
+    localStorage.removeItem('poker_current_player_id');
+    localStorage.removeItem('poker_current_table_id');
+    localStorage.removeItem('poker_sync_user_id');
+  } catch (e) {
+    console.error('⚠️ Falha ao limpar localStorage:', e);
+  }
+}
+
+/**
  * Hash a password using Web Crypto API (SHA-256)
  * 
  * ⚠️ SECURITY WARNING: This implementation uses SHA-256 which is NOT secure for production.
@@ -84,6 +101,12 @@ export const authService = {
       // Handle database errors
       if (checkError) {
         console.error('Error checking username:', checkError);
+        console.error('Error details:', {
+          code: checkError.code,
+          message: checkError.message,
+          details: checkError.details,
+          hint: checkError.hint
+        });
         return { success: false, error: 'Erro ao verificar nome de usuário' };
       }
 
@@ -174,6 +197,14 @@ export const authService = {
         .single();
 
       if (userError || !user) {
+        if (userError) {
+          console.error('Login error details:', {
+            code: userError.code,
+            message: userError.message,
+            details: userError.details,
+            hint: userError.hint
+          });
+        }
         return { success: false, error: 'Nome de usuário ou senha inválidos' };
       }
 
@@ -238,17 +269,7 @@ export const authService = {
 
     // Always clear localStorage regardless of database operation result
     // This ensures the user can access the app even if there are network issues
-    try {
-      localStorage.removeItem(SESSION_TOKEN_KEY);
-      localStorage.removeItem(SESSION_USER_KEY);
-      // Also clear role/player session data
-      localStorage.removeItem('poker_current_role');
-      localStorage.removeItem('poker_current_player_id');
-      localStorage.removeItem('poker_current_table_id');
-      localStorage.removeItem('poker_sync_user_id');
-    } catch (error) {
-      console.error('⚠️ Falha ao limpar localStorage:', error);
-    }
+    clearSessionStorage();
   },
 
   /**
@@ -265,8 +286,7 @@ export const authService = {
     if (!isSupabaseConfigured() || !supabase) {
       // Clear stale session data if Supabase is not configured
       // This prevents black screen when Supabase config is removed
-      localStorage.removeItem(SESSION_TOKEN_KEY);
-      localStorage.removeItem(SESSION_USER_KEY);
+      clearSessionStorage();
       return null;
     }
 
@@ -283,15 +303,22 @@ export const authService = {
 
       if (error) {
         console.error('❌ Erro ao validar sessão:', error);
-        // Clear invalid session
-        await authService.logout();
+        console.error('Error details:', {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint
+        });
+        // Clear invalid session - use synchronous cleanup to avoid cascading errors
+        clearSessionStorage();
         return null;
       }
 
       if (!session) {
         // Session not found in database - token is invalid
         console.log('🔄 Token de sessão inválido - limpando dados locais');
-        await authService.logout();
+        // Use synchronous cleanup to avoid cascading errors
+        clearSessionStorage();
         return null;
       }
 
@@ -299,7 +326,21 @@ export const authService = {
       if (expiresAt <= new Date()) {
         // Session expired
         console.log('⏱️ Sessão expirada - solicitando novo login');
-        await authService.logout();
+        // Use synchronous cleanup for consistency and to prevent blocking
+        clearSessionStorage();
+        // Fire-and-forget database cleanup (best effort)
+        if (isSupabaseConfigured() && supabase) {
+          supabase
+            .from('poker_user_sessions')
+            .delete()
+            .eq('session_token', token)
+            .then(() => {
+              console.log('✅ Sessão removida do banco de dados');
+            })
+            .catch(e => {
+              console.error('⚠️ Erro ao remover sessão do banco:', e);
+            });
+        }
         return null;
       }
 
@@ -310,8 +351,8 @@ export const authService = {
       };
     } catch (error) {
       console.error('❌ Falha ao validar sessão:', error);
-      // Clear invalid session to prevent black screen
-      await authService.logout();
+      // Clear invalid session to prevent black screen - use synchronous cleanup
+      clearSessionStorage();
       return null;
     }
   },

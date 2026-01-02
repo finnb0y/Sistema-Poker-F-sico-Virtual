@@ -93,15 +93,19 @@ const App: React.FC = () => {
   
   // Check authentication on mount
   useEffect(() => {
+    let isMounted = true; // Track if component is still mounted
+    
     const checkAuth = async () => {
       // Check if Supabase is configured
       if (!isSupabaseConfigured()) {
-        setIsLoading(false);
+        if (isMounted) setIsLoading(false);
         return;
       }
 
       try {
         const session = await authService.getCurrentSession();
+        if (!isMounted) return; // Don't update state if unmounted
+        
         if (session) {
           setCurrentUser(session.user);
           // Set user ID in sync service
@@ -127,24 +131,34 @@ const App: React.FC = () => {
         }
       } catch (error) {
         console.error('❌ Erro ao verificar autenticação:', error);
+        if (!isMounted) return; // Don't update state if unmounted
         // On error, also clear stale data to prevent black screen
         clearSessionData();
       } finally {
-        setIsLoading(false);
+        if (isMounted) setIsLoading(false);
       }
     };
 
     checkAuth();
+    
+    // Cleanup function to mark component as unmounted
+    return () => {
+      isMounted = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
     // clearSessionData is stable (useCallback with empty deps), safe to omit
   }, []);
 
   useEffect(() => {
+    let isMounted = true; // Track if component is still mounted
+    
     const loadInitialState = async () => {
       if (!currentUser) return;
 
       try {
         const loadedState = await syncService.loadState();
+        if (!isMounted) return; // Don't update state if unmounted
+        
         if (loadedState) {
           // Apply all migrations using centralized migration utility
           const migratedState = migrateGameState(loadedState);
@@ -158,9 +172,16 @@ const App: React.FC = () => {
     if (currentUser) {
       loadInitialState();
     }
+    
+    // Cleanup function
+    return () => {
+      isMounted = false;
+    };
   }, [currentUser]);
 
   useEffect(() => {
+    let isMounted = true; // Track if component is still mounted
+    
     // Only restore from localStorage after authentication check completes
     // This prevents race conditions where we restore a role but don't have valid auth
     if (isLoading) return;
@@ -184,6 +205,7 @@ const App: React.FC = () => {
         
         // Load the tournament state for this user
         syncService.loadStateForUser(savedSyncUserId).then(state => {
+          if (!isMounted) return; // Don't update state if unmounted
           if (state) {
             setGameState(state);
             console.log('✅ Estado do torneio restaurado após refresh');
@@ -195,6 +217,14 @@ const App: React.FC = () => {
     } catch (error) {
       console.error('Failed to restore session:', error);
     }
+    
+    // Cleanup function
+    return () => {
+      isMounted = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- currentUser intentionally omitted to prevent re-runs
+    // This effect should only run once when isLoading becomes false
+    // currentUser is captured at the moment the effect runs for a conditional check
   }, [isLoading]);
 
   const getNextTurnId = (players: Player[], tableId: number, currentId: string | null): string | null => {
