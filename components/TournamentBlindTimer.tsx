@@ -9,7 +9,6 @@ interface TournamentBlindTimerProps {
 
 const TournamentBlindTimer: React.FC<TournamentBlindTimerProps> = ({ tournament, state, onDispatch }) => {
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
-  const [isPaused, setIsPaused] = useState(false);
   const hasAdvancedRef = React.useRef(false);
 
   // Get current blind level from first table assigned to this tournament
@@ -18,7 +17,7 @@ const TournamentBlindTimer: React.FC<TournamentBlindTimerProps> = ({ tournament,
   const currentBlindLevel = tournament.config.blindStructure.levels[currentBlindLevelIndex];
 
   useEffect(() => {
-    if (!tournament.isStarted || !tournament.currentBlindLevelStartTime || isPaused) {
+    if (!tournament.isStarted || !tournament.currentBlindLevelStartTime) {
       return;
     }
 
@@ -60,7 +59,7 @@ const TournamentBlindTimer: React.FC<TournamentBlindTimerProps> = ({ tournament,
     setTimeRemaining(calculateTimeRemaining());
 
     return () => clearInterval(interval);
-  }, [tournament, currentBlindLevel, isPaused, onDispatch]);
+  }, [tournament, currentBlindLevel, onDispatch]);
 
   // Format time as MM:SS
   const formatTime = (seconds: number): string => {
@@ -82,16 +81,10 @@ const TournamentBlindTimer: React.FC<TournamentBlindTimerProps> = ({ tournament,
           <div className="text-[10px] font-black text-purple-400 uppercase tracking-widest">Timer de Blinds</div>
           <div className="text-2xl font-black text-white mt-1">{formatTime(timeRemaining)}</div>
         </div>
-        <button
-          onClick={() => setIsPaused(!isPaused)}
-          className={`px-4 py-2 rounded-xl font-black text-xs uppercase transition-all ${
-            isPaused 
-              ? 'bg-green-600 hover:bg-green-500 text-white' 
-              : 'bg-orange-600 hover:bg-orange-500 text-white'
-          }`}
-        >
-          {isPaused ? '▶ Retomar' : '⏸ Pausar'}
-        </button>
+        <div className="text-right">
+          <div className="text-[10px] font-black text-purple-400 uppercase tracking-widest">Nível</div>
+          <div className="text-2xl font-black text-white mt-1">{currentBlindLevelIndex + 1}</div>
+        </div>
       </div>
 
       {/* Progress bar */}
