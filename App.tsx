@@ -1187,14 +1187,14 @@ const App: React.FC = () => {
     });
   };
 
-  const selectRole = (r: Role, tId?: number) => {
+  const selectRole = useCallback((r: Role, tId?: number) => {
     setRole(r);
     if (tId !== undefined) {
       setTableId(tId);
       localStorage.setItem('poker_current_table_id', tId.toString());
     }
     localStorage.setItem('poker_current_role', r);
-  };
+  }, []);
 
   const exitRole = () => {
     setRole(null);
@@ -1392,6 +1392,8 @@ const App: React.FC = () => {
                   payload: { id: selectedClub.id },
                   senderId: 'system'
                 });
+                // Automatically select DIRECTOR role for manager
+                selectRole(Role.DIRECTOR);
               }
             });
           }}
@@ -1551,22 +1553,13 @@ const App: React.FC = () => {
     );
   }
 
-  // Admin authenticated - show director role selection
-  if (currentUser && !role) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6 poker-felt">
-        <div className="w-full max-w-md glass p-10 rounded-[40px] shadow-2xl text-center border-white/20 border">
-          <h1 className="text-6xl font-outfit font-black text-white mb-2 italic tracking-tighter">POKER<span className="text-yellow-500"> 2</span></h1>
-          <p className="text-white/40 mb-2 text-[10px] font-bold tracking-[6px] uppercase">Gerenciador de Fichas & Suite Profissional</p>
-          <p className="text-white/60 text-sm mb-8">Bem-vindo, <span className="text-yellow-400 font-bold">{currentUser.username}</span></p>
-          <div className="space-y-4">
-            <button onClick={() => selectRole(Role.DIRECTOR)} className="w-full bg-yellow-600 hover:bg-yellow-500 text-white font-black py-5 rounded-3xl text-xl shadow-xl transition-all">GERENCIAMENTO</button>
-            <button onClick={handleLogout} className="w-full bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 text-red-400 font-black py-3 rounded-2xl transition-all uppercase text-[10px] tracking-widest">SAIR</button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Admin authenticated - automatically go to director role
+  // Admins should see club management directly
+  useEffect(() => {
+    if (currentUser && !role && !managerSession) {
+      selectRole(Role.DIRECTOR);
+    }
+  }, [currentUser, role, managerSession, selectRole]);
 
   return (
     <div className="min-h-screen bg-[#050505]">
