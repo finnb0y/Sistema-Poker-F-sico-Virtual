@@ -73,12 +73,26 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isMa
 
   const currentTourney = state.tournaments.find(t => t.id === activeTourneyId);
 
+  // Filter data by active club
+  const activeClubId = state.activeClubId;
+  const filteredTournaments = state.tournaments.filter(t => !activeClubId || t.clubId === activeClubId);
+  const filteredRoomTables = state.roomTables.filter(rt => !activeClubId || rt.clubId === activeClubId);
+  const filteredRegistry = state.registry.filter(r => !activeClubId || r.clubId === activeClubId);
+
   const handleRegisterPerson = (e: React.FormEvent) => {
     e.preventDefault();
     if (!regName) return;
     // Capitalize first letter of name
     const capitalizedName = regName.charAt(0).toUpperCase() + regName.slice(1);
-    onDispatch({ type: 'REGISTER_PERSON', payload: { name: capitalizedName, nickname: regNick }, senderId: 'DIR' });
+    onDispatch({ 
+      type: 'REGISTER_PERSON', 
+      payload: { 
+        name: capitalizedName, 
+        nickname: regNick,
+        clubId: activeClubId || undefined
+      }, 
+      senderId: 'DIR' 
+    });
     setRegName(''); setRegNick('');
   };
 
@@ -405,7 +419,7 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isMa
                  </div>
                  
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {state.tournaments.map(t => (
+                    {filteredTournaments.map(t => (
                       <div key={t.id} className={`p-8 rounded-[40px] glass border-2 transition-all ${activeTourneyId === t.id ? 'border-yellow-500 bg-yellow-500/5' : 'border-white/5'}`}>
                          <div className="flex justify-between items-start mb-6">
                             <div>
@@ -477,7 +491,7 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isMa
                         <div className="space-y-4">
                            <input type="text" placeholder="Filtrar por nome ou apelido..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 outline-none focus:border-yellow-500 font-bold" />
                            <div className="max-h-[500px] overflow-y-auto pr-2 space-y-2">
-                              {state.registry.filter(per => !state.players.find(p => p.personId === per.id && p.tournamentId === activeTourneyId)).filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase())).map(person => (
+                              {filteredRegistry.filter(per => !state.players.find(p => p.personId === per.id && p.tournamentId === activeTourneyId)).filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase())).map(person => (
                                 <div key={person.id} className="p-4 bg-white/5 rounded-2xl flex justify-between items-center group hover:bg-white/10 transition-all border border-transparent hover:border-white/10">
                                    <div>
                                      <div className="font-bold text-white">{person.name}</div>
@@ -672,7 +686,7 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isMa
                      <div className="space-y-4">
                         <h4 className="text-[10px] font-black text-white/40 uppercase tracking-widest px-4">Alocar Mesas Disponíveis</h4>
                         <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
-                           {state.roomTables.map(rt => {
+                           {filteredRoomTables.map(rt => {
                              const isAssignedToMe = editingTourney.assignedTableIds?.includes(rt.id);
                              const otherTourney = state.tournaments.find(t => t.id !== editingTourney.id && t.assignedTableIds.includes(rt.id));
                              return (
@@ -706,10 +720,10 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isMa
                    <h2 className="text-4xl font-outfit font-black text-white italic">Gestão de Salão</h2>
                    <p className="text-white/30 text-xs font-bold uppercase mt-2 tracking-widest">Layout físico de mesas do estabelecimento</p>
                 </div>
-                <button onClick={() => onDispatch({ type: 'ADD_ROOM_TABLE', payload: null, senderId: 'DIR' })} className="bg-white text-black font-black px-10 py-5 rounded-3xl text-[10px] uppercase shadow-lg hover:bg-yellow-500 transition-all">NOVA MESA FÍSICA</button>
+                <button onClick={() => onDispatch({ type: 'ADD_ROOM_TABLE', payload: { clubId: activeClubId || undefined }, senderId: 'DIR' })} className="bg-white text-black font-black px-10 py-5 rounded-3xl text-[10px] uppercase shadow-lg hover:bg-yellow-500 transition-all">NOVA MESA FÍSICA</button>
              </div>
              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
-                {state.roomTables.map(rt => {
+                {filteredRoomTables.map(rt => {
                   const tourneyAtTable = state.tournaments.find(t => t.assignedTableIds.includes(rt.id));
                   const playersAtTable = state.players.filter(p => p.tableId === rt.id);
                   return (
@@ -894,7 +908,7 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isMa
                 <button className="bg-yellow-600 hover:bg-yellow-500 text-white font-black px-12 py-5 rounded-3xl uppercase text-xs tracking-widest shadow-xl transition-all">CADASTRAR</button>
              </form>
              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {state.registry.map(p => (
+                {filteredRegistry.map(p => (
                   <div key={p.id} className="p-8 bg-white/5 rounded-[40px] border border-white/5 group hover:bg-white/10 transition-all flex justify-between items-center">
                      <div>
                         <div className="font-bold text-white text-lg">{p.name}</div>
@@ -911,7 +925,7 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isMa
         {activeTab === 'tv' && (
           <div className="h-full w-full bg-[#050505] relative flex flex-col">
              <div className="absolute top-10 left-1/2 -translate-x-1/2 z-[100] flex flex-wrap gap-2 glass p-2 rounded-full border-white/10 max-w-[90%] justify-center">
-                {state.tournaments.filter(t => t.isActive).map(t => (
+                {filteredTournaments.filter(t => t.isActive).map(t => (
                   t.assignedTableIds.map(tid => (
                     <button 
                       key={`${t.id}-${tid}`} 

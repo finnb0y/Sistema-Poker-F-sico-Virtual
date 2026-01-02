@@ -17,6 +17,7 @@ export interface RegisteredPerson {
   id: string;
   name: string;
   nickname?: string;
+  clubId?: string; // Reference to the club this person belongs to
 }
 
 export interface BlindLevel {
@@ -52,6 +53,7 @@ export interface TournamentConfig {
 export interface RoomTable {
   id: number;
   name: string;
+  clubId?: string; // Reference to the club this table belongs to
 }
 
 export interface Club {
