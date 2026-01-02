@@ -269,17 +269,7 @@ export const authService = {
 
     // Always clear localStorage regardless of database operation result
     // This ensures the user can access the app even if there are network issues
-    try {
-      localStorage.removeItem(SESSION_TOKEN_KEY);
-      localStorage.removeItem(SESSION_USER_KEY);
-      // Also clear role/player session data
-      localStorage.removeItem('poker_current_role');
-      localStorage.removeItem('poker_current_player_id');
-      localStorage.removeItem('poker_current_table_id');
-      localStorage.removeItem('poker_sync_user_id');
-    } catch (error) {
-      console.error('⚠️ Falha ao limpar localStorage:', error);
-    }
+    clearSessionStorage();
   },
 
   /**

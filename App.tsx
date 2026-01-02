@@ -223,8 +223,9 @@ const App: React.FC = () => {
       isMounted = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    // currentUser is only used in a conditional check (!currentUser), not as a dependency
-    // The effect should only run when isLoading changes to false
+    // This effect should only run once when isLoading becomes false
+    // currentUser is captured at the moment the effect runs for a conditional check
+    // We explicitly don't want this to re-run when currentUser changes later
   }, [isLoading]);
 
   const getNextTurnId = (players: Player[], tableId: number, currentId: string | null): string | null => {
