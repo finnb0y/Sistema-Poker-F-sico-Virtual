@@ -248,11 +248,11 @@ const ClubManagementHome: React.FC<ClubManagementHomeProps> = ({
                 >
                   {/* Club Banner/Header */}
                   {club.bannerUrl ? (
-                    <div className="h-32 w-full overflow-hidden bg-gradient-to-br from-yellow-500/20 to-yellow-600/10 flex items-center justify-center">
+                    <div className="h-32 w-full overflow-hidden bg-gradient-to-br from-yellow-500/20 to-yellow-600/10 flex items-center justify-center relative">
                       <img 
                         src={club.bannerUrl} 
                         alt={club.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform absolute"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform absolute inset-0"
                         onError={(e) => {
                           // Hide broken image on error, showing fallback background
                           // Using direct DOM manipulation here is acceptable because:
