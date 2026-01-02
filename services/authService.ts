@@ -84,6 +84,12 @@ export const authService = {
       // Handle database errors
       if (checkError) {
         console.error('Error checking username:', checkError);
+        console.error('Error details:', {
+          code: checkError.code,
+          message: checkError.message,
+          details: checkError.details,
+          hint: checkError.hint
+        });
         return { success: false, error: 'Erro ao verificar nome de usuário' };
       }
 
@@ -174,6 +180,14 @@ export const authService = {
         .single();
 
       if (userError || !user) {
+        if (userError) {
+          console.error('Login error details:', {
+            code: userError.code,
+            message: userError.message,
+            details: userError.details,
+            hint: userError.hint
+          });
+        }
         return { success: false, error: 'Nome de usuário ou senha inválidos' };
       }
 
@@ -283,15 +297,40 @@ export const authService = {
 
       if (error) {
         console.error('❌ Erro ao validar sessão:', error);
-        // Clear invalid session
-        await authService.logout();
+        console.error('Error details:', {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint
+        });
+        // Clear invalid session - use non-async cleanup to avoid cascading errors
+        try {
+          localStorage.removeItem(SESSION_TOKEN_KEY);
+          localStorage.removeItem(SESSION_USER_KEY);
+          localStorage.removeItem('poker_current_role');
+          localStorage.removeItem('poker_current_player_id');
+          localStorage.removeItem('poker_current_table_id');
+          localStorage.removeItem('poker_sync_user_id');
+        } catch (e) {
+          console.error('⚠️ Falha ao limpar localStorage:', e);
+        }
         return null;
       }
 
       if (!session) {
         // Session not found in database - token is invalid
         console.log('🔄 Token de sessão inválido - limpando dados locais');
-        await authService.logout();
+        // Use non-async cleanup to avoid cascading errors
+        try {
+          localStorage.removeItem(SESSION_TOKEN_KEY);
+          localStorage.removeItem(SESSION_USER_KEY);
+          localStorage.removeItem('poker_current_role');
+          localStorage.removeItem('poker_current_player_id');
+          localStorage.removeItem('poker_current_table_id');
+          localStorage.removeItem('poker_sync_user_id');
+        } catch (e) {
+          console.error('⚠️ Falha ao limpar localStorage:', e);
+        }
         return null;
       }
 
@@ -299,7 +338,8 @@ export const authService = {
       if (expiresAt <= new Date()) {
         // Session expired
         console.log('⏱️ Sessão expirada - solicitando novo login');
-        await authService.logout();
+        // Use async logout but don't await to prevent blocking
+        authService.logout().catch(e => console.error('⚠️ Erro ao fazer logout:', e));
         return null;
       }
 
@@ -310,8 +350,17 @@ export const authService = {
       };
     } catch (error) {
       console.error('❌ Falha ao validar sessão:', error);
-      // Clear invalid session to prevent black screen
-      await authService.logout();
+      // Clear invalid session to prevent black screen - use synchronous cleanup
+      try {
+        localStorage.removeItem(SESSION_TOKEN_KEY);
+        localStorage.removeItem(SESSION_USER_KEY);
+        localStorage.removeItem('poker_current_role');
+        localStorage.removeItem('poker_current_player_id');
+        localStorage.removeItem('poker_current_table_id');
+        localStorage.removeItem('poker_sync_user_id');
+      } catch (e) {
+        console.error('⚠️ Falha ao limpar localStorage:', e);
+      }
       return null;
     }
   },
