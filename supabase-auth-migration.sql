@@ -158,6 +158,46 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Function to find user by access code (player or dealer)
+-- Uses SECURITY DEFINER to bypass RLS and search across all users
+CREATE OR REPLACE FUNCTION find_user_by_access_code(access_code TEXT)
+RETURNS UUID AS $$
+DECLARE
+  v_user_id UUID;
+  game_record RECORD;
+  player_record JSONB;
+  table_record JSONB;
+BEGIN
+  -- Search through all game states to find matching access code
+  FOR game_record IN 
+    SELECT user_id, state FROM poker_game_state
+  LOOP
+    -- Check player access codes
+    IF game_record.state ? 'players' THEN
+      FOR player_record IN SELECT * FROM jsonb_array_elements(game_record.state->'players')
+      LOOP
+        IF player_record->>'accessCode' = access_code THEN
+          RETURN game_record.user_id;
+        END IF;
+      END LOOP;
+    END IF;
+    
+    -- Check dealer access codes
+    IF game_record.state ? 'tableStates' THEN
+      FOR table_record IN SELECT * FROM jsonb_array_elements(game_record.state->'tableStates')
+      LOOP
+        IF table_record->>'dealerAccessCode' = access_code THEN
+          RETURN game_record.user_id;
+        END IF;
+      END LOOP;
+    END IF;
+  END LOOP;
+  
+  -- Code not found
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
 -- Optional: Schedule session cleanup (requires pg_cron extension)
 -- SELECT cron.schedule('cleanup-expired-sessions', '0 * * * *', 'SELECT cleanup_expired_sessions();');
 

@@ -1488,13 +1488,22 @@ const App: React.FC = () => {
                 console.log('✅ Estado do torneio carregado com sucesso');
               } else {
                 console.error('❌ Falha ao carregar estado do torneio');
-                alert('Erro ao carregar dados do torneio. Tente novamente.');
+                console.error('   → O dono do torneio pode não ter salvado o estado no backend');
+                console.error('   → Ou pode haver um problema de conexão com o servidor');
+                alert('Erro ao carregar dados do torneio. O organizador pode não ter sincronizado o torneio ou há um problema de conexão.');
                 return;
               }
+            } else {
+              console.log('ℹ️ Código não encontrado no backend');
+              console.log('   → Verifique se o código foi digitado corretamente');
+              console.log('   → O organizador pode não ter criado o torneio ainda');
             }
           } catch (error) {
             console.error('❌ Erro ao buscar código no backend:', error);
-            alert('Erro ao buscar código. Verifique sua conexão e tente novamente.');
+            if (error instanceof Error) {
+              console.error('   Detalhes do erro:', error.message);
+            }
+            alert('Erro ao buscar código. Verifique sua conexão com a internet e tente novamente.');
             return;
           }
         }
