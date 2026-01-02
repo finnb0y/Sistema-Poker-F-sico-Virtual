@@ -12,5 +12,18 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, '.'),
     }
+  },
+  build: {
+    sourcemap: true, // Enable sourcemaps for better debugging
+    minify: 'esbuild', // Use esbuild for consistent minification
+    rollupOptions: {
+      output: {
+        // Better variable naming to avoid undefined variable issues
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom'],
+          'supabase-vendor': ['@supabase/supabase-js']
+        }
+      }
+    }
   }
 });
