@@ -164,7 +164,8 @@ const ClubDashboard: React.FC<ClubDashboardProps> = ({
                     alt={club.name}
                     className="w-16 h-16 rounded-2xl object-cover absolute inset-0"
                     onError={(e) => {
-                      // Hide broken image, showing fallback icon
+                      // Hide broken image on error, showing fallback icon
+                      // Using direct DOM manipulation for performance (avoids per-image state tracking)
                       e.currentTarget.style.display = 'none';
                     }}
                   />

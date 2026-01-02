@@ -254,7 +254,11 @@ const ClubManagementHome: React.FC<ClubManagementHomeProps> = ({
                         alt={club.name}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform absolute"
                         onError={(e) => {
-                          // Hide broken image, showing fallback background
+                          // Hide broken image on error, showing fallback background
+                          // Using direct DOM manipulation here is acceptable because:
+                          // 1. It's a one-time event (won't re-trigger)
+                          // 2. Tracking state for each image would be inefficient
+                          // 3. The fallback is already rendered
                           e.currentTarget.style.display = 'none';
                         }}
                       />
@@ -280,7 +284,8 @@ const ClubManagementHome: React.FC<ClubManagementHomeProps> = ({
                             alt={club.name}
                             className="w-16 h-16 rounded-2xl object-cover absolute inset-0"
                             onError={(e) => {
-                              // Hide broken image, showing fallback icon
+                              // Hide broken image on error, showing fallback icon
+                              // Using direct DOM manipulation for performance (see banner comment above)
                               e.currentTarget.style.display = 'none';
                             }}
                           />
