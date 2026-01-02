@@ -8,7 +8,13 @@ const getGameSessionId = (userId: string) => `poker_game_session_${userId}`;
 const POKER_CHANNEL = 'poker_actions';
 
 // Current user ID - must be set before using sync service
+// Can be either:
+// - Admin's userId (authenticated user who created the tournament)
+// - Tournament owner's userId (for guest players/dealers accessing via code)
 let currentUserId: string | null = null;
+
+// Track if the current user is authenticated (admin) or guest (code-based access)
+let isAdminMode: boolean = false;
 
 // Realtime channel for Supabase synchronization
 let realtimeChannel: RealtimeChannel | null = null;
@@ -16,9 +22,55 @@ let realtimeChannel: RealtimeChannel | null = null;
 export const syncService = {
   /**
    * Set the current user ID for scoped operations
+   * @deprecated Use setAdminUserId or setGuestUserId for clarity
    */
   setUserId: (userId: string | null) => {
     currentUserId = userId;
+    isAdminMode = false; // Default to guest mode for backward compatibility
+  },
+
+  /**
+   * Set user ID for an authenticated administrator
+   * Use this when a user logs in with credentials
+   */
+  setAdminUserId: (userId: string | null) => {
+    currentUserId = userId;
+    isAdminMode = userId !== null; // Only set admin mode if userId is not null
+  },
+
+  /**
+   * Set user ID for guest access (player/dealer entering via code)
+   * This sets the tournament owner's userId to enable synchronization
+   */
+  setGuestUserId: (ownerId: string | null) => {
+    currentUserId = ownerId;
+    isAdminMode = false; // Always guest mode
+  },
+
+  /**
+   * Join a table using mesaId (table ID) by finding and setting the owner's userId
+   * Returns true if successful, false otherwise
+   */
+  joinTableByMesaId: async (mesaId: number, accessCode: string): Promise<boolean> => {
+    if (!isSupabaseConfigured() || !supabase) {
+      console.warn('⚠️ Supabase não configurado - não é possível buscar mesa');
+      return false;
+    }
+
+    try {
+      // Find the user who owns this table/code
+      const ownerId = await syncService.findUserByAccessCode(accessCode);
+      
+      if (ownerId) {
+        syncService.setGuestUserId(ownerId);
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('❌ Erro ao entrar na mesa:', error);
+      return false;
+    }
   },
 
   /**
@@ -28,10 +80,24 @@ export const syncService = {
     return currentUserId;
   },
 
-  sendMessage: async (msg: ActionMessage) => {
-    // Multi-device sync requires Supabase and authentication
+  /**
+   * Check if current session is in admin mode (authenticated)
+   */
+  isAdmin: (): boolean => {
+    return isAdminMode;
+  },
+
+  sendMessage: async (msg: ActionMessage, options?: { mesaId?: number }) => {
+    // Multi-device sync requires a userId to be set
+    // This can be either:
+    // - Admin's userId (when authenticated)
+    // - Tournament owner's userId (when accessing via code)
     if (!currentUserId) {
-      const errorMsg = 'Sincronização requer autenticação de usuário - ação será processada localmente';
+      // Note: When userId is null, isAdminMode is always false (see setAdminUserId implementation)
+      // This ensures we show the appropriate error message for the current state
+      const errorMsg = isAdminMode
+        ? 'Sincronização requer login de administrador - faça login para continuar'
+        : 'Sincronização requer acesso via código - entre com um código de acesso válido';
       console.warn(`⚠️ ${errorMsg}`);
       throw new Error(errorMsg);
     }
@@ -43,12 +109,17 @@ export const syncService = {
     }
 
     try {
+      // Include mesaId in payload if provided (for table-specific actions)
+      const payload = options?.mesaId 
+        ? { ...msg.payload, mesaId: options.mesaId }
+        : msg.payload;
+
       const { error } = await supabase
         .from('poker_actions')
         .insert({
           session_id: getGameSessionId(currentUserId),
           action_type: msg.type,
-          payload: msg.payload,
+          payload: payload,
           sender_id: msg.senderId,
           user_id: currentUserId,
           created_at: new Date().toISOString()
@@ -65,9 +136,13 @@ export const syncService = {
   },
   
   subscribe: (callback: (msg: ActionMessage) => void) => {
-    // Multi-device mode requires authentication
+    // Multi-device mode requires a userId (admin or guest)
     if (!currentUserId) {
-      console.warn('⚠️ Inscrição requer autenticação de usuário - modo multi-dispositivo exclusivo');
+      // Note: When userId is null, isAdminMode is always false (see setAdminUserId implementation)
+      const warningMsg = isAdminMode
+        ? '⚠️ Inscrição requer login de administrador - faça login para habilitar sincronização multi-dispositivo'
+        : '⚠️ Inscrição requer acesso via código - entre com um código de acesso para habilitar sincronização';
+      console.warn(warningMsg);
       return () => { /* No-op cleanup */ };
     }
 
@@ -76,7 +151,8 @@ export const syncService = {
       return () => { /* No-op cleanup */ };
     }
 
-    console.log('🔄 Inscrevendo-se no Supabase Realtime para sincronização multi-dispositivo...');
+    const modeLabel = isAdminMode ? 'modo administrador' : 'modo convidado (via código)';
+    console.log(`🔄 Inscrevendo-se no Supabase Realtime para sincronização multi-dispositivo (${modeLabel})...`);
     
     const userSessionId = getGameSessionId(currentUserId);
     
@@ -106,7 +182,7 @@ export const syncService = {
       )
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
-          console.log('✅ Conectado ao Supabase Realtime - sincronização multi-dispositivo ativa');
+          console.log(`✅ Conectado ao Supabase Realtime - sincronização multi-dispositivo ativa (${modeLabel})`);
         } else if (status === 'CHANNEL_ERROR') {
           console.error('❌ Erro no canal Realtime');
           console.error('   Tentando reconectar automaticamente...');
@@ -130,9 +206,13 @@ export const syncService = {
 
   // Save state to Supabase only (multi-device mode)
   persistState: async (state: GameState) => {
-    // Multi-device mode requires authentication
+    // Multi-device mode requires a userId (admin or guest)
     if (!currentUserId) {
-      console.warn('⚠️ Persistência requer autenticação de usuário - estado não será sincronizado');
+      // Note: When userId is null, isAdminMode is always false (see setAdminUserId implementation)
+      const warningMsg = isAdminMode
+        ? '⚠️ Persistência requer login de administrador - estado não será sincronizado'
+        : '⚠️ Persistência requer acesso via código - estado não será sincronizado';
+      console.warn(warningMsg);
       return;
     }
 
@@ -162,9 +242,13 @@ export const syncService = {
   },
 
   loadState: async (): Promise<GameState | null> => {
-    // Multi-device mode requires authentication
+    // Multi-device mode requires a userId (admin or guest)
     if (!currentUserId) {
-      console.warn('⚠️ Carregamento de estado requer autenticação de usuário');
+      // Note: When userId is null, isAdminMode is always false (see setAdminUserId implementation)
+      const warningMsg = isAdminMode
+        ? '⚠️ Carregamento de estado requer login de administrador'
+        : '⚠️ Carregamento de estado requer acesso via código';
+      console.warn(warningMsg);
       return null;
     }
 
