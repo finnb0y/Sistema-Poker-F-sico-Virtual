@@ -1207,6 +1207,16 @@ const App: React.FC = () => {
     };
   }, [processAction, isLoading, syncUserId]);
 
+  // Admin authenticated - automatically go to director role
+  // Admins should see club management directly
+  // NOTE: This useEffect must be placed here BEFORE any conditional returns
+  // to comply with React's Rules of Hooks
+  useEffect(() => {
+    if (currentUser && !role && !managerSession) {
+      selectRole(Role.DIRECTOR);
+    }
+  }, [currentUser, role, managerSession, selectRole]);
+
   const dispatch = (msg: ActionMessage) => {
     // Only send to Supabase - will be processed once when received via subscription
     // This prevents duplicate processing: local + subscription callback
@@ -1582,14 +1592,6 @@ const App: React.FC = () => {
       </div>
     );
   }
-
-  // Admin authenticated - automatically go to director role
-  // Admins should see club management directly
-  useEffect(() => {
-    if (currentUser && !role && !managerSession) {
-      selectRole(Role.DIRECTOR);
-    }
-  }, [currentUser, role, managerSession, selectRole]);
 
   return (
     <div className="min-h-screen bg-[#050505]">
