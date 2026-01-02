@@ -2,7 +2,10 @@ import path from 'path';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-export default defineConfig({
+export default defineConfig(({ mode }) => {
+  const isDevelopment = mode === 'development';
+  
+  return {
   server: {
     port: 3000,
     host: '0.0.0.0',
@@ -15,7 +18,7 @@ export default defineConfig({
   },
   build: {
     sourcemap: true, // Enable sourcemaps for better debugging
-    minify: 'esbuild', // Use esbuild for consistent minification
+    minify: isDevelopment ? false : 'esbuild', // Disable minification in development
     rollupOptions: {
       output: {
         // Better variable naming to avoid undefined variable issues
@@ -26,4 +29,4 @@ export default defineConfig({
       }
     }
   }
-});
+}});
