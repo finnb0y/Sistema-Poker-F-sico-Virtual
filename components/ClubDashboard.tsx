@@ -157,19 +157,22 @@ const ClubDashboard: React.FC<ClubDashboardProps> = ({
           {/* Club Header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              {club.profilePhotoUrl ? (
-                <img 
-                  src={club.profilePhotoUrl} 
-                  alt={club.name}
-                  className="w-16 h-16 rounded-2xl object-cover"
-                />
-              ) : (
-                <div className="w-16 h-16 rounded-2xl bg-yellow-500/20 flex items-center justify-center">
-                  <span className="text-yellow-500 text-3xl font-black">
-                    {club.name.charAt(0).toUpperCase()}
-                  </span>
-                </div>
-              )}
+              <div className="w-16 h-16 rounded-2xl bg-yellow-500/20 flex items-center justify-center relative">
+                {club.profilePhotoUrl && (
+                  <img 
+                    src={club.profilePhotoUrl} 
+                    alt={club.name}
+                    className="w-16 h-16 rounded-2xl object-cover absolute inset-0"
+                    onError={(e) => {
+                      // Hide broken image, showing fallback icon
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                )}
+                <span className="text-yellow-500 text-3xl font-black relative z-10">
+                  {club.name.charAt(0).toUpperCase()}
+                </span>
+              </div>
               <div>
                 <h1 className="text-2xl font-outfit font-black text-white italic tracking-tight">
                   {club.name}
