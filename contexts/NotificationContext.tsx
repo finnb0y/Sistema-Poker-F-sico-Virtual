@@ -33,7 +33,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     const id = nextIdRef.current;
     nextIdRef.current += 1;
     setNotifications(prev => [...prev, { message, type, id }]);
-  }, []); // No dependencies needed since we use ref
+  }, []); // No dependencies needed - useRef maintains stable reference and doesn't trigger re-renders
 
   const removeNotification = useCallback((id: number) => {
     setNotifications(prev => prev.filter(n => n.id !== id));

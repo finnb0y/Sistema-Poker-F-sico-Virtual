@@ -1452,6 +1452,7 @@ const App: React.FC = () => {
     // Show code entry if club is selected
     if (selectedClub && !showClubSelection) {
       const handleCodeSubmit = async (code: string) => {
+        // selectedClub is guaranteed to be non-null here due to the parent if condition
         const upperCode = code.toUpperCase();
         
         // First, try to find the code in local state that belongs to the selected club
