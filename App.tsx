@@ -356,7 +356,12 @@ const App: React.FC = () => {
           break;
 
         case 'REGISTER_PERSON':
-          newState.registry.push({ id: Math.random().toString(36).substr(2, 9), name: payload.name, nickname: payload.nickname });
+          newState.registry.push({ 
+            id: Math.random().toString(36).substr(2, 9), 
+            name: payload.name, 
+            nickname: payload.nickname,
+            clubId: payload.clubId || newState.activeClubId || undefined
+          });
           break;
 
         case 'DELETE_PERSON':
@@ -366,7 +371,11 @@ const App: React.FC = () => {
 
         case 'ADD_ROOM_TABLE':
           const nextId = newState.roomTables.length > 0 ? Math.max(...newState.roomTables.map(t => t.id)) + 1 : 1;
-          newState.roomTables.push({ id: nextId, name: `Mesa ${nextId}` });
+          newState.roomTables.push({ 
+            id: nextId, 
+            name: `Mesa ${nextId}`,
+            clubId: payload.clubId || newState.activeClubId || undefined
+          });
           break;
 
         case 'REMOVE_ROOM_TABLE':

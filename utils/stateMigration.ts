@@ -64,6 +64,26 @@ export function migrateToClubsSupport(state: GameState): GameState {
     state.activeClubId = null;
   }
   
+  // Migration: Add clubId to existing RoomTables if not present
+  if (state.roomTables) {
+    state.roomTables = state.roomTables.map(rt => {
+      if (!('clubId' in rt)) {
+        return { ...rt, clubId: undefined };
+      }
+      return rt;
+    });
+  }
+  
+  // Migration: Add clubId to existing RegisteredPersons if not present
+  if (state.registry) {
+    state.registry = state.registry.map(r => {
+      if (!('clubId' in r)) {
+        return { ...r, clubId: undefined };
+      }
+      return r;
+    });
+  }
+  
   return state;
 }
 
