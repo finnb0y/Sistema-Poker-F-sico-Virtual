@@ -212,7 +212,7 @@ Este projeto é de código aberto e está disponível sob a licença MIT.
 
 ### Correções e Melhorias Recentes
 - **[DEPLOY_CODE_SYNC_FIX.md](./DEPLOY_CODE_SYNC_FIX.md)** - ⚠️ **IMPORTANTE**: Fix para sincronização de códigos entre dispositivos
-- **[FIX_CODE_SYNC_ISSUE.md](./FIX_CODE_SYNC_ISSUE.md)** - Detalhes técnicos da correção de sincronização
+- **[FIX_CODE_SYNC_ISSUE.md](./FIX_CODE_SYNC_ISSUE.md)** - Detalhes técnicos da correção de sincronização.
 
 ---
 
