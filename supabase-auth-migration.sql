@@ -163,7 +163,6 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION find_user_by_access_code(access_code TEXT)
 RETURNS UUID AS $$
 DECLARE
-  v_user_id UUID;
   game_record RECORD;
   player_record JSONB;
   table_record JSONB;
