@@ -410,6 +410,7 @@ const ClubDashboard: React.FC<ClubDashboardProps> = ({
             state={state} 
             onDispatch={onDispatch} 
             isManager={isManager}
+            hideClubsTab={true}
           />
         )}
       </div>

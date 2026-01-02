@@ -16,6 +16,7 @@ interface DealerControlsProps {
   state: GameState;
   onDispatch: (action: ActionMessage) => void;
   isManager?: boolean;
+  hideClubsTab?: boolean; // New prop to hide Clubes tab when in ClubDashboard
 }
 
 const ToggleSlider: React.FC<{ checked: boolean, onChange: (val: boolean) => void, colorClass?: string }> = ({ checked, onChange, colorClass = 'bg-yellow-500' }) => (
@@ -28,9 +29,11 @@ const ToggleSlider: React.FC<{ checked: boolean, onChange: (val: boolean) => voi
   </button>
 );
 
-const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isManager = false }) => {
-  // Default to 'clubes' tab for admins, 'torneios' for managers
-  const [activeTab, setActiveTab] = useState<'torneios' | 'salao' | 'registry' | 'tv' | 'clubes'>(isManager ? 'torneios' : 'clubes');
+const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isManager = false, hideClubsTab = false }) => {
+  // Default to 'torneios' tab when hideClubsTab is true or user is manager, otherwise 'clubes'
+  const [activeTab, setActiveTab] = useState<'torneios' | 'salao' | 'registry' | 'tv' | 'clubes'>(
+    hideClubsTab || isManager ? 'torneios' : 'clubes'
+  );
   const [editingTourney, setEditingTourney] = useState<Partial<Tournament> | null>(null);
   const [activeTourneyId, setActiveTourneyId] = useState<string | null>(state.activeTournamentId);
   const [regName, setRegName] = useState('');
@@ -411,8 +414,8 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isMa
              { id: 'salao', label: 'Salão (Mesas)', icon: '🏢' },
              { id: 'registry', label: 'Jogadores', icon: '👤' },
              { id: 'tv', label: 'Modo TV', icon: '📡' },
-             // Only show Clubes tab for owners, not for managers
-             ...(!isManager ? [{ id: 'clubes', label: 'Clubes', icon: '🏛️' }] : [])
+             // Only show Clubes tab if not hidden and user is not a manager
+             ...(!isManager && !hideClubsTab ? [{ id: 'clubes', label: 'Clubes', icon: '🏛️' }] : [])
            ].map(tab => (
              <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`flex items-center gap-4 p-4 rounded-2xl transition-all ${activeTab === tab.id ? 'bg-yellow-500 text-black font-black' : 'text-white/40 hover:text-white'}`}>
                <span className="text-xl">{tab.icon}</span>
@@ -972,7 +975,7 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isMa
         )}
 
         {/* CLUBES TAB */}
-        {activeTab === 'clubes' && !isManager && (
+        {activeTab === 'clubes' && !isManager && !hideClubsTab && (
           <div className="p-10 space-y-10 animate-in fade-in">
             <div className="flex justify-between items-end">
               <div>
