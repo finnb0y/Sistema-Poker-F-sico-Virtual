@@ -12,6 +12,8 @@ import ManagerLogin from './components/ManagerLogin';
 import PlayerDashboard from './components/PlayerDashboard';
 import DealerControls from './components/DealerControls';
 import TableDealerInterface from './components/TableDealerInterface';
+import ClubManagementHome from './components/ClubManagementHome';
+import ClubDashboard from './components/ClubDashboard';
 import { calculateDealerPositions, getPostFlopFirstToAct, moveButtonToNextPlayer, getActivePlayers } from './utils/dealerLogic';
 import { calculateSidePots, areAllPlayersAllInOrCapped, preparePlayerBetsForPotCalculation } from './utils/sidePotLogic';
 import { canPlayerAct } from './utils/playerActionLogic';
@@ -52,6 +54,9 @@ const App: React.FC = () => {
   const [selectedClub, setSelectedClub] = useState<Club | null>(null);
   const [showClubSelection, setShowClubSelection] = useState(false);
   const [showManagerLogin, setShowManagerLogin] = useState(false);
+  
+  // Admin club management states
+  const [adminSelectedClub, setAdminSelectedClub] = useState<Club | null>(null);
   
   // Debounce timer for state persistence to improve performance
   const persistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1598,41 +1603,79 @@ const App: React.FC = () => {
       {role === Role.PLAYER && playerId && <PlayerDashboard state={gameState} playerId={playerId} onDispatch={dispatch} />}
       {role === Role.DEALER && tableId && <TableDealerInterface state={gameState} tableId={tableId} onDispatch={dispatch} onExit={exitRole} />}
       {role === Role.DIRECTOR && (currentUser || managerSession) && (
-        <div className="h-screen flex flex-col">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 bg-black">
-            <div className="flex items-center gap-4">
-               <div className="w-10 h-10 rounded-xl bg-yellow-500 flex items-center justify-center font-black text-black text-xl">
-                 {managerSession ? 'M' : 'D'}
-               </div>
-               <div>
-                 <h1 className="text-2xl font-outfit font-black text-white italic tracking-tight uppercase">Gerenciamento</h1>
-                 <p className="text-white/40 text-xs">
-                   {currentUser ? `Usuário: ${currentUser.username}` : `Gerente: ${managerSession?.manager.username}`}
-                   {managerSession && <span className="ml-2 text-yellow-500/60">(Permissões Limitadas)</span>}
-                 </p>
-               </div>
-            </div>
-            <div className="flex gap-2">
-              <button onClick={exitRole} className="px-6 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-[10px] font-black uppercase transition-all tracking-widest">VOLTAR</button>
-              <button 
-                onClick={async () => {
-                  if (managerSession) {
-                    await clubService.managerLogout();
-                    setManagerSession(null);
-                  } else {
-                    await handleLogout();
-                  }
-                }} 
-                className="px-6 py-2 rounded-xl bg-white/5 hover:bg-red-600/20 text-white/40 hover:text-red-500 text-[10px] font-black uppercase transition-all tracking-widest"
-              >
-                LOGOUT
-              </button>
-            </div>
-          </div>
-          <div className="flex-1 overflow-hidden bg-[#0a0a0a]">
-            <DealerControls state={gameState} onDispatch={dispatch} isManager={!!managerSession} />
-          </div>
-        </div>
+        <>
+          {/* Managers always see club dashboard directly */}
+          {managerSession && managerSession.club && (
+            <ClubDashboard
+              club={managerSession.club}
+              state={gameState}
+              onDispatch={dispatch}
+              isManager={true}
+              onBack={exitRole}
+              onLogout={async () => {
+                await clubService.managerLogout();
+                setManagerSession(null);
+                exitRole();
+              }}
+            />
+          )}
+          
+          {/* Owners see club management home or selected club dashboard */}
+          {currentUser && !managerSession && (
+            <>
+              {!adminSelectedClub ? (
+                <ClubManagementHome
+                  clubs={gameState.clubs}
+                  currentUserId={currentUser.id}
+                  onClubSelect={(club) => {
+                    setAdminSelectedClub(club);
+                    // Set the active club when selected
+                    dispatch({
+                      type: 'SET_ACTIVE_CLUB',
+                      payload: { id: club.id },
+                      senderId: 'DIR'
+                    });
+                  }}
+                  onClubCreated={(club) => {
+                    // Add club to game state
+                    dispatch({
+                      type: 'CREATE_CLUB',
+                      payload: {
+                        id: club.id,
+                        name: club.name,
+                        ownerUserId: club.ownerUserId,
+                        profilePhotoUrl: club.profilePhotoUrl,
+                        bannerUrl: club.bannerUrl,
+                        description: club.description,
+                        createdAt: club.createdAt.toISOString(),
+                        updatedAt: club.updatedAt.toISOString()
+                      },
+                      senderId: 'DIR'
+                    });
+                  }}
+                  onLogout={handleLogout}
+                />
+              ) : (
+                <ClubDashboard
+                  club={adminSelectedClub}
+                  state={gameState}
+                  onDispatch={dispatch}
+                  isManager={false}
+                  onBack={() => {
+                    setAdminSelectedClub(null);
+                    // Clear active club when going back
+                    dispatch({
+                      type: 'SET_ACTIVE_CLUB',
+                      payload: { id: null },
+                      senderId: 'DIR'
+                    });
+                  }}
+                  onLogout={handleLogout}
+                />
+              )}
+            </>
+          )}
+        </>
       )}
     </div>
   );
