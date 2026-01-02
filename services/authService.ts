@@ -15,6 +15,23 @@ const SESSION_TOKEN_KEY = 'poker_session_token';
 const SESSION_USER_KEY = 'poker_session_user';
 
 /**
+ * Clear all session-related data from localStorage
+ * This is a synchronous operation to avoid cascading async errors
+ */
+function clearSessionStorage(): void {
+  try {
+    localStorage.removeItem(SESSION_TOKEN_KEY);
+    localStorage.removeItem(SESSION_USER_KEY);
+    localStorage.removeItem('poker_current_role');
+    localStorage.removeItem('poker_current_player_id');
+    localStorage.removeItem('poker_current_table_id');
+    localStorage.removeItem('poker_sync_user_id');
+  } catch (e) {
+    console.error('⚠️ Falha ao limpar localStorage:', e);
+  }
+}
+
+/**
  * Hash a password using Web Crypto API (SHA-256)
  * 
  * ⚠️ SECURITY WARNING: This implementation uses SHA-256 which is NOT secure for production.
@@ -279,8 +296,7 @@ export const authService = {
     if (!isSupabaseConfigured() || !supabase) {
       // Clear stale session data if Supabase is not configured
       // This prevents black screen when Supabase config is removed
-      localStorage.removeItem(SESSION_TOKEN_KEY);
-      localStorage.removeItem(SESSION_USER_KEY);
+      clearSessionStorage();
       return null;
     }
 
@@ -303,34 +319,16 @@ export const authService = {
           details: error.details,
           hint: error.hint
         });
-        // Clear invalid session - use non-async cleanup to avoid cascading errors
-        try {
-          localStorage.removeItem(SESSION_TOKEN_KEY);
-          localStorage.removeItem(SESSION_USER_KEY);
-          localStorage.removeItem('poker_current_role');
-          localStorage.removeItem('poker_current_player_id');
-          localStorage.removeItem('poker_current_table_id');
-          localStorage.removeItem('poker_sync_user_id');
-        } catch (e) {
-          console.error('⚠️ Falha ao limpar localStorage:', e);
-        }
+        // Clear invalid session - use synchronous cleanup to avoid cascading errors
+        clearSessionStorage();
         return null;
       }
 
       if (!session) {
         // Session not found in database - token is invalid
         console.log('🔄 Token de sessão inválido - limpando dados locais');
-        // Use non-async cleanup to avoid cascading errors
-        try {
-          localStorage.removeItem(SESSION_TOKEN_KEY);
-          localStorage.removeItem(SESSION_USER_KEY);
-          localStorage.removeItem('poker_current_role');
-          localStorage.removeItem('poker_current_player_id');
-          localStorage.removeItem('poker_current_table_id');
-          localStorage.removeItem('poker_sync_user_id');
-        } catch (e) {
-          console.error('⚠️ Falha ao limpar localStorage:', e);
-        }
+        // Use synchronous cleanup to avoid cascading errors
+        clearSessionStorage();
         return null;
       }
 
@@ -351,16 +349,7 @@ export const authService = {
     } catch (error) {
       console.error('❌ Falha ao validar sessão:', error);
       // Clear invalid session to prevent black screen - use synchronous cleanup
-      try {
-        localStorage.removeItem(SESSION_TOKEN_KEY);
-        localStorage.removeItem(SESSION_USER_KEY);
-        localStorage.removeItem('poker_current_role');
-        localStorage.removeItem('poker_current_player_id');
-        localStorage.removeItem('poker_current_table_id');
-        localStorage.removeItem('poker_sync_user_id');
-      } catch (e) {
-        console.error('⚠️ Falha ao limpar localStorage:', e);
-      }
+      clearSessionStorage();
       return null;
     }
   },
