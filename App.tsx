@@ -1207,6 +1207,15 @@ const App: React.FC = () => {
     };
   }, [processAction, isLoading, syncUserId]);
 
+  const selectRole = useCallback((r: Role, tId?: number) => {
+    setRole(r);
+    if (tId !== undefined) {
+      setTableId(tId);
+      localStorage.setItem('poker_current_table_id', tId.toString());
+    }
+    localStorage.setItem('poker_current_role', r);
+  }, []);
+
   // Admin authenticated - automatically go to director role
   // Admins should see club management directly
   // NOTE: This useEffect must be placed here BEFORE any conditional returns
@@ -1226,15 +1235,6 @@ const App: React.FC = () => {
       processAction(msg);
     });
   };
-
-  const selectRole = useCallback((r: Role, tId?: number) => {
-    setRole(r);
-    if (tId !== undefined) {
-      setTableId(tId);
-      localStorage.setItem('poker_current_table_id', tId.toString());
-    }
-    localStorage.setItem('poker_current_role', r);
-  }, []);
 
   const exitRole = () => {
     setRole(null);
