@@ -29,7 +29,8 @@ const ToggleSlider: React.FC<{ checked: boolean, onChange: (val: boolean) => voi
 );
 
 const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isManager = false }) => {
-  const [activeTab, setActiveTab] = useState<'torneios' | 'salao' | 'registry' | 'tv' | 'clubes'>('torneios');
+  // Default to 'clubes' tab for admins, 'torneios' for managers
+  const [activeTab, setActiveTab] = useState<'torneios' | 'salao' | 'registry' | 'tv' | 'clubes'>(isManager ? 'torneios' : 'clubes');
   const [editingTourney, setEditingTourney] = useState<Partial<Tournament> | null>(null);
   const [activeTourneyId, setActiveTourneyId] = useState<string | null>(state.activeTournamentId);
   const [regName, setRegName] = useState('');
@@ -1212,18 +1213,155 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isMa
                             )}
                           </div>
 
-                          {/* Info about managers */}
-                          <div className="bg-blue-500/5 border border-blue-500/20 rounded-2xl p-6">
-                            <div className="flex items-start gap-3">
-                              <span className="text-2xl">ℹ️</span>
-                              <div>
-                                <h4 className="text-blue-400 font-black text-sm mb-2">Gerentes do Clube</h4>
-                                <p className="text-white/60 text-sm">
-                                  Para criar gerentes deste clube, use o botão "Entrar como Gerente" na tela de código do clube. 
-                                  Gerentes podem criar e gerenciar torneios, mas não podem alterar configurações do clube.
+                          {/* Manager Management Section */}
+                          <div>
+                            <div className="flex items-center justify-between mb-4">
+                              <h4 className="text-white font-black text-xl">Gerentes do Clube</h4>
+                              <button
+                                onClick={() => {
+                                  setShowCreateManager(club.id);
+                                  // Load managers when opening this section
+                                  if (!clubManagers[club.id]) {
+                                    loadClubManagers(club.id);
+                                  }
+                                }}
+                                className="bg-blue-600 hover:bg-blue-500 text-white font-black px-6 py-3 rounded-xl text-xs uppercase shadow-lg transition-all"
+                              >
+                                ➕ Criar Gerente
+                              </button>
+                            </div>
+                            
+                            <p className="text-white/60 text-sm mb-4">
+                              Gerentes podem criar e gerenciar torneios, mas não podem alterar configurações do clube.
+                            </p>
+
+                            {/* Create Manager Modal */}
+                            {showCreateManager === club.id && (
+                              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+                                <div className="glass p-10 rounded-[40px] max-w-md w-full mx-4 border border-white/20">
+                                  <div className="flex justify-between items-start mb-6">
+                                    <div>
+                                      <h3 className="text-2xl font-outfit font-black text-white italic">Criar Gerente</h3>
+                                      <p className="text-white/40 text-sm mt-1">Para o clube: {club.name}</p>
+                                    </div>
+                                    <button 
+                                      onClick={() => {
+                                        setShowCreateManager(null);
+                                        setNewManagerUsername('');
+                                        setNewManagerPassword('');
+                                      }}
+                                      className="text-white/40 hover:text-white text-2xl"
+                                    >
+                                      ✕
+                                    </button>
+                                  </div>
+
+                                  <form onSubmit={(e) => handleCreateManager(e, club.id)} className="space-y-4">
+                                    <div className="space-y-2">
+                                      <label className="text-[10px] font-black text-white/60 uppercase tracking-widest px-2">
+                                        Nome de Usuário *
+                                      </label>
+                                      <input
+                                        type="text"
+                                        value={newManagerUsername}
+                                        onChange={(e) => setNewManagerUsername(e.target.value)}
+                                        placeholder="Ex: joao_admin"
+                                        className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-white outline-none focus:border-blue-500 transition-all"
+                                        required
+                                        minLength={3}
+                                        disabled={isCreatingManager}
+                                      />
+                                      <p className="text-white/40 text-xs px-2">Mínimo 3 caracteres</p>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                      <label className="text-[10px] font-black text-white/60 uppercase tracking-widest px-2">
+                                        Senha *
+                                      </label>
+                                      <input
+                                        type="password"
+                                        value={newManagerPassword}
+                                        onChange={(e) => setNewManagerPassword(e.target.value)}
+                                        placeholder="••••••••"
+                                        className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-white outline-none focus:border-blue-500 transition-all"
+                                        required
+                                        minLength={6}
+                                        disabled={isCreatingManager}
+                                      />
+                                      <p className="text-white/40 text-xs px-2">Mínimo 6 caracteres</p>
+                                    </div>
+
+                                    <div className="flex gap-4 pt-4">
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setShowCreateManager(null);
+                                          setNewManagerUsername('');
+                                          setNewManagerPassword('');
+                                        }}
+                                        className="flex-1 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white font-black py-4 rounded-2xl text-xs uppercase transition-all"
+                                        disabled={isCreatingManager}
+                                      >
+                                        Cancelar
+                                      </button>
+                                      <button
+                                        type="submit"
+                                        className="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-2xl text-xs uppercase shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                        disabled={isCreatingManager}
+                                      >
+                                        {isCreatingManager ? 'CRIANDO...' : 'CRIAR GERENTE'}
+                                      </button>
+                                    </div>
+                                  </form>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Managers List */}
+                            {!clubManagers[club.id] && (
+                              <button
+                                onClick={() => loadClubManagers(club.id)}
+                                className="w-full bg-white/5 hover:bg-white/10 text-white/60 hover:text-white font-bold py-3 rounded-xl text-sm transition-all"
+                              >
+                                Carregar gerentes
+                              </button>
+                            )}
+                            
+                            {clubManagers[club.id] && clubManagers[club.id].length === 0 && (
+                              <div className="bg-white/5 rounded-2xl p-6 text-center">
+                                <p className="text-white/40 text-sm">
+                                  Nenhum gerente criado ainda. Crie o primeiro gerente para delegar o gerenciamento de torneios.
                                 </p>
                               </div>
-                            </div>
+                            )}
+
+                            {clubManagers[club.id] && clubManagers[club.id].length > 0 && (
+                              <div className="space-y-3">
+                                {clubManagers[club.id].map((manager) => (
+                                  <div key={manager.id} className="bg-white/5 rounded-2xl p-4 flex items-center justify-between hover:bg-white/10 transition-all">
+                                    <div className="flex items-center gap-4">
+                                      <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center">
+                                        <span className="text-blue-500 text-xl font-black">
+                                          {manager.username.charAt(0).toUpperCase()}
+                                        </span>
+                                      </div>
+                                      <div>
+                                        <p className="text-white font-bold">{manager.username}</p>
+                                        <p className="text-white/40 text-xs">
+                                          Criado em {new Date(manager.createdAt).toLocaleDateString('pt-BR')}
+                                        </p>
+                                      </div>
+                                    </div>
+                                    <button
+                                      onClick={() => handleDeleteManager(manager.id, club.id)}
+                                      className="p-2 text-white/20 hover:text-red-500 transition-all"
+                                    >
+                                      🗑️
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         </div>
                       )}
