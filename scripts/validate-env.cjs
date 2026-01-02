@@ -53,7 +53,7 @@ if (!envExists) {
 }
 
 // Ler .env se existir
-const envContent = fs.readFileSync(envPath, 'utf-8');
+const envContent = fs.readFileSync(envPath, { encoding: 'utf-8' });
 
 // Check for any placeholder patterns
 const hasPlaceholder = PLACEHOLDER_PATTERNS.some(pattern => envContent.includes(pattern));
