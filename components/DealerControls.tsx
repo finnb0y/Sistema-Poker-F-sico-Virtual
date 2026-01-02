@@ -11,6 +11,7 @@ import { createDefaultBlindStructure } from '../utils/blindStructure';
 import { handleNumericInput, DEFAULT_BREAK_DURATION } from '../utils/inputHelpers';
 import { clubService } from '../services/clubService';
 import { authService } from '../services/authService';
+import { useNotification } from '../contexts/NotificationContext';
 
 interface DealerControlsProps {
   state: GameState;
@@ -35,6 +36,7 @@ const ToggleSlider: React.FC<{ checked: boolean, onChange: (val: boolean) => voi
 );
 
 const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isManager = false, hideClubsTab = false }) => {
+  const { showNotification, showConfirm } = useNotification();
   // Default to 'torneios' tab when hideClubsTab is true or user is manager, otherwise 'clubes'
   const [activeTab, setActiveTab] = useState<'torneios' | 'salao' | 'registry' | 'tv' | 'clubes'>(
     hideClubsTab || isManager ? 'torneios' : 'clubes'
@@ -208,7 +210,7 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isMa
     
     const trimmedName = newClubName.trim();
     if (!trimmedName || trimmedName.length < 3) {
-      alert('Nome do clube deve ter pelo menos 3 caracteres');
+      showNotification('Nome do clube deve ter pelo menos 3 caracteres', 'error');
       return;
     }
 
@@ -217,7 +219,7 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isMa
     try {
       const session = await authService.getCurrentSession();
       if (!session) {
-        alert('Você precisa estar logado para criar um clube');
+        showNotification('Você precisa estar logado para criar um clube', 'error');
         return;
       }
 
@@ -247,22 +249,28 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isMa
         setNewClubName('');
         setNewClubDescription('');
         setShowCreateClub(false);
-        alert('Clube criado com sucesso!');
+        showNotification('Clube criado com sucesso!', 'success');
       } else {
-        alert(result.error || 'Erro ao criar clube');
+        showNotification(result.error || 'Erro ao criar clube', 'error');
       }
     } catch (error) {
       console.error('Error creating club:', error);
-      alert('Erro ao criar clube. Tente novamente.');
+      showNotification('Erro ao criar clube. Tente novamente.', 'error');
     } finally {
       setIsCreatingClub(false);
     }
   };
 
   const handleDeleteClub = async (clubId: string) => {
-    if (!confirm('Tem certeza que deseja excluir este clube? Todos os torneios associados também serão removidos.')) {
-      return;
-    }
+    const confirmed = await showConfirm({
+      title: 'Excluir Clube',
+      message: 'Tem certeza que deseja excluir este clube? Todos os torneios associados também serão removidos.',
+      confirmText: 'Excluir',
+      cancelText: 'Cancelar',
+      type: 'danger'
+    });
+
+    if (!confirmed) return;
 
     try {
       const result = await clubService.deleteClub(clubId);
@@ -273,13 +281,13 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isMa
           payload: { id: clubId },
           senderId: 'DIR'
         });
-        alert('Clube excluído com sucesso!');
+        showNotification('Clube excluído com sucesso!', 'success');
       } else {
-        alert(result.error || 'Erro ao excluir clube');
+        showNotification(result.error || 'Erro ao excluir clube', 'error');
       }
     } catch (error) {
       console.error('Error deleting club:', error);
-      alert('Erro ao excluir clube. Tente novamente.');
+      showNotification('Erro ao excluir clube. Tente novamente.', 'error');
     }
   };
 
@@ -330,12 +338,12 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isMa
     const trimmedPassword = newManagerPassword.trim();
     
     if (!trimmedUsername || trimmedUsername.length < 3) {
-      alert('Nome de usuário deve ter pelo menos 3 caracteres');
+      showNotification('Nome de usuário deve ter pelo menos 3 caracteres', 'error');
       return;
     }
 
     if (!trimmedPassword || trimmedPassword.length < 6) {
-      alert('Senha deve ter pelo menos 6 caracteres');
+      showNotification('Senha deve ter pelo menos 6 caracteres', 'error');
       return;
     }
 
@@ -345,17 +353,17 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isMa
       const result = await clubService.createManager(clubId, trimmedUsername, trimmedPassword);
 
       if (result.success && result.manager) {
-        alert('Gerente criado com sucesso!');
+        showNotification('Gerente criado com sucesso!', 'success');
         closeCreateManagerModal();
         
         // Reload managers list
         loadClubManagers(clubId);
       } else {
-        alert(result.error || 'Erro ao criar gerente');
+        showNotification(result.error || 'Erro ao criar gerente', 'error');
       }
     } catch (error) {
       console.error('Error creating manager:', error);
-      alert('Erro ao criar gerente. Tente novamente.');
+      showNotification('Erro ao criar gerente. Tente novamente.', 'error');
     } finally {
       setIsCreatingManager(false);
     }
@@ -363,31 +371,43 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isMa
 
   // Delete a manager
   const handleDeleteManager = async (managerId: string, clubId: string) => {
-    if (!confirm('Tem certeza que deseja excluir este gerente?')) {
-      return;
-    }
+    const confirmed = await showConfirm({
+      title: 'Excluir Gerente',
+      message: 'Tem certeza que deseja excluir este gerente?',
+      confirmText: 'Excluir',
+      cancelText: 'Cancelar',
+      type: 'danger'
+    });
+
+    if (!confirmed) return;
 
     try {
       const result = await clubService.deleteManager(managerId);
       
       if (result.success) {
-        alert('Gerente excluído com sucesso!');
+        showNotification('Gerente excluído com sucesso!', 'success');
         // Reload managers list
         loadClubManagers(clubId);
       } else {
-        alert(result.error || 'Erro ao excluir gerente');
+        showNotification(result.error || 'Erro ao excluir gerente', 'error');
       }
     } catch (error) {
       console.error('Error deleting manager:', error);
-      alert('Erro ao excluir gerente. Tente novamente.');
+      showNotification('Erro ao excluir gerente. Tente novamente.', 'error');
     }
   };
 
   // Handle starting a tournament
-  const handleStartTournament = (tournamentId: string) => {
-    if (!confirm('Tem certeza que deseja iniciar este torneio? Os blinds começarão a contar automaticamente.')) {
-      return;
-    }
+  const handleStartTournament = async (tournamentId: string) => {
+    const confirmed = await showConfirm({
+      title: 'Iniciar Torneio',
+      message: 'Tem certeza que deseja iniciar este torneio? Os blinds começarão a contar automaticamente.',
+      confirmText: 'Iniciar',
+      cancelText: 'Cancelar',
+      type: 'warning'
+    });
+
+    if (!confirmed) return;
 
     onDispatch({
       type: 'START_TOURNAMENT',
@@ -397,15 +417,40 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isMa
   };
 
   // Handle stopping a tournament
-  const handleStopTournament = (tournamentId: string) => {
-    if (!confirm('Tem certeza que deseja pausar este torneio?')) {
-      return;
-    }
+  const handleStopTournament = async (tournamentId: string) => {
+    const confirmed = await showConfirm({
+      title: 'Pausar Torneio',
+      message: 'Tem certeza que deseja pausar este torneio?',
+      confirmText: 'Pausar',
+      cancelText: 'Cancelar',
+      type: 'warning'
+    });
+
+    if (!confirmed) return;
 
     onDispatch({
       type: 'STOP_TOURNAMENT',
       payload: { tournamentId },
       senderId: 'DIR'
+    });
+  };
+
+  // Handle deleting a tournament
+  const handleDeleteTournament = async (tournamentId: string) => {
+    const confirmed = await showConfirm({
+      title: 'Excluir Torneio',
+      message: 'Tem certeza que deseja excluir este torneio?',
+      confirmText: 'Excluir',
+      cancelText: 'Cancelar',
+      type: 'danger'
+    });
+
+    if (!confirmed) return;
+
+    onDispatch({ 
+      type: 'DELETE_TOURNAMENT', 
+      payload: { id: tournamentId }, 
+      senderId: 'DIR' 
     });
   };
 
@@ -1223,11 +1268,7 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isMa
                                         Gerenciar
                                       </button>
                                       <button
-                                        onClick={() => {
-                                          if (confirm('Tem certeza que deseja excluir este torneio?')) {
-                                            onDispatch({ type: 'DELETE_TOURNAMENT', payload: { id: tournament.id }, senderId: 'DIR' });
-                                          }
-                                        }}
+                                        onClick={() => handleDeleteTournament(tournament.id)}
                                         className="p-2 text-white/20 hover:text-red-500 transition-all"
                                       >
                                         🗑️
