@@ -93,6 +93,8 @@ export const syncService = {
     // - Admin's userId (when authenticated)
     // - Tournament owner's userId (when accessing via code)
     if (!currentUserId) {
+      // Note: When userId is null, isAdminMode is always false (see setAdminUserId implementation)
+      // This ensures we show the appropriate error message for the current state
       const errorMsg = isAdminMode
         ? 'Sincronização requer login de administrador - faça login para continuar'
         : 'Sincronização requer acesso via código - entre com um código de acesso válido';
@@ -136,6 +138,7 @@ export const syncService = {
   subscribe: (callback: (msg: ActionMessage) => void) => {
     // Multi-device mode requires a userId (admin or guest)
     if (!currentUserId) {
+      // Note: When userId is null, isAdminMode is always false (see setAdminUserId implementation)
       const warningMsg = isAdminMode
         ? '⚠️ Inscrição requer login de administrador - faça login para habilitar sincronização multi-dispositivo'
         : '⚠️ Inscrição requer acesso via código - entre com um código de acesso para habilitar sincronização';
@@ -205,6 +208,7 @@ export const syncService = {
   persistState: async (state: GameState) => {
     // Multi-device mode requires a userId (admin or guest)
     if (!currentUserId) {
+      // Note: When userId is null, isAdminMode is always false (see setAdminUserId implementation)
       const warningMsg = isAdminMode
         ? '⚠️ Persistência requer login de administrador - estado não será sincronizado'
         : '⚠️ Persistência requer acesso via código - estado não será sincronizado';
@@ -240,6 +244,7 @@ export const syncService = {
   loadState: async (): Promise<GameState | null> => {
     // Multi-device mode requires a userId (admin or guest)
     if (!currentUserId) {
+      // Note: When userId is null, isAdminMode is always false (see setAdminUserId implementation)
       const warningMsg = isAdminMode
         ? '⚠️ Carregamento de estado requer login de administrador'
         : '⚠️ Carregamento de estado requer acesso via código';
