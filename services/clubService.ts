@@ -102,6 +102,14 @@ export const clubService = {
       return [];
     }
 
+    // Validate UUID format to prevent database errors
+    // UUID format: 8-4-4-4-12 hex characters
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(ownerUserId)) {
+      console.warn('⚠️ ID de usuário inválido fornecido - não é um UUID válido:', ownerUserId);
+      return [];
+    }
+
     try {
       const { data, error } = await supabase
         .from('poker_clubs')
@@ -123,6 +131,8 @@ export const clubService = {
           console.error('  → Tabela poker_clubs não existe: execute supabase-clubs-migration.sql');
         } else if (error.message.includes('permission denied') || error.message.includes('RLS')) {
           console.error('  → Problema de permissão (RLS): verifique as políticas no Supabase');
+        } else if (error.code === '22P02') {
+          console.error('  → UUID inválido: o ID do usuário deve ser um UUID válido');
         }
         
         return [];
