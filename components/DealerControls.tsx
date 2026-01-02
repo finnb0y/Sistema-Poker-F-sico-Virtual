@@ -435,6 +435,25 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isMa
     });
   };
 
+  // Handle deleting a tournament
+  const handleDeleteTournament = async (tournamentId: string) => {
+    const confirmed = await showConfirm({
+      title: 'Excluir Torneio',
+      message: 'Tem certeza que deseja excluir este torneio?',
+      confirmText: 'Excluir',
+      cancelText: 'Cancelar',
+      type: 'danger'
+    });
+
+    if (!confirmed) return;
+
+    onDispatch({ 
+      type: 'DELETE_TOURNAMENT', 
+      payload: { id: tournamentId }, 
+      senderId: 'DIR' 
+    });
+  };
+
   return (
     <div className="flex h-full flex-col lg:flex-row">
       {/* Primary Sidebar */}
@@ -1249,18 +1268,7 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isMa
                                         Gerenciar
                                       </button>
                                       <button
-                                        onClick={async () => {
-                                          const confirmed = await showConfirm({
-                                            title: 'Excluir Torneio',
-                                            message: 'Tem certeza que deseja excluir este torneio?',
-                                            confirmText: 'Excluir',
-                                            cancelText: 'Cancelar',
-                                            type: 'danger'
-                                          });
-                                          if (confirmed) {
-                                            onDispatch({ type: 'DELETE_TOURNAMENT', payload: { id: tournament.id }, senderId: 'DIR' });
-                                          }
-                                        }}
+                                        onClick={() => handleDeleteTournament(tournament.id)}
                                         className="p-2 text-white/20 hover:text-red-500 transition-all"
                                       >
                                         🗑️
