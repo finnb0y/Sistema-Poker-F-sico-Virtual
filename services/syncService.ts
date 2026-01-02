@@ -107,8 +107,14 @@ export const syncService = {
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
           console.log('✅ Conectado ao Supabase Realtime - sincronização multi-dispositivo ativa');
-        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          console.error('❌ Erro na conexão com Supabase:', status);
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('❌ Erro no canal Realtime');
+          console.error('   Tentando reconectar automaticamente...');
+        } else if (status === 'TIMED_OUT') {
+          console.error('❌ Timeout na conexão Realtime');
+          console.error('   Tentando reconectar automaticamente...');
+        } else if (status === 'CLOSED') {
+          console.warn('⚠️ Canal Realtime fechado - tentando reconectar...');
         }
       });
     
@@ -173,9 +179,20 @@ export const syncService = {
         .select('state')
         .eq('session_id', getGameSessionId(currentUserId))
         .eq('user_id', currentUserId)
-        .single();
+        .maybeSingle(); // Use maybeSingle() instead of single() to handle empty results gracefully
       
-      if (!error && data?.state) {
+      // Handle case where no state exists yet (PGRST116 - no rows returned)
+      if (error) {
+        // PGRST116 means no rows found, which is not an error - it's a normal case
+        if (error.code === 'PGRST116') {
+          console.log('ℹ️ Nenhum estado de jogo encontrado - inicializando novo estado');
+          return null; // Return null to allow initialization of default state
+        }
+        console.error('❌ Erro ao carregar estado do Supabase:', error);
+        return null;
+      }
+      
+      if (data?.state) {
         const state = data.state as GameState;
         
         // Load clubs from database if not present in state
@@ -203,14 +220,13 @@ export const syncService = {
         return state;
       }
       
-      if (error) {
-        console.error('❌ Erro ao carregar estado do Supabase:', error);
-      }
+      // No data but no error - initialize new state
+      console.log('ℹ️ Estado vazio retornado - inicializando novo estado');
+      return null;
     } catch (error) {
       console.error('❌ Falha ao carregar estado:', error);
+      return null;
     }
-    
-    return null;
   },
 
   /**
@@ -281,20 +297,28 @@ export const syncService = {
         .select('state')
         .eq('session_id', getGameSessionId(userId))
         .eq('user_id', userId)
-        .single();
+        .maybeSingle(); // Use maybeSingle() to handle empty results gracefully
       
-      if (!error && data?.state) {
+      // Handle case where no state exists (PGRST116)
+      if (error) {
+        if (error.code === 'PGRST116') {
+          console.log('ℹ️ Nenhum estado encontrado para usuário:', userId);
+          return null;
+        }
+        console.error('❌ Erro ao carregar estado do usuário:', error);
+        return null;
+      }
+      
+      if (data?.state) {
         console.log('✅ Estado carregado para usuário:', userId);
         return data.state as GameState;
       }
       
-      if (error) {
-        console.error('❌ Erro ao carregar estado do usuário:', error);
-      }
+      console.log('ℹ️ Estado vazio para usuário:', userId);
+      return null;
     } catch (error) {
       console.error('❌ Falha ao carregar estado do usuário:', error);
+      return null;
     }
-    
-    return null;
   }
 };

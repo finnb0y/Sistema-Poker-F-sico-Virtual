@@ -58,7 +58,23 @@ export const supabase = supabaseUrl && supabaseAnonKey
       realtime: {
         params: {
           eventsPerSecond: 10
+        },
+        // Add reconnection options to improve reliability
+        heartbeatIntervalMs: 30000,
+        reconnectAfterMs: (tries: number) => {
+          // Exponential backoff with jitter to prevent thundering herd
+          const baseDelay = 1000 * Math.pow(2, tries);
+          const jitter = Math.random() * 1000;
+          return Math.min(baseDelay + jitter, 30000);
         }
+      },
+      // Configure retry logic for better resilience
+      db: {
+        schema: 'public'
+      },
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true
       }
     })
   : null;

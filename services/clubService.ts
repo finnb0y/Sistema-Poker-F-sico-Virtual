@@ -183,9 +183,18 @@ export const clubService = {
         .from('poker_clubs')
         .select('*')
         .eq('id', clubId)
-        .single();
+        .maybeSingle(); // Use maybeSingle to handle empty results gracefully
 
-      if (error || !data) {
+      if (error) {
+        if (error.code === 'PGRST116') {
+          console.log('ℹ️ Clube não encontrado:', clubId);
+          return null;
+        }
+        console.error('❌ Erro ao buscar clube:', error);
+        return null;
+      }
+
+      if (!data) {
         return null;
       }
 
@@ -374,9 +383,17 @@ export const clubService = {
         .eq('club_id', clubId)
         .eq('username', username.toLowerCase())
         .eq('password_hash', passwordHash)
-        .single();
+        .maybeSingle(); // Use maybeSingle to handle no matching manager gracefully
 
-      if (managerError || !manager) {
+      if (managerError) {
+        if (managerError.code === 'PGRST116') {
+          return { success: false, error: 'Nome de usuário ou senha inválidos' };
+        }
+        console.error('❌ Erro ao buscar gerente:', managerError);
+        return { success: false, error: 'Erro ao verificar credenciais' };
+      }
+
+      if (!manager) {
         return { success: false, error: 'Nome de usuário ou senha inválidos' };
       }
 

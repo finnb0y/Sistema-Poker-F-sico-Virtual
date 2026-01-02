@@ -444,27 +444,27 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isMa
                             {t.config.rebuy.enabled && <span className="text-[8px] bg-blue-500/10 text-blue-500 px-3 py-1 rounded-full font-black uppercase">Rebuy OK</span>}
                             {t.config.addon.enabled && <span className="text-[8px] bg-purple-500/10 text-purple-500 px-3 py-1 rounded-full font-black uppercase">Add-on OK</span>}
                          </div>
+                         
+                         <div className="mt-4">
+                           {!t.isStarted ? (
+                             <button 
+                               onClick={() => handleStartTournament(t.id)}
+                               className="w-full bg-green-600 hover:bg-green-500 text-white font-black py-3 rounded-xl text-xs uppercase shadow-lg transition-all"
+                             >
+                               ▶ Iniciar Torneio
+                             </button>
+                           ) : (
+                             <button 
+                               onClick={() => handleStopTournament(t.id)}
+                               className="w-full bg-orange-600 hover:bg-orange-500 text-white font-black py-3 rounded-xl text-xs uppercase shadow-lg transition-all"
+                             >
+                               ⏸ Pausar Torneio
+                             </button>
+                           )}
+                         </div>
                       </div>
                     ))}
-                          
-                          <div className="mt-4">
-                            {!t.isStarted ? (
-                              <button 
-                                onClick={() => handleStartTournament(t.id)}
-                                className="w-full bg-green-600 hover:bg-green-500 text-white font-black py-3 rounded-xl text-xs uppercase shadow-lg transition-all"
-                              >
-                                ▶ Iniciar Torneio
-                              </button>
-                            ) : (
-                              <button 
-                                onClick={() => handleStopTournament(t.id)}
-                                className="w-full bg-orange-600 hover:bg-orange-500 text-white font-black py-3 rounded-xl text-xs uppercase shadow-lg transition-all"
-                              >
-                                ⏸ Pausar Torneio
-                              </button>
-                            )}
-                          </div>
-                 </div>
+                  </div>
 
                  {activeTourneyId && currentTourney && (
                    <div className="flex flex-col xl:flex-row gap-8">
