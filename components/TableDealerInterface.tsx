@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { GameState, ActionMessage, PlayerStatus, BettingRound } from '../types';
 import TableView from './TableView';
+import TournamentBlindTimer from './TournamentBlindTimer';
 import { areAllPlayersAllInOrCapped } from '../utils/sidePotLogic';
 
 interface TableDealerInterfaceProps {
@@ -118,6 +119,11 @@ const TableDealerInterface: React.FC<TableDealerInterfaceProps> = ({ state, tabl
             )}
             <div className="text-[10px] font-black text-white/40 uppercase">Nível {(tableState?.currentBlindLevel || 0) + 1}</div>
          </div>
+         
+         {/* Blind Timer */}
+         {tournament && tournament.isStarted && (
+           <TournamentBlindTimer tournament={tournament} state={state} onDispatch={onDispatch} />
+         )}
          
          {/* Bet Action Log */}
          {tableState?.handInProgress && tableState.betActions && tableState.betActions.length > 0 && (
