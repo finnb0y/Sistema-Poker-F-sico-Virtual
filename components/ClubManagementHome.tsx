@@ -35,7 +35,7 @@ const ClubManagementHome: React.FC<ClubManagementHomeProps> = ({
     
     const trimmedName = newClubName.trim();
     if (!trimmedName || trimmedName.length < 3) {
-      alert('Nome do clube deve ter pelo menos 3 caracteres');
+      showNotification('Nome do clube deve ter pelo menos 3 caracteres', 'error');
       return;
     }
 
@@ -44,7 +44,7 @@ const ClubManagementHome: React.FC<ClubManagementHomeProps> = ({
     try {
       const session = await authService.getCurrentSession();
       if (!session) {
-        alert('Você precisa estar logado para criar um clube');
+        showNotification('Você precisa estar logado para criar um clube', 'error');
         return;
       }
 
