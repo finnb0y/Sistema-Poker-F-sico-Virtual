@@ -16,7 +16,12 @@ interface DealerControlsProps {
   state: GameState;
   onDispatch: (action: ActionMessage) => void;
   isManager?: boolean;
-  hideClubsTab?: boolean; // New prop to hide Clubes tab when in ClubDashboard
+  /**
+   * When true, hides the "Clubes" tab from the sidebar.
+   * Should be set to true when DealerControls is used within ClubDashboard
+   * to avoid redundant club management UI.
+   */
+  hideClubsTab?: boolean;
 }
 
 const ToggleSlider: React.FC<{ checked: boolean, onChange: (val: boolean) => void, colorClass?: string }> = ({ checked, onChange, colorClass = 'bg-yellow-500' }) => (
