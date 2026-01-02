@@ -1237,8 +1237,10 @@ const App: React.FC = () => {
     // Only send to Supabase - will be processed once when received via subscription
     // This prevents duplicate processing: local + subscription callback
     syncService.sendMessage(msg).catch(error => {
-      console.error('❌ Erro ao enviar ação:', error);
-      // In case of error, still process locally to prevent UI from breaking
+      // Expected errors: no user authenticated, Supabase not configured
+      // These are normal in single-user or guest mode
+      // Error is already logged as warning in syncService
+      // Just process action locally as fallback
       processAction(msg);
     });
   };

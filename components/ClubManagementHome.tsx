@@ -248,12 +248,23 @@ const ClubManagementHome: React.FC<ClubManagementHomeProps> = ({
                 >
                   {/* Club Banner/Header */}
                   {club.bannerUrl ? (
-                    <div className="h-32 w-full overflow-hidden">
+                    <div className="h-32 w-full overflow-hidden bg-gradient-to-br from-yellow-500/20 to-yellow-600/10 flex items-center justify-center relative">
                       <img 
                         src={club.bannerUrl} 
                         alt={club.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform absolute inset-0"
+                        onError={(e) => {
+                          // Hide broken image on error, showing fallback background
+                          // Using direct DOM manipulation here is acceptable because:
+                          // 1. It's a one-time event (won't re-trigger)
+                          // 2. Tracking state for each image would be inefficient
+                          // 3. The fallback is already rendered
+                          e.currentTarget.style.display = 'none';
+                        }}
                       />
+                      <span className="text-yellow-500/30 text-6xl font-black relative z-10">
+                        {club.name.charAt(0).toUpperCase()}
+                      </span>
                     </div>
                   ) : (
                     <div className="h-32 w-full bg-gradient-to-br from-yellow-500/20 to-yellow-600/10 flex items-center justify-center">
@@ -266,19 +277,23 @@ const ClubManagementHome: React.FC<ClubManagementHomeProps> = ({
                   {/* Club Content */}
                   <div className="p-8">
                     <div className="flex items-start gap-4 mb-4">
-                      {club.profilePhotoUrl ? (
-                        <img 
-                          src={club.profilePhotoUrl} 
-                          alt={club.name}
-                          className="w-16 h-16 rounded-2xl object-cover"
-                        />
-                      ) : (
-                        <div className="w-16 h-16 rounded-2xl bg-yellow-500/20 flex items-center justify-center flex-shrink-0">
-                          <span className="text-yellow-500 text-3xl font-black">
-                            {club.name.charAt(0).toUpperCase()}
-                          </span>
-                        </div>
-                      )}
+                      <div className="w-16 h-16 rounded-2xl bg-yellow-500/20 flex items-center justify-center flex-shrink-0 relative">
+                        {club.profilePhotoUrl && (
+                          <img 
+                            src={club.profilePhotoUrl} 
+                            alt={club.name}
+                            className="w-16 h-16 rounded-2xl object-cover absolute inset-0"
+                            onError={(e) => {
+                              // Hide broken image on error, showing fallback icon
+                              // Using direct DOM manipulation for performance (see banner comment above)
+                              e.currentTarget.style.display = 'none';
+                            }}
+                          />
+                        )}
+                        <span className="text-yellow-500 text-3xl font-black relative z-10">
+                          {club.name.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
                       <div className="flex-1 min-w-0">
                         <h3 className="text-2xl font-black text-white truncate group-hover:text-yellow-500 transition-colors">
                           {club.name}

@@ -31,14 +31,14 @@ export const syncService = {
   sendMessage: async (msg: ActionMessage) => {
     // Multi-device sync requires Supabase and authentication
     if (!currentUserId) {
-      const errorMsg = 'Sincronização requer autenticação de usuário';
-      console.error(`❌ ${errorMsg}`);
+      const errorMsg = 'Sincronização requer autenticação de usuário - ação será processada localmente';
+      console.warn(`⚠️ ${errorMsg}`);
       throw new Error(errorMsg);
     }
 
     if (!isSupabaseConfigured() || !supabase) {
-      const errorMsg = 'Supabase não configurado - sincronização multi-dispositivo indisponível';
-      console.error(`❌ ${errorMsg}`);
+      const errorMsg = 'Supabase não configurado - sincronização multi-dispositivo indisponível - ação será processada localmente';
+      console.warn(`⚠️ ${errorMsg}`);
       throw new Error(errorMsg);
     }
 
@@ -67,12 +67,12 @@ export const syncService = {
   subscribe: (callback: (msg: ActionMessage) => void) => {
     // Multi-device mode requires authentication
     if (!currentUserId) {
-      console.error('❌ Inscrição requer autenticação de usuário - modo multi-dispositivo exclusivo');
+      console.warn('⚠️ Inscrição requer autenticação de usuário - modo multi-dispositivo exclusivo');
       return () => { /* No-op cleanup */ };
     }
 
     if (!isSupabaseConfigured() || !supabase) {
-      console.error('❌ Supabase não configurado - sincronização multi-dispositivo indisponível');
+      console.warn('⚠️ Supabase não configurado - sincronização multi-dispositivo indisponível');
       return () => { /* No-op cleanup */ };
     }
 
@@ -132,12 +132,12 @@ export const syncService = {
   persistState: async (state: GameState) => {
     // Multi-device mode requires authentication
     if (!currentUserId) {
-      console.error('❌ Persistência requer autenticação de usuário');
+      console.warn('⚠️ Persistência requer autenticação de usuário - estado não será sincronizado');
       return;
     }
 
     if (!isSupabaseConfigured() || !supabase) {
-      console.error('❌ Supabase não configurado - persistência multi-dispositivo indisponível');
+      console.warn('⚠️ Supabase não configurado - persistência multi-dispositivo indisponível');
       return;
     }
 
@@ -164,12 +164,12 @@ export const syncService = {
   loadState: async (): Promise<GameState | null> => {
     // Multi-device mode requires authentication
     if (!currentUserId) {
-      console.error('❌ Carregamento de estado requer autenticação de usuário');
+      console.warn('⚠️ Carregamento de estado requer autenticação de usuário');
       return null;
     }
 
     if (!isSupabaseConfigured() || !supabase) {
-      console.error('❌ Supabase não configurado - carregamento de estado multi-dispositivo indisponível');
+      console.warn('⚠️ Supabase não configurado - carregamento de estado multi-dispositivo indisponível');
       return null;
     }
 

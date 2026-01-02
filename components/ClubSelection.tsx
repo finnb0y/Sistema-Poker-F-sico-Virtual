@@ -25,6 +25,13 @@ const ClubSelection: React.FC<ClubSelectionProps> = ({ userId, onClubSelect, onB
   }, [userId]);
 
   const loadMyClubs = async () => {
+    // Skip loading "my clubs" for guest users (not authenticated)
+    // Guest users can only search for clubs, not create or own them
+    if (userId === 'guest') {
+      setMyClubs([]);
+      return;
+    }
+    
     const clubs = await clubService.getClubsByOwner(userId);
     setMyClubs(clubs);
   };
@@ -107,8 +114,8 @@ const ClubSelection: React.FC<ClubSelectionProps> = ({ userId, onClubSelect, onB
           )}
         </div>
 
-        {/* Create Club Button */}
-        {!showCreateForm && searchTerm.length < 2 && (
+        {/* Create Club Button - Only for authenticated users */}
+        {!showCreateForm && searchTerm.length < 2 && userId !== 'guest' && (
           <button
             onClick={() => setShowCreateForm(true)}
             className="w-full mb-6 bg-green-600/20 hover:bg-green-600/30 border border-green-500/30 text-green-400 font-black py-3 rounded-2xl transition-all uppercase text-[10px] tracking-widest"
@@ -172,8 +179,17 @@ const ClubSelection: React.FC<ClubSelectionProps> = ({ userId, onClubSelect, onB
           
           {displayedClubs.length === 0 && searchTerm.length < 2 && (
             <div className="text-center py-8">
-              <p className="text-white/40 text-sm">Você ainda não tem clubes</p>
-              <p className="text-white/30 text-xs mt-2">Crie um clube para começar</p>
+              {userId === 'guest' ? (
+                <>
+                  <p className="text-white/40 text-sm">Busque por um clube usando a barra de pesquisa</p>
+                  <p className="text-white/30 text-xs mt-2">Digite pelo menos 2 caracteres para começar</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-white/40 text-sm">Você ainda não tem clubes</p>
+                  <p className="text-white/30 text-xs mt-2">Crie um clube para começar</p>
+                </>
+              )}
             </div>
           )}
 
