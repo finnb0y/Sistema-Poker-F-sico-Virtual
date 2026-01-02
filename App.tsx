@@ -1187,14 +1187,14 @@ const App: React.FC = () => {
     });
   };
 
-  const selectRole = (r: Role, tId?: number) => {
+  const selectRole = useCallback((r: Role, tId?: number) => {
     setRole(r);
     if (tId !== undefined) {
       setTableId(tId);
       localStorage.setItem('poker_current_table_id', tId.toString());
     }
     localStorage.setItem('poker_current_role', r);
-  };
+  }, []);
 
   const exitRole = () => {
     setRole(null);
@@ -1559,7 +1559,7 @@ const App: React.FC = () => {
     if (currentUser && !role && !managerSession) {
       selectRole(Role.DIRECTOR);
     }
-  }, [currentUser, role, managerSession]);
+  }, [currentUser, role, managerSession, selectRole]);
 
   return (
     <div className="min-h-screen bg-[#050505]">

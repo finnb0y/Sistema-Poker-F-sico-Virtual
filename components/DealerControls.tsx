@@ -61,6 +61,7 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isMa
   
   // Manager Management State
   const [clubManagers, setClubManagers] = useState<Record<string, ClubManager[]>>({});
+  const [clubManagersLoading, setClubManagersLoading] = useState<Record<string, boolean>>({});
   const [managerLoginLogs, setManagerLoginLogs] = useState<Record<string, ClubManagerLoginLog[]>>({});
   const [showCreateManager, setShowCreateManager] = useState<string | null>(null); // clubId
   const [newManagerUsername, setNewManagerUsername] = useState('');
@@ -276,11 +277,14 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isMa
 
   // Load managers for a club
   const loadClubManagers = async (clubId: string) => {
+    setClubManagersLoading(prev => ({ ...prev, [clubId]: true }));
     try {
       const managers = await clubService.getClubManagers(clubId);
       setClubManagers(prev => ({ ...prev, [clubId]: managers }));
     } catch (error) {
       console.error('Error loading managers:', error);
+    } finally {
+      setClubManagersLoading(prev => ({ ...prev, [clubId]: false }));
     }
   };
 
@@ -1318,7 +1322,15 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isMa
                             )}
 
                             {/* Managers List */}
-                            {!clubManagers[club.id] && (
+                            {clubManagersLoading[club.id] && (
+                              <div className="bg-white/5 rounded-2xl p-6 text-center">
+                                <div className="animate-pulse">
+                                  <div className="text-white/60 text-sm">Carregando gerentes...</div>
+                                </div>
+                              </div>
+                            )}
+                            
+                            {!clubManagers[club.id] && !clubManagersLoading[club.id] && (
                               <button
                                 onClick={() => loadClubManagers(club.id)}
                                 className="w-full bg-white/5 hover:bg-white/10 text-white/60 hover:text-white font-bold py-3 rounded-xl text-sm transition-all"
@@ -1327,7 +1339,7 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isMa
                               </button>
                             )}
                             
-                            {clubManagers[club.id] && clubManagers[club.id].length === 0 && (
+                            {clubManagers[club.id] && clubManagers[club.id].length === 0 && !clubManagersLoading[club.id] && (
                               <div className="bg-white/5 rounded-2xl p-6 text-center">
                                 <p className="text-white/40 text-sm">
                                   Nenhum gerente criado ainda. Crie o primeiro gerente para delegar o gerenciamento de torneios.
@@ -1335,7 +1347,7 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isMa
                               </div>
                             )}
 
-                            {clubManagers[club.id] && clubManagers[club.id].length > 0 && (
+                            {clubManagers[club.id] && clubManagers[club.id].length > 0 && !clubManagersLoading[club.id] && (
                               <div className="space-y-3">
                                 {clubManagers[club.id].map((manager) => (
                                   <div key={manager.id} className="bg-white/5 rounded-2xl p-4 flex items-center justify-between hover:bg-white/10 transition-all">
