@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { GameState, ActionMessage, PlayerStatus } from '../types';
 import PokerChip from './PokerChip';
 import TableView from './TableView';
+import TournamentBlindTimer from './TournamentBlindTimer';
 
 interface PlayerDashboardProps {
   state: GameState;
@@ -14,6 +15,9 @@ const PlayerDashboard: React.FC<PlayerDashboardProps> = ({ state, playerId, onDi
   const player = state.players.find(p => p.id === playerId);
   if (!player) return <div className="p-10 text-center text-white font-bold">Jogador não encontrado ou desconectado.</div>;
 
+  // Find the tournament this player belongs to
+  const tournament = state.tournaments.find(t => t.id === player.tournamentId);
+  
   // Fix: state.tables -> state.tableStates
   const tableState = state.tableStates.find(t => t.id === player.tableId);
   const isMyTurn = tableState?.currentTurn === playerId;
@@ -88,6 +92,13 @@ const PlayerDashboard: React.FC<PlayerDashboardProps> = ({ state, playerId, onDi
 
       {/* Area de Jogo Central */}
       <div className="flex-1 flex flex-col items-center justify-between p-4 py-8 gap-4 overflow-y-auto custom-scrollbar">
+         
+         {/* Blind Timer - only show if tournament is started */}
+         {tournament && tournament.isStarted && (
+           <div className="w-full max-w-sm">
+             <TournamentBlindTimer tournament={tournament} state={state} onDispatch={onDispatch} />
+           </div>
+         )}
          
          {/* HUD de Pote */}
          <div className="text-center space-y-1">

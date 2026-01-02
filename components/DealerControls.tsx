@@ -2,10 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { GameState, ActionMessage, TournamentConfig, Player, RegisteredPerson, Tournament, RoomTable, BlindInterval, BlindLevel, Club, ClubManager, ClubManagerLoginLog } from '../types';
 import TableView from './TableView';
 import BlindStructureManager from './BlindStructureManager';
-// TODO: TournamentBlindTimer is ready for integration but requires careful JSX structure modification
-// The component is imported and ready to display the automatic blind timer when a tournament is started
-// To integrate: Add <TournamentBlindTimer tournament={currentTourney} state={state} onDispatch={onDispatch} />
-// in the active tournament section (around line 465-475) where tournament details are shown
 import TournamentBlindTimer from './TournamentBlindTimer';
 import { createDefaultBlindStructure } from '../utils/blindStructure';
 import { handleNumericInput, DEFAULT_BREAK_DURATION } from '../utils/inputHelpers';
@@ -554,6 +550,13 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isMa
 
                  {activeTourneyId && currentTourney && (
                    <div className="flex flex-col xl:flex-row gap-8">
+                     {/* Blind Timer */}
+                     {currentTourney.isStarted && (
+                       <div className="xl:w-[400px]">
+                         <TournamentBlindTimer tournament={currentTourney} state={state} onDispatch={onDispatch} />
+                       </div>
+                     )}
+                     
                      <div className="flex-1 glass p-10 rounded-[50px] space-y-8">
                         <div className="flex justify-between items-center">
                            <h3 className="text-2xl font-black text-white italic">Jogadores Disponíveis: {currentTourney.name}</h3>
@@ -1013,9 +1016,19 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isMa
              {/* List tables of active tournament */}
              <div className="flex-1 p-20 flex flex-wrap gap-10 justify-center overflow-y-auto">
                 {currentTourney ? currentTourney.assignedTableIds.map(tid => (
-                  <div key={tid} className="w-full max-w-4xl h-[500px] glass rounded-[100px] border-2 border-white/5 relative group overflow-hidden">
-                     <div className="absolute top-6 left-1/2 -translate-x-1/2 text-white/20 font-black uppercase tracking-widest text-[10px] z-50">Transmissão Mesa {tid} • {currentTourney.acronym}</div>
-                     <TableView state={state} tableId={tid} showEmptySeats={false} />
+                  <div key={tid} className="w-full max-w-6xl space-y-6">
+                    {/* Blind Timer for TV Mode */}
+                    {currentTourney.isStarted && (
+                      <div className="max-w-2xl mx-auto">
+                        <TournamentBlindTimer tournament={currentTourney} state={state} onDispatch={onDispatch} />
+                      </div>
+                    )}
+                    
+                    {/* Table View */}
+                    <div className="w-full h-[500px] glass rounded-[100px] border-2 border-white/5 relative group overflow-hidden">
+                      <div className="absolute top-6 left-1/2 -translate-x-1/2 text-white/20 font-black uppercase tracking-widest text-[10px] z-50">Transmissão Mesa {tid} • {currentTourney.acronym}</div>
+                      <TableView state={state} tableId={tid} showEmptySeats={false} />
+                    </div>
                   </div>
                 )) : (
                   <div className="h-full w-full flex items-center justify-center text-white/5 text-4xl font-black uppercase tracking-[20px]">Nenhuma Mesa Ativa</div>

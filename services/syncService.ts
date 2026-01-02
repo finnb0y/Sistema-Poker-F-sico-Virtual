@@ -94,17 +94,18 @@ export const syncService = {
     // - Tournament owner's userId (when accessing via code)
     if (!currentUserId) {
       // Note: When userId is null, isAdminMode is always false (see setAdminUserId implementation)
-      // This ensures we show the appropriate error message for the current state
+      // This is expected when running in local-only mode or before authentication/code entry
+      // Don't log a warning - just throw an error that will be caught by the dispatcher
       const errorMsg = isAdminMode
         ? 'Sincronização requer login de administrador - faça login para continuar'
-        : 'Sincronização requer acesso via código - entre com um código de acesso válido';
-      console.warn(`⚠️ ${errorMsg}`);
+        : 'Modo local - sincronização via código não está ativa';
       throw new Error(errorMsg);
     }
 
     if (!isSupabaseConfigured() || !supabase) {
-      const errorMsg = 'Supabase não configurado - sincronização multi-dispositivo indisponível - ação será processada localmente';
-      console.warn(`⚠️ ${errorMsg}`);
+      // Supabase not configured - this is expected in local development
+      // Don't log a warning - just throw an error that will be caught by the dispatcher
+      const errorMsg = 'Modo local - sincronização multi-dispositivo não está disponível';
       throw new Error(errorMsg);
     }
 
@@ -138,16 +139,14 @@ export const syncService = {
   subscribe: (callback: (msg: ActionMessage) => void) => {
     // Multi-device mode requires a userId (admin or guest)
     if (!currentUserId) {
-      // Note: When userId is null, isAdminMode is always false (see setAdminUserId implementation)
-      const warningMsg = isAdminMode
-        ? '⚠️ Inscrição requer login de administrador - faça login para habilitar sincronização multi-dispositivo'
-        : '⚠️ Inscrição requer acesso via código - entre com um código de acesso para habilitar sincronização';
-      console.warn(warningMsg);
+      // No userId set - this is expected in local-only mode
+      // Return a no-op cleanup function without logging a warning
       return () => { /* No-op cleanup */ };
     }
 
     if (!isSupabaseConfigured() || !supabase) {
-      console.warn('⚠️ Supabase não configurado - sincronização multi-dispositivo indisponível');
+      // Supabase not configured - this is expected in local development
+      // Return a no-op cleanup function without logging a warning
       return () => { /* No-op cleanup */ };
     }
 
@@ -208,16 +207,14 @@ export const syncService = {
   persistState: async (state: GameState) => {
     // Multi-device mode requires a userId (admin or guest)
     if (!currentUserId) {
-      // Note: When userId is null, isAdminMode is always false (see setAdminUserId implementation)
-      const warningMsg = isAdminMode
-        ? '⚠️ Persistência requer login de administrador - estado não será sincronizado'
-        : '⚠️ Persistência requer acesso via código - estado não será sincronizado';
-      console.warn(warningMsg);
+      // No userId set - this is expected in local-only mode
+      // Don't log a warning - state will only exist locally
       return;
     }
 
     if (!isSupabaseConfigured() || !supabase) {
-      console.warn('⚠️ Supabase não configurado - persistência multi-dispositivo indisponível');
+      // Supabase not configured - this is expected in local development
+      // Don't log a warning - state will only exist locally
       return;
     }
 
@@ -244,16 +241,14 @@ export const syncService = {
   loadState: async (): Promise<GameState | null> => {
     // Multi-device mode requires a userId (admin or guest)
     if (!currentUserId) {
-      // Note: When userId is null, isAdminMode is always false (see setAdminUserId implementation)
-      const warningMsg = isAdminMode
-        ? '⚠️ Carregamento de estado requer login de administrador'
-        : '⚠️ Carregamento de estado requer acesso via código';
-      console.warn(warningMsg);
+      // No userId set - this is expected in local-only mode
+      // Return null to allow initialization of default state
       return null;
     }
 
     if (!isSupabaseConfigured() || !supabase) {
-      console.warn('⚠️ Supabase não configurado - carregamento de estado multi-dispositivo indisponível');
+      // Supabase not configured - this is expected in local development
+      // Return null to allow initialization of default state
       return null;
     }
 
