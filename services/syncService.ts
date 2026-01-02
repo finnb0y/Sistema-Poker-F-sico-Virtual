@@ -104,14 +104,14 @@ export const syncService = {
           }
         }
       )
-      .subscribe((status, err) => {
+      .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
           console.log('✅ Conectado ao Supabase Realtime - sincronização multi-dispositivo ativa');
         } else if (status === 'CHANNEL_ERROR') {
-          console.error('❌ Erro no canal Realtime:', err);
+          console.error('❌ Erro no canal Realtime');
           console.error('   Tentando reconectar automaticamente...');
         } else if (status === 'TIMED_OUT') {
-          console.error('❌ Timeout na conexão Realtime:', err);
+          console.error('❌ Timeout na conexão Realtime');
           console.error('   Tentando reconectar automaticamente...');
         } else if (status === 'CLOSED') {
           console.warn('⚠️ Canal Realtime fechado - tentando reconectar...');
