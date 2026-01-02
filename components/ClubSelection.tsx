@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Club } from '../types';
 import { clubService } from '../services/clubService';
+import { useNotification } from '../contexts/NotificationContext';
 
 interface ClubSelectionProps {
   userId: string;
@@ -9,6 +10,7 @@ interface ClubSelectionProps {
 }
 
 const ClubSelection: React.FC<ClubSelectionProps> = ({ userId, onClubSelect, onBack }) => {
+  const { showNotification } = useNotification();
   const [searchTerm, setSearchTerm] = useState('');
   const [myClubs, setMyClubs] = useState<Club[]>([]);
   const [searchResults, setSearchResults] = useState<Club[]>([]);
@@ -46,7 +48,7 @@ const ClubSelection: React.FC<ClubSelectionProps> = ({ userId, onClubSelect, onB
     e.preventDefault();
     
     if (!newClubName.trim()) {
-      alert('Nome do clube é obrigatório');
+      showNotification('Nome do clube é obrigatório', 'warning');
       return;
     }
 
@@ -62,9 +64,9 @@ const ClubSelection: React.FC<ClubSelectionProps> = ({ userId, onClubSelect, onB
       setShowCreateForm(false);
       setNewClubName('');
       setNewClubDescription('');
-      alert('Clube criado com sucesso!');
+      showNotification('Clube criado com sucesso!', 'success');
     } else {
-      alert(result.error || 'Erro ao criar clube');
+      showNotification(result.error || 'Erro ao criar clube', 'error');
     }
     setIsCreating(false);
   };

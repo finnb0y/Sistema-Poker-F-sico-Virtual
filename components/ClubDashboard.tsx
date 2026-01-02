@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Club, GameState, ActionMessage, ClubManager, ClubManagerLoginLog } from '../types';
 import DealerControls from './DealerControls';
 import { clubService } from '../services/clubService';
+import { useNotification } from '../contexts/NotificationContext';
 
 interface ClubDashboardProps {
   club: Club;
@@ -20,6 +21,7 @@ const ClubDashboard: React.FC<ClubDashboardProps> = ({
   onBack,
   onLogout 
 }) => {
+  const { showNotification, showConfirm } = useNotification();
   const [showManagersTab, setShowManagersTab] = useState(false);
   const [clubManagers, setClubManagers] = useState<ClubManager[]>([]);
   const [clubManagersLoading, setClubManagersLoading] = useState(false);
@@ -71,12 +73,12 @@ const ClubDashboard: React.FC<ClubDashboardProps> = ({
     const trimmedPassword = newManagerPassword.trim();
     
     if (!trimmedUsername || trimmedUsername.length < 3) {
-      alert('Nome de usuário deve ter pelo menos 3 caracteres');
+      showNotification('Nome de usuário deve ter pelo menos 3 caracteres', 'warning');
       return;
     }
 
     if (!trimmedPassword || trimmedPassword.length < 6) {
-      alert('Senha deve ter pelo menos 6 caracteres');
+      showNotification('Senha deve ter pelo menos 6 caracteres', 'warning');
       return;
     }
 
@@ -86,37 +88,43 @@ const ClubDashboard: React.FC<ClubDashboardProps> = ({
       const result = await clubService.createManager(club.id, trimmedUsername, trimmedPassword);
 
       if (result.success && result.manager) {
-        alert('Gerente criado com sucesso!');
+        showNotification('Gerente criado com sucesso!', 'success');
         closeCreateManagerModal();
         loadClubManagers();
       } else {
-        alert(result.error || 'Erro ao criar gerente');
+        showNotification(result.error || 'Erro ao criar gerente', 'error');
       }
     } catch (error) {
       console.error('Error creating manager:', error);
-      alert('Erro ao criar gerente. Tente novamente.');
+      showNotification('Erro ao criar gerente. Tente novamente.', 'error');
     } finally {
       setIsCreatingManager(false);
     }
   };
 
   const handleDeleteManager = async (managerId: string) => {
-    if (!confirm('Tem certeza que deseja excluir este gerente?')) {
-      return;
-    }
+    const confirmed = await showConfirm({
+      title: 'Excluir Gerente',
+      message: 'Tem certeza que deseja excluir este gerente? Esta ação não pode ser desfeita.',
+      confirmText: 'Excluir',
+      cancelText: 'Cancelar',
+      type: 'danger'
+    });
+
+    if (!confirmed) return;
 
     try {
       const result = await clubService.deleteManager(managerId);
       
       if (result.success) {
-        alert('Gerente excluído com sucesso!');
+        showNotification('Gerente excluído com sucesso!', 'success');
         loadClubManagers();
       } else {
-        alert(result.error || 'Erro ao excluir gerente');
+        showNotification(result.error || 'Erro ao excluir gerente', 'error');
       }
     } catch (error) {
       console.error('Error deleting manager:', error);
-      alert('Erro ao excluir gerente. Tente novamente.');
+      showNotification('Erro ao excluir gerente. Tente novamente.', 'error');
     }
   };
 
