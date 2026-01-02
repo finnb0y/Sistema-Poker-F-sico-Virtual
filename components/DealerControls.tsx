@@ -298,6 +298,22 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isMa
     }
   };
 
+  // Helper function to close the create manager modal and reset form
+  const closeCreateManagerModal = () => {
+    setShowCreateManager(null);
+    setNewManagerUsername('');
+    setNewManagerPassword('');
+  };
+
+  // Helper function to open create manager modal and ensure managers are loaded
+  const openCreateManagerModal = (clubId: string) => {
+    setShowCreateManager(clubId);
+    // Load managers if not already loaded
+    if (!clubManagers[clubId] && !clubManagersLoading[clubId]) {
+      loadClubManagers(clubId);
+    }
+  };
+
   // Create a new manager
   const handleCreateManager = async (e: React.FormEvent, clubId: string) => {
     e.preventDefault();
@@ -322,9 +338,7 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isMa
 
       if (result.success && result.manager) {
         alert('Gerente criado com sucesso!');
-        setNewManagerUsername('');
-        setNewManagerPassword('');
-        setShowCreateManager(null);
+        closeCreateManagerModal();
         
         // Reload managers list
         loadClubManagers(clubId);
@@ -1222,13 +1236,7 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isMa
                             <div className="flex items-center justify-between mb-4">
                               <h4 className="text-white font-black text-xl">Gerentes do Clube</h4>
                               <button
-                                onClick={() => {
-                                  setShowCreateManager(club.id);
-                                  // Load managers when opening this section
-                                  if (!clubManagers[club.id]) {
-                                    loadClubManagers(club.id);
-                                  }
-                                }}
+                                onClick={() => openCreateManagerModal(club.id)}
                                 className="bg-blue-600 hover:bg-blue-500 text-white font-black px-6 py-3 rounded-xl text-xs uppercase shadow-lg transition-all"
                               >
                                 ➕ Criar Gerente
@@ -1249,11 +1257,7 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isMa
                                       <p className="text-white/40 text-sm mt-1">Para o clube: {club.name}</p>
                                     </div>
                                     <button 
-                                      onClick={() => {
-                                        setShowCreateManager(null);
-                                        setNewManagerUsername('');
-                                        setNewManagerPassword('');
-                                      }}
+                                      onClick={closeCreateManagerModal}
                                       className="text-white/40 hover:text-white text-2xl"
                                     >
                                       ✕
@@ -1298,11 +1302,7 @@ const DealerControls: React.FC<DealerControlsProps> = ({ state, onDispatch, isMa
                                     <div className="flex gap-4 pt-4">
                                       <button
                                         type="button"
-                                        onClick={() => {
-                                          setShowCreateManager(null);
-                                          setNewManagerUsername('');
-                                          setNewManagerPassword('');
-                                        }}
+                                        onClick={closeCreateManagerModal}
                                         className="flex-1 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white font-black py-4 rounded-2xl text-xs uppercase transition-all"
                                         disabled={isCreatingManager}
                                       >
